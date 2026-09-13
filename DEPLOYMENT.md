@@ -14,15 +14,18 @@ this machine:
 | `cadquery` | 2 MB | pure Python |
 | **Total** | **≈163 MB** | before numpy, FastAPI, PyMuPDF |
 
-An earlier estimate put this at "~500 MB", which was wrong and made the problem
-look worse than it is. 163 MB changes the answer.
+Those are the **Windows** figures, and they turned out to understate the problem
+badly. The Linux wheel set with all transitive dependencies measures **1165 MB**
+when Vercel actually builds it (see below). An early guess of "~500 MB" was
+wrong in both directions: too pessimistic about the local install, far too
+optimistic about a deployed one. Only the measured build settles it.
 
 ## What that rules in and out
 
 | Target | Verdict | Why |
 |---|---|---|
 | Vercel / Netlify functions | **No — measured** | see below |
-| AWS Lambda (zip) | **No** | 250 MB unzipped limit — it might just fit, but with no headroom and a cold start dominated by loading a 118 MB binary |
+| AWS Lambda (zip) | **No** | 250 MB unzipped limit; the measured Linux bundle is 1165 MB |
 | AWS Lambda (container) | Yes | 10 GB image limit; cold starts still poor |
 | **Fly.io / Render / Railway / Cloud Run** | **Yes — recommended** | a plain container, warm process, no cold-start penalty on a 118 MB import |
 | Static hosting (Sites) | Yes, for the **frontend only** | see the fallback below |
