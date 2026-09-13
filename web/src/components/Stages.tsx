@@ -16,13 +16,14 @@ const show = (v: unknown) => (v === null || v === undefined ? '—' : String(v))
 /* --------------------------------------------------------------- sources */
 
 export function SourcesStage({
-  onDemo, onUpload, busy, backendLabel, visionAvailable,
+  onDemo, onUpload, busy, backendLabel, visionAvailable, replay,
 }: {
   onDemo: () => void
   onUpload: (s: File, d: File, r: string) => void
   busy: boolean
   backendLabel: string
   visionAvailable: boolean
+  replay?: { disclaimer: string; limits: string[]; frozen_at: string } | null
 }) {
   const [sketch, setSketch] = useState<File | null>(null)
   const [datasheet, setDatasheet] = useState<File | null>(null)
@@ -39,6 +40,23 @@ export function SourcesStage({
   return (
     <>
       <PanelHead title="Sources" note="three documents, jointly impossible" />
+
+      {replay && (
+        <div className="hatch border-b-2 border-c9 px-3.5 py-3">
+          <div className="text-[11.5px] font-semibold">Recorded replay</div>
+          <p className="mt-1 text-[11px] leading-relaxed text-c8">{replay.disclaimer}</p>
+          <ul className="mt-2 space-y-1">
+            {replay.limits.map((l) => (
+              <li key={l} className="flex gap-1.5 text-[11px] leading-relaxed text-c7">
+                <span aria-hidden className="num">–</span>{l}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[10.5px] text-c6">
+            frozen {new Date(replay.frozen_at).toISOString().slice(0, 16).replace('T', ' ')} UTC
+          </p>
+        </div>
+      )}
 
       <div className="p-3.5">
         <Button intent="solid" size="md" className="w-full" onClick={onDemo} disabled={busy}>

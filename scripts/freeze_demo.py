@@ -24,6 +24,7 @@ from pathlib import Path
 
 from spec2cad.cad.executor import export_step, export_stl
 from spec2cad.pipeline import repair, run
+from spec2cad.preview import NoRegion, render_evidence_preview
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / "examples" / "motor_adapter"
@@ -66,6 +67,16 @@ def main(argv: list[str] | None = None) -> int:
     for name in ("sketch.png", "motor_datasheet.pdf", "requirement.txt"):
         shutil.copy2(EXAMPLE / name, out / "sources" / name)
 
+    # Pre-render every highlight, using the same renderer the live API uses, so
+    # click-to-trace keeps working with no server behind it.
+    previews = 0
+    for ev in result.evidence.items:
+        try:
+            render_evidence_preview(ev, EXAMPLE, out / "previews" / f"{ev.id}.png")
+            previews += 1
+        except (NoRegion, FileNotFoundError):
+            continue        # rule-derived evidence has no region to point at
+
     manifest = {
         "mode": "recorded_replay",
         "disclaimer": (
@@ -77,6 +88,12 @@ def main(argv: list[str] | None = None) -> int:
         "sketch_backend": result.sketch_backend,
         "contains_fixture_evidence": result.evidence.contains_fixture_data,
         "applied_proposal": args.proposal,
+        "previews_rendered": previews,
+        "limits": [
+            "Only the recorded run replays; documents cannot be uploaded.",
+            f"Only the {args.proposal!r} resolution has a rebuilt revision. The "
+            f"other options are shown but cannot be applied without a CAD kernel.",
+        ],
         "revisions": [
             {
                 "revision": rev.revision,

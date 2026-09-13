@@ -1,0 +1,1388 @@
+{
+  "mode": "recorded_replay",
+  "disclaimer": "This is a recording of a pipeline run, not live generation. No CAD kernel is running behind this page. The STEP offered is the frozen artifact that the release gate authorised at the time of recording.",
+  "frozen_at": "2026-09-13T21:52:50.309237+00:00",
+  "sketch_backend": "recorded fixture (no vision API key configured)",
+  "contains_fixture_evidence": true,
+  "applied_proposal": "widen_to_recommended",
+  "previews_rendered": 9,
+  "limits": [
+    "Only the recorded run replays; documents cannot be uploaded.",
+    "Only the 'widen_to_recommended' resolution has a rebuilt revision. The other options are shown but cannot be applied without a CAD kernel."
+  ],
+  "revisions": [
+    {
+      "revision": 1,
+      "released": false,
+      "stl": "artifacts/v1.stl",
+      "step": null,
+      "script": "artifacts/v1.script.py"
+    },
+    {
+      "revision": 2,
+      "released": true,
+      "stl": "artifacts/v2.stl",
+      "step": "artifacts/v2.step",
+      "script": "artifacts/v2.script.py"
+    }
+  ],
+  "state": {
+    "run_id": "frozen",
+    "sketch_backend": "recorded fixture (no vision API key configured)",
+    "sketch_fell_back": false,
+    "sketch_fallback_reason": null,
+    "contains_fixture_evidence": true,
+    "evidence": [
+      {
+        "id": "ev_sketch_plate_width",
+        "target": "plate_width",
+        "kind": "linear_dimension",
+        "value": 40.0,
+        "unit": "mm",
+        "source": {
+          "file": "sketch.png",
+          "modality": "sketch",
+          "page": null,
+          "region": [
+            416.0,
+            584.0,
+            460.0,
+            617.0
+          ],
+          "detail": "replayed from recorded fixture"
+        },
+        "extraction_method": "recorded_fixture",
+        "confidence": 0.98,
+        "authority": "definitive",
+        "is_explicit_annotation": true,
+        "is_fixture": true,
+        "raw_text": "40",
+        "original_value": null,
+        "has_preview": true
+      },
+      {
+        "id": "ev_sketch_plate_height",
+        "target": "plate_height",
+        "kind": "linear_dimension",
+        "value": 50.0,
+        "unit": "mm",
+        "source": {
+          "file": "sketch.png",
+          "modality": "sketch",
+          "page": null,
+          "region": [
+            656.0,
+            325.0,
+            700.0,
+            358.0
+          ],
+          "detail": "replayed from recorded fixture"
+        },
+        "extraction_method": "recorded_fixture",
+        "confidence": 0.98,
+        "authority": "definitive",
+        "is_explicit_annotation": true,
+        "is_fixture": true,
+        "raw_text": "50",
+        "original_value": null,
+        "has_preview": true
+      },
+      {
+        "id": "ev_sketch_mounting_hole_count",
+        "target": "mounting_hole_count",
+        "kind": "count",
+        "value": 4,
+        "unit": null,
+        "source": {
+          "file": "sketch.png",
+          "modality": "sketch",
+          "page": null,
+          "region": [
+            36.0,
+            438.0,
+            188.0,
+            467.0
+          ],
+          "detail": "replayed from recorded fixture"
+        },
+        "extraction_method": "recorded_fixture",
+        "confidence": 0.93,
+        "authority": "supporting",
+        "is_explicit_annotation": true,
+        "is_fixture": true,
+        "raw_text": "4x mounting holes",
+        "original_value": null,
+        "has_preview": true
+      },
+      {
+        "id": "ev_sketch_orientation_note",
+        "target": "orientation_note",
+        "kind": "note",
+        "value": "MOTOR SIDE",
+        "unit": null,
+        "source": {
+          "file": "sketch.png",
+          "modality": "sketch",
+          "page": null,
+          "region": [
+            36.0,
+            438.0,
+            188.0,
+            467.0
+          ],
+          "detail": "replayed from recorded fixture"
+        },
+        "extraction_method": "recorded_fixture",
+        "confidence": 0.95,
+        "authority": "supporting",
+        "is_explicit_annotation": true,
+        "is_fixture": true,
+        "raw_text": "MOTOR SIDE",
+        "original_value": null,
+        "has_preview": true
+      },
+      {
+        "id": "ev_ds_hole_spacing_x",
+        "target": "hole_spacing_x",
+        "kind": "hole_pattern",
+        "value": 31.0,
+        "unit": "mm",
+        "source": {
+          "file": "motor_datasheet.pdf",
+          "modality": "datasheet",
+          "page": 3,
+          "region": [
+            330.0,
+            241.3000030517578,
+            383.9200134277344,
+            255.07000732421875
+          ],
+          "detail": null
+        },
+        "extraction_method": "pdf_text_layout",
+        "confidence": 0.97,
+        "authority": "definitive",
+        "is_explicit_annotation": true,
+        "is_fixture": false,
+        "raw_text": "Mounting hole pattern 31 x 31 mm",
+        "original_value": null,
+        "has_preview": true
+      },
+      {
+        "id": "ev_ds_hole_spacing_y",
+        "target": "hole_spacing_y",
+        "kind": "hole_pattern",
+        "value": 31.0,
+        "unit": "mm",
+        "source": {
+          "file": "motor_datasheet.pdf",
+          "modality": "datasheet",
+          "page": 3,
+          "region": [
+            330.0,
+            241.3000030517578,
+            383.9200134277344,
+            255.07000732421875
+          ],
+          "detail": null
+        },
+        "extraction_method": "pdf_text_layout",
+        "confidence": 0.97,
+        "authority": "definitive",
+        "is_explicit_annotation": true,
+        "is_fixture": false,
+        "raw_text": "Mounting hole pattern 31 x 31 mm",
+        "original_value": null,
+        "has_preview": true
+      },
+      {
+        "id": "ev_ds_mounting_hole_count",
+        "target": "mounting_hole_count",
+        "kind": "count",
+        "value": 4,
+        "unit": null,
+        "source": {
+          "file": "motor_datasheet.pdf",
+          "modality": "datasheet",
+          "page": 3,
+          "region": [
+            330.0,
+            267.29998779296875,
+            335.55999755859375,
+            281.07000732421875
+          ],
+          "detail": null
+        },
+        "extraction_method": "pdf_text_layout",
+        "confidence": 0.97,
+        "authority": "definitive",
+        "is_explicit_annotation": true,
+        "is_fixture": false,
+        "raw_text": "Number of mounting holes 4",
+        "original_value": null,
+        "has_preview": true
+      },
+      {
+        "id": "ev_ds_mounting_thread_spec",
+        "target": "mounting_thread_spec",
+        "kind": "thread_callout",
+        "value": "M3",
+        "unit": null,
+        "source": {
+          "file": "motor_datasheet.pdf",
+          "modality": "datasheet",
+          "page": 3,
+          "region": [
+            330.0,
+            293.29998779296875,
+            343.8899841308594,
+            307.07000732421875
+          ],
+          "detail": null
+        },
+        "extraction_method": "pdf_text_layout",
+        "confidence": 0.97,
+        "authority": "definitive",
+        "is_explicit_annotation": true,
+        "is_fixture": false,
+        "raw_text": "Mounting screw size M3",
+        "original_value": null,
+        "has_preview": true
+      },
+      {
+        "id": "ev_ds_motor_boss_diameter",
+        "target": "motor_boss_diameter",
+        "kind": "diameter",
+        "value": 22.0,
+        "unit": "mm",
+        "source": {
+          "file": "motor_datasheet.pdf",
+          "modality": "datasheet",
+          "page": 3,
+          "region": [
+            330.0,
+            319.29998779296875,
+            361.6800231933594,
+            333.07000732421875
+          ],
+          "detail": null
+        },
+        "extraction_method": "pdf_text_layout",
+        "confidence": 0.97,
+        "authority": "definitive",
+        "is_explicit_annotation": true,
+        "is_fixture": false,
+        "raw_text": "Pilot boss diameter 22 mm",
+        "original_value": null,
+        "has_preview": true
+      },
+      {
+        "id": "ev_txt_plate_thickness",
+        "target": "plate_thickness",
+        "kind": "linear_dimension",
+        "value": 5.0,
+        "unit": "mm",
+        "source": {
+          "file": "requirement.txt",
+          "modality": "requirement_text",
+          "page": null,
+          "region": null,
+          "detail": null
+        },
+        "extraction_method": "rule_parser",
+        "confidence": 0.99,
+        "authority": "definitive",
+        "is_explicit_annotation": true,
+        "is_fixture": false,
+        "raw_text": "5 mm aluminium",
+        "original_value": null,
+        "has_preview": false
+      },
+      {
+        "id": "ev_txt_material",
+        "target": "material",
+        "kind": "material_spec",
+        "value": "Aluminium",
+        "unit": null,
+        "source": {
+          "file": "requirement.txt",
+          "modality": "requirement_text",
+          "page": null,
+          "region": null,
+          "detail": null
+        },
+        "extraction_method": "rule_parser",
+        "confidence": 0.99,
+        "authority": "definitive",
+        "is_explicit_annotation": true,
+        "is_fixture": false,
+        "raw_text": "5 mm aluminium",
+        "original_value": null,
+        "has_preview": false
+      },
+      {
+        "id": "ev_txt_thread",
+        "target": "mounting_thread_spec",
+        "kind": "thread_callout",
+        "value": "M3",
+        "unit": null,
+        "source": {
+          "file": "requirement.txt",
+          "modality": "requirement_text",
+          "page": null,
+          "region": null,
+          "detail": null
+        },
+        "extraction_method": "rule_parser",
+        "confidence": 0.98,
+        "authority": "supporting",
+        "is_explicit_annotation": true,
+        "is_fixture": false,
+        "raw_text": "Manufacture the adapter from 5 mm aluminium. Use normal-clearance holes for M3 screws, maintain at least 4 mm from eve",
+        "original_value": null,
+        "has_preview": false
+      },
+      {
+        "id": "ev_rule_hole_diameter",
+        "target": "mounting_hole_diameter",
+        "kind": "diameter",
+        "value": 3.4,
+        "unit": "mm",
+        "source": {
+          "file": "ISO 273 medium series",
+          "modality": "engineering_rule",
+          "page": null,
+          "region": null,
+          "detail": "ISO 273 medium series"
+        },
+        "extraction_method": "knowledge_table",
+        "confidence": 1.0,
+        "authority": "definitive",
+        "is_explicit_annotation": false,
+        "is_fixture": false,
+        "raw_text": "M3 medium clearance",
+        "original_value": null,
+        "has_preview": false
+      },
+      {
+        "id": "ev_txt_edge_clearance",
+        "target": "min_hole_edge_clearance",
+        "kind": "constraint",
+        "value": 4.0,
+        "unit": "mm",
+        "source": {
+          "file": "requirement.txt",
+          "modality": "requirement_text",
+          "page": null,
+          "region": null,
+          "detail": null
+        },
+        "extraction_method": "rule_parser",
+        "confidence": 0.99,
+        "authority": "definitive",
+        "is_explicit_annotation": true,
+        "is_fixture": false,
+        "raw_text": "at least 4 mm from every hole edge",
+        "original_value": null,
+        "has_preview": false
+      },
+      {
+        "id": "ev_txt_chamfer",
+        "target": "external_chamfer",
+        "kind": "feature_callout",
+        "value": 1.0,
+        "unit": "mm",
+        "source": {
+          "file": "requirement.txt",
+          "modality": "requirement_text",
+          "page": null,
+          "region": null,
+          "detail": null
+        },
+        "extraction_method": "rule_parser",
+        "confidence": 0.97,
+        "authority": "definitive",
+        "is_explicit_annotation": true,
+        "is_fixture": false,
+        "raw_text": "1 mm chamfers",
+        "original_value": null,
+        "has_preview": false
+      },
+      {
+        "id": "ev_txt_process",
+        "target": "manufacturing_process",
+        "kind": "process_spec",
+        "value": "machining",
+        "unit": null,
+        "source": {
+          "file": "requirement.txt",
+          "modality": "requirement_text",
+          "page": null,
+          "region": null,
+          "detail": null
+        },
+        "extraction_method": "rule_parser",
+        "confidence": 0.72,
+        "authority": "advisory",
+        "is_explicit_annotation": false,
+        "is_fixture": false,
+        "raw_text": "inferred from machined-feature callouts (chamfer)",
+        "original_value": null,
+        "has_preview": false
+      }
+    ],
+    "revisions": [
+      {
+        "revision": 1,
+        "parent_revision": null,
+        "lineage": "v1 (original)",
+        "applied_proposal": null,
+        "approved_by": null,
+        "changes": [],
+        "part": {
+          "name": "motor_adapter_plate",
+          "material": "Aluminium",
+          "manufacturing_process": "machining"
+        },
+        "parameters": {
+          "plate_width": {
+            "value": 40.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [
+              "ev_sketch_plate_width"
+            ],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": "single source (sketch)",
+            "competing_values": []
+          },
+          "plate_height": {
+            "value": 50.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [
+              "ev_sketch_plate_height"
+            ],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": "single source (sketch)",
+            "competing_values": []
+          },
+          "plate_thickness": {
+            "value": 5.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [
+              "ev_txt_plate_thickness"
+            ],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          "hole_spacing_x": {
+            "value": 31.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [
+              "ev_ds_hole_spacing_x"
+            ],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": "single source (datasheet)",
+            "competing_values": []
+          },
+          "hole_spacing_y": {
+            "value": 31.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [
+              "ev_ds_hole_spacing_y"
+            ],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": "single source (datasheet)",
+            "competing_values": []
+          },
+          "mounting_hole_count": {
+            "value": 4,
+            "unit": null,
+            "status": "confirmed",
+            "provenance": [
+              "ev_sketch_mounting_hole_count",
+              "ev_ds_mounting_hole_count"
+            ],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": "agreed by 2 sources",
+            "competing_values": []
+          },
+          "mounting_hole_diameter": {
+            "value": 3.4,
+            "unit": "mm",
+            "status": "inferred",
+            "provenance": [
+              "ev_rule_hole_diameter"
+            ],
+            "authority": "definitive",
+            "is_explicit": false,
+            "derivation": "single source (engineering_rule)",
+            "competing_values": []
+          },
+          "motor_boss_diameter": {
+            "value": 22.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [
+              "ev_ds_motor_boss_diameter"
+            ],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": "single source (datasheet)",
+            "competing_values": []
+          },
+          "external_chamfer": {
+            "value": 1.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [
+              "ev_txt_chamfer"
+            ],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          "shaft_opening_diameter": {
+            "value": 22.5,
+            "unit": "mm",
+            "status": "inferred",
+            "provenance": [
+              "ev_ds_motor_boss_diameter"
+            ],
+            "authority": "definitive",
+            "is_explicit": false,
+            "derivation": "pilot boss 22.0 mm + 0.5 mm fit allowance",
+            "competing_values": []
+          }
+        },
+        "constraints": [
+          {
+            "id": "c_min_hole_edge_clearance",
+            "type": "min_hole_edge_clearance",
+            "value": 4.0,
+            "unit": "mm",
+            "severity": "hard",
+            "description": "minimum material between any mounting-hole edge and the plate boundary"
+          }
+        ],
+        "feature_sequence": [
+          "base_plate (box)",
+          "shaft_opening (hole)",
+          "mounting_holes (rectangular_hole_pattern)",
+          "external_chamfers (chamfer)"
+        ],
+        "preflight": [
+          {
+            "id": "pre_completeness",
+            "stage": "preflight",
+            "name": "All required parameters present",
+            "status": "pass",
+            "expected": "no missing parameters",
+            "actual": "none missing",
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "every parameter the design needs has a value"
+          },
+          {
+            "id": "pre_source_conflicts",
+            "stage": "preflight",
+            "name": "Sources agree on every parameter",
+            "status": "pass",
+            "expected": "no explicit disagreements",
+            "actual": "none",
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "no two sources explicitly state different values for the same parameter"
+          },
+          {
+            "id": "pre_edge_clearance_x",
+            "stage": "preflight",
+            "name": "Hole edge clearance (x)",
+            "status": "fail",
+            "expected": ">= 4 mm",
+            "actual": "2.8 mm",
+            "required_value": 4.0,
+            "measured_value": 2.8,
+            "conflict_class": "constraint_conflict",
+            "responsible_parameters": [
+              "plate_width",
+              "hole_spacing_x",
+              "mounting_hole_diameter"
+            ],
+            "message": "the 40 mm plate width conflicts with the 31 mm hole pattern and the required 4 mm edge clearance: only 2.8 mm is available. The minimum feasible plate width is 42.4 mm."
+          },
+          {
+            "id": "pre_edge_clearance_y",
+            "stage": "preflight",
+            "name": "Hole edge clearance (y)",
+            "status": "pass",
+            "expected": ">= 4 mm",
+            "actual": "7.8 mm",
+            "required_value": 4.0,
+            "measured_value": 7.8,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "7.8 mm of material between hole edge and boundary"
+          },
+          {
+            "id": "pre_chamfer",
+            "stage": "preflight",
+            "name": "Chamfer fits in plane",
+            "status": "pass",
+            "expected": "< 20 mm (half the smallest in-plane dimension)",
+            "actual": "1 mm",
+            "required_value": 20.0,
+            "measured_value": 1.0,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "1 mm chamfer is within the in-plane limit"
+          },
+          {
+            "id": "pre_hole_overlap",
+            "stage": "preflight",
+            "name": "Shaft opening clears mounting holes",
+            "status": "pass",
+            "expected": "> 0 mm of material between openings",
+            "actual": "8.97 mm",
+            "required_value": 0.0,
+            "measured_value": 8.97031,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "8.97 mm of material separates the shaft opening from each mounting hole"
+          }
+        ],
+        "measured": [
+          {
+            "id": "top_valid_solid",
+            "stage": "topology",
+            "name": "Valid solid",
+            "status": "pass",
+            "expected": "yes",
+            "actual": "yes",
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "the kernel reports a topologically valid shape"
+          },
+          {
+            "id": "top_body_count",
+            "stage": "topology",
+            "name": "Body count",
+            "status": "pass",
+            "expected": "1",
+            "actual": "1",
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "a single connected body"
+          },
+          {
+            "id": "top_positive_volume",
+            "stage": "topology",
+            "name": "Positive volume",
+            "status": "pass",
+            "expected": "> 0 mm3",
+            "actual": "7820.3768 mm3",
+            "required_value": null,
+            "measured_value": 7820.376843522717,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "the solid encloses material"
+          },
+          {
+            "id": "top_through_holes",
+            "stage": "topology",
+            "name": "All openings pass through",
+            "status": "pass",
+            "expected": "every opening present on both faces",
+            "actual": "5 openings, matching",
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "each opening appears identically on the top and bottom faces"
+          },
+          {
+            "id": "top_material_integrity",
+            "stage": "topology",
+            "name": "Volume matches analytic model",
+            "status": "pass",
+            "expected": "7820.376844 mm3",
+            "actual": "7820.376844 mm3",
+            "required_value": 7820.376843522719,
+            "measured_value": 7820.376843522717,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "measured volume agrees with the analytic model to 2.73e-12 mm3"
+          },
+          {
+            "id": "dim_plate_width",
+            "stage": "dimensional",
+            "name": "Plate width",
+            "status": "pass",
+            "expected": "40 mm",
+            "actual": "40 mm",
+            "required_value": 40.0,
+            "measured_value": 40.0,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "measured 40 mm against an intended 40 mm"
+          },
+          {
+            "id": "dim_plate_height",
+            "stage": "dimensional",
+            "name": "Plate height",
+            "status": "pass",
+            "expected": "50 mm",
+            "actual": "50 mm",
+            "required_value": 50.0,
+            "measured_value": 50.0,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "measured 50 mm against an intended 50 mm"
+          },
+          {
+            "id": "dim_plate_thickness",
+            "stage": "dimensional",
+            "name": "Plate thickness",
+            "status": "pass",
+            "expected": "5 mm",
+            "actual": "5 mm",
+            "required_value": 5.0,
+            "measured_value": 5.0,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "measured 5 mm against an intended 5 mm"
+          },
+          {
+            "id": "dim_hole_count",
+            "stage": "dimensional",
+            "name": "Mounting hole count",
+            "status": "pass",
+            "expected": "4",
+            "actual": "4",
+            "required_value": 4.0,
+            "measured_value": 4.0,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "4 mounting holes of the intended diameter were found"
+          },
+          {
+            "id": "dim_hole_diameter",
+            "stage": "dimensional",
+            "name": "Mounting hole diameter",
+            "status": "pass",
+            "expected": "3.4 mm",
+            "actual": "3.4 mm",
+            "required_value": 3.4,
+            "measured_value": 3.4,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "measured 3.4 mm against an intended 3.4 mm"
+          },
+          {
+            "id": "dim_hole_spacing_x",
+            "stage": "dimensional",
+            "name": "Hole spacing (x)",
+            "status": "pass",
+            "expected": "31 mm",
+            "actual": "31 mm",
+            "required_value": 31.0,
+            "measured_value": 31.0,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "measured 31 mm against an intended 31 mm"
+          },
+          {
+            "id": "dim_hole_spacing_y",
+            "stage": "dimensional",
+            "name": "Hole spacing (y)",
+            "status": "pass",
+            "expected": "31 mm",
+            "actual": "31 mm",
+            "required_value": 31.0,
+            "measured_value": 31.0,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "measured 31 mm against an intended 31 mm"
+          },
+          {
+            "id": "dim_shaft_opening",
+            "stage": "dimensional",
+            "name": "Shaft opening diameter",
+            "status": "pass",
+            "expected": "22.5 mm",
+            "actual": "22.5 mm",
+            "required_value": 22.5,
+            "measured_value": 22.5,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "measured 22.5 mm against an intended 22.5 mm"
+          },
+          {
+            "id": "req_edge_clearance",
+            "stage": "requirement",
+            "name": "Minimum hole edge clearance",
+            "status": "fail",
+            "expected": ">= 4 mm",
+            "actual": "2.8 mm",
+            "required_value": 4.0,
+            "measured_value": 2.8,
+            "conflict_class": "constraint_conflict",
+            "responsible_parameters": [
+              "plate_width",
+              "hole_spacing_x",
+              "mounting_hole_diameter"
+            ],
+            "message": "measured only 2.8 mm between the nearest mounting-hole edge and the plate boundary, against a required 4 mm. The minimum feasible plate width is 42.4 mm."
+          }
+        ],
+        "cross_checks": [
+          {
+            "id": "xcheck_req_edge_clearance",
+            "stage": "requirement",
+            "name": "Preflight prediction matches measurement",
+            "status": "pass",
+            "expected": "predicted 2.8 mm",
+            "actual": "measured 2.8 mm",
+            "required_value": 2.8,
+            "measured_value": 2.8,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "the symbolic prediction agrees with the measured geometry"
+          }
+        ],
+        "build_error": null,
+        "release": {
+          "status": "blocked",
+          "step_export_allowed": false,
+          "watermark": "PROVISIONAL - NOT FOR MANUFACTURE",
+          "reasons": [
+            "measured only 2.8 mm between the nearest mounting-hole edge and the plate boundary, against a required 4 mm. The minimum feasible plate width is 42.4 mm."
+          ],
+          "explanation": "Release BLOCKED for DesignIntent v1. STEP export is withheld.\n  - measured only 2.8 mm between the nearest mounting-hole edge and the plate boundary, against a required 4 mm. The minimum feasible plate width is 42.4 mm.",
+          "responsible_parameters": [
+            "plate_width",
+            "hole_spacing_x",
+            "mounting_hole_diameter"
+          ]
+        },
+        "proposals": [
+          {
+            "id": "widen_to_minimum",
+            "title": "Increase plate width to 42.4 mm (minimum feasible)",
+            "safety": "safe",
+            "updates": {
+              "plate_width": 42.4
+            },
+            "rationale": "plate_width >= hole_spacing_x + hole_diameter + 2 x clearance = 31 + 3.4 + 2 x 4 = 42.4 mm. This satisfies the requirement exactly, with no margin.",
+            "consequence": null,
+            "recommended": false,
+            "auto_applicable": true
+          },
+          {
+            "id": "widen_to_recommended",
+            "title": "Increase plate width to 45 mm (recommended)",
+            "safety": "safe",
+            "updates": {
+              "plate_width": 45.0
+            },
+            "rationale": "minimum feasible 42.4 mm; recommended 45 mm (rounded up to the next 5 mm increment, leaving 2.6 mm margin). Widening the plate does not change how the part mates with the motor.",
+            "consequence": null,
+            "recommended": true,
+            "auto_applicable": true
+          },
+          {
+            "id": "relax_clearance",
+            "title": "Reduce the minimum edge clearance below 4 mm",
+            "safety": "unsafe",
+            "updates": {},
+            "rationale": "the geometry would pass if the requirement were lowered to 2.8 mm",
+            "consequence": "This discards a stated hard manufacturing requirement rather than meeting it. The thin remaining material is what the requirement exists to prevent. Requires a decision from whoever set it.",
+            "recommended": false,
+            "auto_applicable": false
+          },
+          {
+            "id": "change_hole_pattern",
+            "title": "Move the mounting holes closer together",
+            "safety": "unsafe",
+            "updates": {},
+            "rationale": "reducing hole_spacing_x would also satisfy the clearance",
+            "consequence": "The hole pattern is dictated by the motor datasheet. Changing it produces a part that builds cleanly, passes every check against the altered intent, and does not bolt to the motor. The failure would not surface until assembly.",
+            "recommended": false,
+            "auto_applicable": false
+          }
+        ],
+        "script": "\"\"\"Generated by spec2cad from a typed CADProgram.\n\npart:     motor_adapter_plate\nrevision: DesignIntent v1\n\nThis file is produced for review. The pipeline does not execute it -- the\nexecutor builds from the typed feature plan directly.\n\"\"\"\n\nimport cadquery as cq\n\n# --- parameters, resolved from DesignIntent ---\nexternal_chamfer = 1\nhole_spacing_x = 31\nhole_spacing_y = 31\nmounting_hole_diameter = 3.4\nplate_height = 50\nplate_thickness = 5\nplate_width = 40\nshaft_opening_diameter = 22.5\n\n# --- feature plan ---\nresult = (cq.Workplane('XY').box(plate_width, plate_height, plate_thickness, centered=True))\nresult = (result.faces(\">Z\").workplane(origin=(0, 0, 0)).moveTo(0, 0).circle(shaft_opening_diameter / 2).cutThruAll())   # shaft_opening\nresult = (result.faces(\">Z\").workplane().rect(hole_spacing_x, hole_spacing_y, forConstruction=True).vertices().hole(mounting_hole_diameter))   # mounting_holes\nresult = (result.edges(\"|Z\").edges(ExternalVerticalEdges(width, height)).chamfer(external_chamfer))   # external_chamfers\n\n# cq.exporters.export(result.val(), 'part.step')\n"
+      },
+      {
+        "revision": 2,
+        "parent_revision": 1,
+        "lineage": "v2 from v1 via widen_to_recommended approved by frozen-demo [plate_width: 40.0 -> 45.0]",
+        "applied_proposal": "widen_to_recommended",
+        "approved_by": "frozen-demo",
+        "changes": [
+          {
+            "parameter": "plate_width",
+            "before": 40.0,
+            "after": 45.0,
+            "reason": "Increase plate width to 45 mm (recommended)"
+          }
+        ],
+        "part": {
+          "name": "motor_adapter_plate",
+          "material": "Aluminium",
+          "manufacturing_process": "machining"
+        },
+        "parameters": {
+          "plate_width": {
+            "value": 45.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [
+              "ev_sketch_plate_width"
+            ],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": "single source (sketch)",
+            "competing_values": []
+          },
+          "plate_height": {
+            "value": 50.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [
+              "ev_sketch_plate_height"
+            ],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": "single source (sketch)",
+            "competing_values": []
+          },
+          "plate_thickness": {
+            "value": 5.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [
+              "ev_txt_plate_thickness"
+            ],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          "hole_spacing_x": {
+            "value": 31.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [
+              "ev_ds_hole_spacing_x"
+            ],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": "single source (datasheet)",
+            "competing_values": []
+          },
+          "hole_spacing_y": {
+            "value": 31.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [
+              "ev_ds_hole_spacing_y"
+            ],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": "single source (datasheet)",
+            "competing_values": []
+          },
+          "mounting_hole_count": {
+            "value": 4,
+            "unit": null,
+            "status": "confirmed",
+            "provenance": [
+              "ev_sketch_mounting_hole_count",
+              "ev_ds_mounting_hole_count"
+            ],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": "agreed by 2 sources",
+            "competing_values": []
+          },
+          "mounting_hole_diameter": {
+            "value": 3.4,
+            "unit": "mm",
+            "status": "inferred",
+            "provenance": [
+              "ev_rule_hole_diameter"
+            ],
+            "authority": "definitive",
+            "is_explicit": false,
+            "derivation": "single source (engineering_rule)",
+            "competing_values": []
+          },
+          "motor_boss_diameter": {
+            "value": 22.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [
+              "ev_ds_motor_boss_diameter"
+            ],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": "single source (datasheet)",
+            "competing_values": []
+          },
+          "external_chamfer": {
+            "value": 1.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [
+              "ev_txt_chamfer"
+            ],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          "shaft_opening_diameter": {
+            "value": 22.5,
+            "unit": "mm",
+            "status": "inferred",
+            "provenance": [
+              "ev_ds_motor_boss_diameter"
+            ],
+            "authority": "definitive",
+            "is_explicit": false,
+            "derivation": "pilot boss 22.0 mm + 0.5 mm fit allowance",
+            "competing_values": []
+          }
+        },
+        "constraints": [
+          {
+            "id": "c_min_hole_edge_clearance",
+            "type": "min_hole_edge_clearance",
+            "value": 4.0,
+            "unit": "mm",
+            "severity": "hard",
+            "description": "minimum material between any mounting-hole edge and the plate boundary"
+          }
+        ],
+        "feature_sequence": [
+          "base_plate (box)",
+          "shaft_opening (hole)",
+          "mounting_holes (rectangular_hole_pattern)",
+          "external_chamfers (chamfer)"
+        ],
+        "preflight": [
+          {
+            "id": "pre_completeness",
+            "stage": "preflight",
+            "name": "All required parameters present",
+            "status": "pass",
+            "expected": "no missing parameters",
+            "actual": "none missing",
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "every parameter the design needs has a value"
+          },
+          {
+            "id": "pre_source_conflicts",
+            "stage": "preflight",
+            "name": "Sources agree on every parameter",
+            "status": "pass",
+            "expected": "no explicit disagreements",
+            "actual": "none",
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "no two sources explicitly state different values for the same parameter"
+          },
+          {
+            "id": "pre_edge_clearance_x",
+            "stage": "preflight",
+            "name": "Hole edge clearance (x)",
+            "status": "pass",
+            "expected": ">= 4 mm",
+            "actual": "5.3 mm",
+            "required_value": 4.0,
+            "measured_value": 5.3,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "5.3 mm of material between hole edge and boundary"
+          },
+          {
+            "id": "pre_edge_clearance_y",
+            "stage": "preflight",
+            "name": "Hole edge clearance (y)",
+            "status": "pass",
+            "expected": ">= 4 mm",
+            "actual": "7.8 mm",
+            "required_value": 4.0,
+            "measured_value": 7.8,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "7.8 mm of material between hole edge and boundary"
+          },
+          {
+            "id": "pre_chamfer",
+            "stage": "preflight",
+            "name": "Chamfer fits in plane",
+            "status": "pass",
+            "expected": "< 22.5 mm (half the smallest in-plane dimension)",
+            "actual": "1 mm",
+            "required_value": 22.5,
+            "measured_value": 1.0,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "1 mm chamfer is within the in-plane limit"
+          },
+          {
+            "id": "pre_hole_overlap",
+            "stage": "preflight",
+            "name": "Shaft opening clears mounting holes",
+            "status": "pass",
+            "expected": "> 0 mm of material between openings",
+            "actual": "8.97 mm",
+            "required_value": 0.0,
+            "measured_value": 8.97031,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "8.97 mm of material separates the shaft opening from each mounting hole"
+          }
+        ],
+        "measured": [
+          {
+            "id": "top_valid_solid",
+            "stage": "topology",
+            "name": "Valid solid",
+            "status": "pass",
+            "expected": "yes",
+            "actual": "yes",
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "the kernel reports a topologically valid shape"
+          },
+          {
+            "id": "top_body_count",
+            "stage": "topology",
+            "name": "Body count",
+            "status": "pass",
+            "expected": "1",
+            "actual": "1",
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "a single connected body"
+          },
+          {
+            "id": "top_positive_volume",
+            "stage": "topology",
+            "name": "Positive volume",
+            "status": "pass",
+            "expected": "> 0 mm3",
+            "actual": "9070.3768 mm3",
+            "required_value": null,
+            "measured_value": 9070.376843522714,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "the solid encloses material"
+          },
+          {
+            "id": "top_through_holes",
+            "stage": "topology",
+            "name": "All openings pass through",
+            "status": "pass",
+            "expected": "every opening present on both faces",
+            "actual": "5 openings, matching",
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "each opening appears identically on the top and bottom faces"
+          },
+          {
+            "id": "top_material_integrity",
+            "stage": "topology",
+            "name": "Volume matches analytic model",
+            "status": "pass",
+            "expected": "9070.376844 mm3",
+            "actual": "9070.376844 mm3",
+            "required_value": 9070.376843522718,
+            "measured_value": 9070.376843522714,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "measured volume agrees with the analytic model to 3.64e-12 mm3"
+          },
+          {
+            "id": "dim_plate_width",
+            "stage": "dimensional",
+            "name": "Plate width",
+            "status": "pass",
+            "expected": "45 mm",
+            "actual": "45 mm",
+            "required_value": 45.0,
+            "measured_value": 45.0,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "measured 45 mm against an intended 45 mm"
+          },
+          {
+            "id": "dim_plate_height",
+            "stage": "dimensional",
+            "name": "Plate height",
+            "status": "pass",
+            "expected": "50 mm",
+            "actual": "50 mm",
+            "required_value": 50.0,
+            "measured_value": 50.0,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "measured 50 mm against an intended 50 mm"
+          },
+          {
+            "id": "dim_plate_thickness",
+            "stage": "dimensional",
+            "name": "Plate thickness",
+            "status": "pass",
+            "expected": "5 mm",
+            "actual": "5 mm",
+            "required_value": 5.0,
+            "measured_value": 5.0,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "measured 5 mm against an intended 5 mm"
+          },
+          {
+            "id": "dim_hole_count",
+            "stage": "dimensional",
+            "name": "Mounting hole count",
+            "status": "pass",
+            "expected": "4",
+            "actual": "4",
+            "required_value": 4.0,
+            "measured_value": 4.0,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "4 mounting holes of the intended diameter were found"
+          },
+          {
+            "id": "dim_hole_diameter",
+            "stage": "dimensional",
+            "name": "Mounting hole diameter",
+            "status": "pass",
+            "expected": "3.4 mm",
+            "actual": "3.4 mm",
+            "required_value": 3.4,
+            "measured_value": 3.4,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "measured 3.4 mm against an intended 3.4 mm"
+          },
+          {
+            "id": "dim_hole_spacing_x",
+            "stage": "dimensional",
+            "name": "Hole spacing (x)",
+            "status": "pass",
+            "expected": "31 mm",
+            "actual": "31 mm",
+            "required_value": 31.0,
+            "measured_value": 31.0,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "measured 31 mm against an intended 31 mm"
+          },
+          {
+            "id": "dim_hole_spacing_y",
+            "stage": "dimensional",
+            "name": "Hole spacing (y)",
+            "status": "pass",
+            "expected": "31 mm",
+            "actual": "31 mm",
+            "required_value": 31.0,
+            "measured_value": 31.0,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "measured 31 mm against an intended 31 mm"
+          },
+          {
+            "id": "dim_shaft_opening",
+            "stage": "dimensional",
+            "name": "Shaft opening diameter",
+            "status": "pass",
+            "expected": "22.5 mm",
+            "actual": "22.5 mm",
+            "required_value": 22.5,
+            "measured_value": 22.5,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "measured 22.5 mm against an intended 22.5 mm"
+          },
+          {
+            "id": "req_edge_clearance",
+            "stage": "requirement",
+            "name": "Minimum hole edge clearance",
+            "status": "pass",
+            "expected": ">= 4 mm",
+            "actual": "5.3 mm",
+            "required_value": 4.0,
+            "measured_value": 5.3,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "measured 5.3 mm of material between every mounting-hole edge and the plate boundary, against a required 4 mm"
+          }
+        ],
+        "cross_checks": [
+          {
+            "id": "xcheck_req_edge_clearance",
+            "stage": "requirement",
+            "name": "Preflight prediction matches measurement",
+            "status": "pass",
+            "expected": "predicted 5.3 mm",
+            "actual": "measured 5.3 mm",
+            "required_value": 5.3,
+            "measured_value": 5.3,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "the symbolic prediction agrees with the measured geometry"
+          }
+        ],
+        "build_error": null,
+        "release": {
+          "status": "authorised",
+          "step_export_allowed": true,
+          "watermark": null,
+          "reasons": [],
+          "explanation": "Release authorised for DesignIntent v2: every hard requirement is satisfied by the measured geometry.",
+          "responsible_parameters": []
+        },
+        "proposals": [],
+        "script": "\"\"\"Generated by spec2cad from a typed CADProgram.\n\npart:     motor_adapter_plate\nrevision: DesignIntent v2\n\nThis file is produced for review. The pipeline does not execute it -- the\nexecutor builds from the typed feature plan directly.\n\"\"\"\n\nimport cadquery as cq\n\n# --- parameters, resolved from DesignIntent ---\nexternal_chamfer = 1\nhole_spacing_x = 31\nhole_spacing_y = 31\nmounting_hole_diameter = 3.4\nplate_height = 50\nplate_thickness = 5\nplate_width = 45\nshaft_opening_diameter = 22.5\n\n# --- feature plan ---\nresult = (cq.Workplane('XY').box(plate_width, plate_height, plate_thickness, centered=True))\nresult = (result.faces(\">Z\").workplane(origin=(0, 0, 0)).moveTo(0, 0).circle(shaft_opening_diameter / 2).cutThruAll())   # shaft_opening\nresult = (result.faces(\">Z\").workplane().rect(hole_spacing_x, hole_spacing_y, forConstruction=True).vertices().hole(mounting_hole_diameter))   # mounting_holes\nresult = (result.edges(\"|Z\").edges(ExternalVerticalEdges(width, height)).chamfer(external_chamfer))   # external_chamfers\n\n# cq.exporters.export(result.val(), 'part.step')\n"
+      }
+    ],
+    "latest_revision": 2
+  }
+}

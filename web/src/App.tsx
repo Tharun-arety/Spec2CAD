@@ -1,5 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
-import { api } from './api'
+import { IS_REPLAY, api } from './api'
+import { replayApi, type ReplayManifest } from './replay'
 import type { Evidence, Health, Proposal, RunState } from './types'
 import {
   CommandBar, StageRail, StatusBar, Timeline, ViewportOverlay, type StageId,
@@ -23,9 +24,11 @@ export default function App() {
   const [scriptOpen, setScriptOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [replay, setReplay] = useState<ReplayManifest | null>(null)
 
   useEffect(() => {
     api.health().then(setHealth).catch((e) => setError(String(e)))
+    if (IS_REPLAY) replayApi.manifest().then(setReplay).catch(() => {})
   }, [])
 
   const guard = useCallback(async (fn: () => Promise<RunState>) => {
@@ -63,6 +66,12 @@ export default function App() {
       <CommandBar
         state={state} rev={rev} busy={busy}
         onSelectRevision={(n) => { setViewing(n); setScriptOpen(false) }}
+        right={IS_REPLAY ? (
+          <span className="border border-c9 px-1.5 py-px text-[10.5px] font-semibold
+                           uppercase tracking-[0.07em]">
+            recorded replay
+          </span>
+        ) : undefined}
       />
 
       <div className="flex min-h-0 flex-1">
@@ -142,6 +151,7 @@ export default function App() {
               busy={busy}
               backendLabel={health?.sketch_backend_label ?? 'checking…'}
               visionAvailable={health?.vision_available ?? false}
+              replay={replay}
               onDemo={() => guard(api.runDemo)}
               onUpload={(s, d, r) => guard(() => api.runUpload(s, d, r))}
             />

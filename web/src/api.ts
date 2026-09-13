@@ -1,6 +1,15 @@
 import type { Health, RunState } from './types'
+import { replayApi } from './replay'
 
 const BASE = '/api'
+
+/**
+ * Replay mode is a build-time decision (VITE_REPLAY=1), set for deployments
+ * that have no backend. It is never inferred from a failed request, so a
+ * backend that is merely down reports an error rather than silently degrading
+ * into a recording.
+ */
+export const IS_REPLAY = import.meta.env.VITE_REPLAY === '1'
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -15,7 +24,9 @@ async function json<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>
 }
 
-export const api = {
+const liveApi = {
+  isReplay: false,
+
   health: () => fetch(`${BASE}/health`).then(json<Health>),
 
   runDemo: () => fetch(`${BASE}/runs/demo`, { method: 'POST' }).then(json<RunState>),
@@ -46,3 +57,12 @@ export const api = {
   previewUrl: (runId: string, evidenceId: string) =>
     `${BASE}/runs/${runId}/evidence/${evidenceId}/preview`,
 }
+
+export const api = IS_REPLAY
+  ? {
+      ...replayApi,
+      runUpload: (_s: File, _d: File, _r: string) => replayApi.runUpload(),
+      repair: (runId: string, proposalId: string, _ack?: boolean) =>
+        replayApi.repair(runId, proposalId),
+    }
+  : liveApi

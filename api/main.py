@@ -13,16 +13,15 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-import fitz
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
-from PIL import Image, ImageDraw
 from pydantic import BaseModel
 
 from spec2cad.cad.executor import export_step, export_stl
 from spec2cad.extractors.base import backend_label, select_backend
-from spec2cad.pipeline import RevisionResult, evaluate_revision, gather_evidence, repair, run
+from spec2cad.pipeline import RevisionResult, repair, run
+from spec2cad.preview import NoRegion, render_evidence_preview
 from spec2cad.repair.repair_planner import UnsafeRepairRequiresAcknowledgement
 from spec2cad.store import Store
 
@@ -375,31 +374,11 @@ def evidence_preview(run_id: str, evidence_id: str):
         raise HTTPException(404, "this evidence has no source region to highlight")
 
     input_dir = stored.input_dir if stored else EXAMPLE_DIR
-    source = input_dir / evidence.source.file
-    if not source.exists():
-        raise HTTPException(404, f"source file not found: {source}")
 
-    out_dir = ARTIFACT_DIR / run_id / "previews"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out = out_dir / f"{evidence_id}.png"
-
-    x0, y0, x1, y1 = evidence.source.region
-    if source.suffix.lower() == ".pdf":
-        with fitz.open(str(source)) as doc:
-            page = doc[(evidence.source.page or 1) - 1]
-            page.draw_rect(fitz.Rect(x0, y0, x1, y1), color=(0.85, 0.1, 0.1), width=1.5)
-            clip = fitz.Rect(
-                max(0, x0 - 260), max(0, y0 - 60), min(page.rect.x1, x1 + 160), y1 + 60
-            )
-            page.get_pixmap(clip=clip, dpi=160).save(str(out))
-    else:
-        img = Image.open(source).convert("RGB")
-        draw = ImageDraw.Draw(img)
-        draw.rectangle([x0, y0, x1, y1], outline=(217, 26, 26), width=3)
-        pad = 130
-        img.crop((
-            max(0, int(x0) - pad), max(0, int(y0) - pad),
-            min(img.width, int(x1) + pad), min(img.height, int(y1) + pad),
-        )).save(out)
+    out = ARTIFACT_DIR / run_id / "previews" / f"{evidence_id}.png"
+    try:
+        render_evidence_preview(evidence, input_dir, out)
+    except NoRegion as exc:
+        raise HTTPException(404, str(exc)) from exc
 
     return FileResponse(out, media_type="image/png")
