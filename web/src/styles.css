@@ -1,0 +1,147 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Spec2CAD — application shell.
+
+   Modelled on a modern CAD tool: a fixed viewport that never scrolls as a page,
+   a command bar, a stage rail, a persistent 3D viewport, a feature timeline
+   along the bottom, and a contextual inspector on the right. Panels scroll
+   independently; the frame does not move.
+
+   Strictly monochrome. Every value below is a pure neutral -- zero saturation,
+   no hue anywhere. That is a real constraint, not a palette choice: state has
+   to be carried by weight, fill, rule thickness, hatching and glyphs instead of
+   by colour, which is also what makes it legible to anyone who cannot separate
+   red from green.
+--------------------------------------------------------------------------- */
+
+@theme {
+  --color-c0: #ffffff;
+  --color-c1: #fafafa;
+  --color-c2: #f4f4f4;
+  --color-c3: #ebebeb;
+  --color-c4: #dcdcdc;
+  --color-c5: #bdbdbd;
+  --color-c6: #8f8f8f;
+  --color-c7: #5e5e5e;
+  --color-c8: #2e2e2e;
+  --color-c9: #0a0a0a;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+
+  --spacing-rail: 52px;
+  --spacing-bar: 44px;
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+
+  html, body, #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    overflow: hidden;               /* the shell owns scrolling, not the page */
+    background: var(--color-c2);
+    color: var(--color-c9);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  /* Measured values are read digit against digit. */
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    letter-spacing: -0.01em;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-c9);
+    outline-offset: 1px;
+  }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-c4);
+    border: 3px solid var(--color-c0);
+    border-radius: 6px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-c5); }
+}
+
+@layer components {
+  /* Independent scroll region inside the fixed shell. */
+  .pane {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* Diagonal hatching. With no colour available this is how a region reads as
+     "flagged" -- it is also the drafting convention for a sectioned or
+     marked-up area, so it belongs in a CAD tool. */
+  .hatch {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      var(--color-c3) 0 1px,
+      transparent 1px 7px
+    );
+  }
+
+  .hatch-strong {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      var(--color-c4) 0 1.5px,
+      transparent 1.5px 6px
+    );
+  }
+
+  /* The release stamp. Inverted solid when blocked, outline when released --
+     weight carries what colour normally would. */
+  .stamp {
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border: 2px solid var(--color-c9);
+    transform: rotate(-4deg);
+    user-select: none;
+    line-height: 1.2;
+  }
+  .stamp-blocked { background: var(--color-c9); color: var(--color-c0); }
+  .stamp-released { background: transparent; color: var(--color-c9); }
+
+  /* Timeline feature node, the way a history bar reads in a parametric tool. */
+  .feature {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid var(--color-c4);
+    background: var(--color-c0);
+    white-space: nowrap;
+    font-size: 12px;
+  }
+
+  .grid-dots {
+    background-image: radial-gradient(var(--color-c4) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

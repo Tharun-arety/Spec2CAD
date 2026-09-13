@@ -1,0 +1,50 @@
+{
+  "_comment": "Ground truth for the sketch only. Used to score real extractors.",
+  "source_file": "sketch.png",
+  "facts": [
+    {
+      "target": "plate_width",
+      "value": 40.0,
+      "unit": "mm",
+      "is_explicit_annotation": true
+    },
+    {
+      "target": "plate_height",
+      "value": 50.0,
+      "unit": "mm",
+      "is_explicit_annotation": true
+    },
+    {
+      "target": "mounting_hole_count",
+      "value": 4,
+      "unit": null,
+      "is_explicit_annotation": true
+    },
+    {
+      "target": "orientation_note",
+      "value": "MOTOR SIDE",
+      "unit": null,
+      "is_explicit_annotation": true
+    }
+  ],
+  "regions": {
+    "plate_width": [
+      416.0,
+      584.0,
+      460.0,
+      617.0
+    ],
+    "plate_height": [
+      656.0,
+      325.0,
+      700.0,
+      358.0
+    ],
+    "orientation_note": [
+      36.0,
+      438.0,
+      188.0,
+      467.0
+    ]
+  }
+}

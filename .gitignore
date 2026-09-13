@@ -1,0 +1,27 @@
+# Build output and generated artifacts
+build/
+web/dist/
+*.db
+
+# Secrets
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.pytest-tmp/
+
+# Node
+web/node_modules/
+
+# Locally installed third-party agent skills. These are vendored from their own
+# upstream repositories with their own licences; they are tooling used to build
+# this project, not part of it. Install with the `npx skills add` commands in
+# CONTRIBUTING notes if you want them.
+.agents/
+.claude/skills/
+
+# TypeScript incremental build cache
+*.tsbuildinfo

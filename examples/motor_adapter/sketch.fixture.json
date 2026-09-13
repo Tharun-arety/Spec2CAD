@@ -1,0 +1,66 @@
+{
+  "_comment": "Recorded evidence replayed when no vision API key is configured. Every item is emitted with extraction_method=recorded_fixture and is excluded from reported extraction accuracy.",
+  "source_file": "sketch.png",
+  "items": [
+    {
+      "target": "plate_width",
+      "kind": "linear_dimension",
+      "value": 40.0,
+      "unit": "mm",
+      "confidence": 0.98,
+      "is_explicit_annotation": true,
+      "region": [
+        416.0,
+        584.0,
+        460.0,
+        617.0
+      ],
+      "raw_text": "40"
+    },
+    {
+      "target": "plate_height",
+      "kind": "linear_dimension",
+      "value": 50.0,
+      "unit": "mm",
+      "confidence": 0.98,
+      "is_explicit_annotation": true,
+      "region": [
+        656.0,
+        325.0,
+        700.0,
+        358.0
+      ],
+      "raw_text": "50"
+    },
+    {
+      "target": "mounting_hole_count",
+      "kind": "count",
+      "value": 4,
+      "unit": null,
+      "confidence": 0.93,
+      "is_explicit_annotation": true,
+      "region": [
+        36.0,
+        438.0,
+        188.0,
+        467.0
+      ],
+      "raw_text": "4x mounting holes"
+    },
+    {
+      "target": "orientation_note",
+      "kind": "note",
+      "value": "MOTOR SIDE",
+      "unit": null,
+      "confidence": 0.95,
+      "is_explicit_annotation": true,
+      "region": [
+        36.0,
+        438.0,
+        188.0,
+        467.0
+      ],
+      "raw_text": "MOTOR SIDE"
+    }
+  ]
+}

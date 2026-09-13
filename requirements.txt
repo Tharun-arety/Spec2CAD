@@ -1,0 +1,21 @@
+# Core pipeline
+cadquery==2.7.0
+pydantic>=2.9
+PyMuPDF>=1.24
+Pillow>=10.0
+numpy>=1.26
+
+# API
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+python-dotenv>=1.0
+
+# Vision backends -- optional. Without either key the pipeline runs on the
+# recorded fixture, which is labelled as such throughout.
+openai>=1.40
+anthropic>=0.34
+
+# Dev / test
+pytest>=8.0
+httpx>=0.27
