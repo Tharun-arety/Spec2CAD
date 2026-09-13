@@ -21,13 +21,33 @@ look worse than it is. 163 MB changes the answer.
 
 | Target | Verdict | Why |
 |---|---|---|
-| Vercel / Netlify functions | **No** | 50 MB compressed limit; not close |
+| Vercel / Netlify functions | **No — measured** | see below |
 | AWS Lambda (zip) | **No** | 250 MB unzipped limit — it might just fit, but with no headroom and a cold start dominated by loading a 118 MB binary |
 | AWS Lambda (container) | Yes | 10 GB image limit; cold starts still poor |
 | **Fly.io / Render / Railway / Cloud Run** | **Yes — recommended** | a plain container, warm process, no cold-start penalty on a 118 MB import |
 | Static hosting (Sites) | Yes, for the **frontend only** | see the fallback below |
 
-**Decision: GO, via a container.** The backend is an ordinary long-running
+### Vercel, measured rather than estimated
+
+Vercel was tried directly. Its zero-config detects `api/main.py` as a Python
+serverless function, installs `requirements.txt`, and the build fails:
+
+```
+Error: Total bundle size (1165.12 MB) exceeds the maximum function size (500 MB).
+```
+
+**1165 MB** — the Linux wheel set with all transitive dependencies is far larger
+than the 163 MB measured on Windows. There is no trimming that closes a 2.3x
+overrun, so the backend is not a serverless workload on any provider with a
+function size cap.
+
+The frontend deploys there fine. `.vercelignore` excludes the entire Python side
+so Vercel builds only the static bundle, and the deployment runs in replay mode
+(`VITE_REPLAY=1`).
+
+**Live: https://spec2cad.vercel.app**
+
+**Decision: GO, via a container** for live generation. The backend is an ordinary long-running
 FastAPI process, not a serverless function. Trimming `vtkmodules` would save a
 further 42 MB but is not required and is not worth the compatibility risk for a
 prototype.
@@ -49,7 +69,7 @@ docker run -p 8000:8000 --env-file .env spec2cad
 The image runs `generate_inputs.py` at build time so `POST /runs/demo` works
 immediately.
 
-## The precomputed fallback — defined, and implemented
+## The precomputed fallback — defined, implemented, and deployed
 
 If the container path is unavailable (no budget for an always-on host, or a
 deployment target that only serves static files), the demo still ships. It does
@@ -66,10 +86,11 @@ build/frozen/
   artifacts/v2.step            53,177 B   the STEP the gate authorised
   artifacts/v{1,2}.script.py    1,102 B   the generated CadQuery for each revision
   sources/                                the three input documents
-  TOTAL                       397,892 B
+  previews/*.png (9 files)             9 source highlights, pre-rendered
+  TOTAL                       ~529,000 B
 ```
 
-398 KB. The entire v1 → conflict → approval → v2 → release flow, including both
+529 KB. The entire v1 → conflict → approval → v2 → release flow, including both
 meshes and the authorised STEP, served as static files with no CAD kernel
 running.
 

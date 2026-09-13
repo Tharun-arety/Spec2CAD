@@ -1,5 +1,12 @@
 # Spec2CAD — a multimodal design-intent compiler
 
+**Live demo: https://spec2cad.vercel.app** — a recorded replay of a real run, and
+labelled as such. Vercel cannot host the pipeline itself (the CadQuery bundle
+measures 1165 MB against a 500 MB function limit), so the deployment replays
+genuine frozen output rather than simulating it. Uploading documents and
+applying an unrecorded resolution both refuse, with the reason. For live
+generation run it locally or as a container — see `DEPLOYMENT.md`.
+
 Takes a hand sketch, a component datasheet and a written requirement, and
 produces a traceable engineering specification, a parametric feature plan, a
 generated STEP model and a validation report — and when the three sources are

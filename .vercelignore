@@ -1,0 +1,24 @@
+# Vercel builds the STATIC frontend only.
+#
+# Everything below is the Python pipeline, which cannot run here: Vercel's
+# zero-config detects api/main.py as a serverless function, installs
+# requirements.txt, and CadQuery/OpenCascade takes the bundle to 1165 MB
+# against a 500 MB function limit (measured, not estimated).
+#
+# The deployed build replays the frozen run in web/public/replay instead.
+# For live generation, run the FastAPI backend as a container -- see
+# DEPLOYMENT.md and the Dockerfile.
+
+api/
+spec2cad/
+scripts/
+eval/
+tests/
+examples/
+requirements.txt
+Dockerfile
+pytest.ini
+run_dev.ps1
+*.py
+__pycache__/
+build/
