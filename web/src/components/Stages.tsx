@@ -237,9 +237,16 @@ export function IntentStage({
                     <span className="num text-[11px] text-warn">mating</span>
                   </Tip>
                 )}
-                {!ed && p.status !== 'confirmed' && (
+                {!ed && p.status === 'missing' && (
+                  <Tip label={p.derivation ?? 'No supplied source provided this value'}>
+                    <span className="text-[12px] font-medium text-warn">missing</span>
+                  </Tip>
+                )}
+                {!ed && p.status !== 'confirmed' && p.status !== 'missing' && (
                   <Tip label={p.derivation ?? p.provenance.join(', ')}>
-                    <span className="num text-[11px] text-c6">ƒ derived</span>
+                    <span className="num text-[11px] text-c6">
+                      {p.status === 'inferred' ? 'ƒ derived' : p.status.replace(/_/g, ' ')}
+                    </span>
                   </Tip>
                 )}
               </span>
@@ -492,7 +499,9 @@ export function InspectStage({ rev }: { rev: Revision }) {
 
       <p className="border-b border-c3 px-3.5 py-2 text-[12px] leading-relaxed text-c7">
         {tab === 'measured'
-          ? 'Read off the finished solid — hole sizes and positions from the B-Rep, extents from face geometry, material integrity against the analytic volume.'
+          ? rev.build_error
+            ? 'No solid was produced. This check reports why geometry generation stopped; add the missing inputs and compile again.'
+            : 'Read off the finished solid — hole sizes and positions from the B-Rep, extents from face geometry, material integrity against the analytic volume.'
           : 'Predicted symbolically before any geometry existed. Advisory only; it never blocks a release.'}
       </p>
 
@@ -578,10 +587,19 @@ export function ReleaseStage({
 
       {blocked && rev.release.responsible_parameters.length > 0 && (
         <div className="border-b border-c3">
-          <div className="px-3.5 pt-2 text-[12px] text-c7">Responsible parameters</div>
+          <div className="px-3.5 pt-2 text-[12px] text-c7">
+            {rev.build_error ? 'Missing parameters' : 'Responsible parameters'}
+          </div>
           {rev.release.responsible_parameters.map((p) => (
             <Field key={p} label={p.replace(/_/g, ' ')} dense>
-              <span className="text-[12px] text-c6">read correctly, not jointly satisfiable</span>
+              <span className={cn(
+                'text-[12px]',
+                rev.parameters[p]?.status === 'missing' ? 'text-warn' : 'text-c6',
+              )}>
+                {rev.parameters[p]?.status === 'missing'
+                  ? 'not supplied — add in Sources'
+                  : 'read correctly, not jointly satisfiable'}
+              </span>
             </Field>
           ))}
         </div>

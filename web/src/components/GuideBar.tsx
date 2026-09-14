@@ -63,6 +63,30 @@ export function GuideBar({
   rev: Revision
   onGo: (s: StageId) => void
 }) {
+  if (stage === 'intent' && rev.build_error) {
+    const missing = ['plate_width', 'plate_height', 'plate_thickness']
+      .filter((name) => rev.parameters[name]?.status === 'missing')
+      .map((name) => name.replace(/_/g, ' '))
+    return (
+      <div className="sticky bottom-0 z-10 border-t border-warn-line bg-warn-wash
+                      px-[14px] py-[9px]">
+        <p className="text-[12px] leading-relaxed text-c8">
+          {missing.length ? `Missing: ${missing.join(', ')}` : 'More source information is needed.'}
+        </p>
+        <button
+          type="button"
+          onClick={() => onGo('sources')}
+          className="mt-[7px] flex cursor-pointer items-center gap-[6px] rounded-[5px]
+                     border border-accent bg-accent px-[11px] py-[5px] text-[12.5px]
+                     font-medium text-accent-fg shadow-[var(--shadow-raised)]"
+        >
+          Add missing inputs
+          <ArrowRight size={13} strokeWidth={2} aria-hidden />
+        </button>
+      </div>
+    )
+  }
+
   const next = NEXT[stage]
   if (!next) return null
   const note = summary(stage, state, rev)

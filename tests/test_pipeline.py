@@ -501,6 +501,47 @@ def test_two_sources_are_fused_without_requiring_the_third():
     assert result.latest.decision.step_export_allowed is False
 
 
+def test_natural_language_text_only_prompt_builds_complete_plate(tmp_path):
+    requirement = tmp_path / "requirement.txt"
+    requirement.write_text(
+        "Create a 60 mm wide, 40 mm high mounting plate from 6 mm aluminium. "
+        "Use normal-clearance holes for M4 screws on a 44 mm by 24 mm "
+        "rectangular pattern, include a 20 mm centre opening, maintain at least "
+        "5 mm from every hole edge to the plate boundary, and add 1 mm chamfers "
+        "to the external edges. Manufacture it by machining.",
+        encoding="utf-8",
+    )
+
+    result = run(requirement=requirement)
+    intent = result.latest.intent
+
+    assert intent.part.name == "mounting_plate"
+    assert intent.value_of("plate_width") == pytest.approx(60.0)
+    assert intent.value_of("plate_height") == pytest.approx(40.0)
+    assert intent.value_of("plate_thickness") == pytest.approx(6.0)
+    assert intent.value_of("hole_spacing_x") == pytest.approx(44.0)
+    assert intent.value_of("hole_spacing_y") == pytest.approx(24.0)
+    assert intent.value_of("mounting_hole_count") == pytest.approx(4)
+    assert intent.value_of("mounting_hole_diameter") == pytest.approx(4.5)
+    assert intent.value_of("shaft_opening_diameter") == pytest.approx(20.0)
+    assert result.latest.build_error is None
+    assert result.latest.released is True
+
+
+def test_incomplete_text_prompt_requests_only_dimensions_needed_to_build(tmp_path):
+    requirement = tmp_path / "requirement.txt"
+    requirement.write_text(
+        "Make a mounting plate from 6 mm aluminium.", encoding="utf-8"
+    )
+
+    result = run(requirement=requirement)
+
+    assert result.latest.build_error is not None
+    assert result.latest.decision.responsible_parameters == [
+        "plate_width", "plate_height",
+    ]
+
+
 def test_run_requires_at_least_one_source():
     with pytest.raises(ValueError, match="at least one source"):
         run()

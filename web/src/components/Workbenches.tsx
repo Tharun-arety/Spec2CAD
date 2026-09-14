@@ -34,6 +34,13 @@ export function SourceWorkspace({
   const datasheetInput = useRef<HTMLInputElement>(null)
   const instructionInput = useRef<HTMLTextAreaElement>(null)
   const hasDraft = Boolean(sketch || datasheet || instruction.trim())
+  const latestRevision = state?.revisions.find((revision) =>
+    revision.revision === state.latest_revision)
+  const missingForBuild = latestRevision
+    ? ['plate_width', 'plate_height', 'plate_thickness'].filter(
+        (name) => latestRevision.parameters[name]?.value == null,
+      )
+    : []
   const canCompile = !replayMode && !busy && Boolean(
     sketch || datasheet || instruction.trim(),
   )
@@ -125,7 +132,33 @@ export function SourceWorkspace({
             </button>
           </div>
 
-          {state && (
+          {state && latestRevision?.build_error && (
+            <div role="status" className="ml-[47px] mt-[21px] border border-warn-line bg-warn-wash
+                                      px-[13px] py-[11px]">
+              <div className="flex items-start gap-[9px]">
+                <Bot size={16} strokeWidth={1.8} className="mt-[2px] shrink-0 text-warn" aria-hidden />
+                <div>
+                  <div className="text-[13px] font-semibold text-c9">
+                    I need {missingForBuild.length ? missingForBuild.map(humanise).join(' and ') : 'more geometry'} before I can build this.
+                  </div>
+                  <p className="mt-[3px] text-[12.5px] leading-relaxed text-c7">
+                    I kept the {state.evidence.length} facts I could extract. Add the missing
+                    dimensions to your prompt and compile again.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => instructionInput.current?.focus()}
+                    className="mt-[7px] cursor-pointer text-[12.5px] font-medium text-warn
+                               underline decoration-warn/50 underline-offset-[3px]"
+                  >
+                    Continue the prompt
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {state && latestRevision && !latestRevision.build_error && (
             <div className="ml-[47px] mt-[21px] border border-success-line bg-success-wash
                             px-[13px] py-[10px]">
               <div className="flex items-center gap-[8px]">
@@ -358,6 +391,12 @@ export function EvidenceWorkbench({ state, picked, onPick }: EvidenceWorkbenchPr
             ) : extension === 'png' || extension === 'jpg' || extension === 'jpeg' || extension === 'webp' ? (
               <img src={api.sourceUrl(state.run_id, active)} alt={active}
                    className="max-h-full max-w-full object-contain" />
+            ) : extension === 'txt' ? (
+              <TextSource
+                url={api.sourceUrl(state.run_id, active)}
+                label={active}
+                highlight={selected?.raw_text}
+              />
             ) : (
               <iframe src={api.sourceUrl(state.run_id, active)} title={active}
                       className="h-full min-h-[420px] w-full border-0 bg-c0" />
@@ -452,4 +491,62 @@ function compactTabLabel(label: string) {
   const extension = dot > 0 ? label.slice(dot) : ''
   const base = dot > 0 ? label.slice(0, dot) : label
   return `${base.slice(0, 12)}…${base.slice(-5)}${extension}`
+}
+
+function humanise(value: string) {
+  return value.replace(/_/g, ' ')
+}
+
+function TextSource({
+  url, label, highlight,
+}: {
+  url: string
+  label: string
+  highlight?: string | null
+}) {
+  const [content, setContent] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    setContent(null)
+    setFailed(false)
+    fetch(url, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error(`Unable to open ${label}`)
+        return response.text()
+      })
+      .then(setContent)
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return
+        setFailed(true)
+      })
+    return () => controller.abort()
+  }, [label, url])
+
+  if (failed) {
+    return <p className="px-[21px] text-[13px] text-danger">Unable to display {label}.</p>
+  }
+  if (content == null) {
+    return <p className="px-[21px] text-[13px] text-c6">Loading {label}…</p>
+  }
+
+  const needle = highlight?.trim() ?? ''
+  const start = needle ? content.toLowerCase().indexOf(needle.toLowerCase()) : -1
+
+  return (
+    <pre className="h-full w-full overflow-auto whitespace-pre-wrap p-[34px] font-sans
+                    text-[14px] leading-[1.8] text-c8">
+      {start >= 0 ? (
+        <>
+          {content.slice(0, start)}
+          <mark className="rounded-[3px] bg-accent/20 px-[2px] text-accent
+                           outline outline-1 outline-accent-line">
+            {content.slice(start, start + needle.length)}
+          </mark>
+          {content.slice(start + needle.length)}
+        </>
+      ) : content}
+    </pre>
+  )
 }

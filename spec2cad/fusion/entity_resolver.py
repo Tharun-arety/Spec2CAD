@@ -175,11 +175,13 @@ def build_design_intent(
     for target in REQUIRED_TARGETS:
         parameters[target.value] = _parameter(resolutions[target])
 
-    # Derived: the plate must clear the motor's pilot boss, so the opening is
-    # the boss diameter plus a fit allowance. Recorded as a derivation, not as
-    # something a source stated.
+    # Prefer a directly stated shaft/centre opening. If none was supplied, the
+    # motor-adapter workflow derives it from the pilot boss plus fit allowance.
+    opening = resolutions[T.SHAFT_OPENING_DIAMETER]
     boss = resolutions[T.MOTOR_BOSS_DIAMETER]
-    if isinstance(boss.value, (int, float)):
+    if isinstance(opening.value, (int, float)):
+        parameters[T.SHAFT_OPENING_DIAMETER.value] = _parameter(opening)
+    elif isinstance(boss.value, (int, float)):
         parameters[T.SHAFT_OPENING_DIAMETER.value] = Parameter(
             name=T.SHAFT_OPENING_DIAMETER.value,
             value=round(float(boss.value) + BOSS_FIT_ALLOWANCE_MM, 4),

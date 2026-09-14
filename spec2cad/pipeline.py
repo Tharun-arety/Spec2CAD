@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-from spec2cad.cad.compiler import compile_design, parameter_table
+from spec2cad.cad.compiler import REQUIRED_FOR_COMPILATION, compile_design, parameter_table
 from spec2cad.cad.executor import ExecutionError, ExecutionResult, execute, import_step
 from spec2cad.cad.script_writer import write_script
 from spec2cad.extractors.datasheet import extract_datasheet
@@ -156,7 +156,9 @@ def evaluate_revision(intent: DesignIntent) -> RevisionResult:
                 name="Geometry generated",
                 status=CheckStatus.FAIL,
                 conflict_class=ConflictClass.EXECUTION,
-                responsible_parameters=intent.missing_parameters,
+                responsible_parameters=[
+                    name for name in REQUIRED_FOR_COMPILATION if not intent.has(name)
+                ],
                 message=result.build_error,
             )],
         )
@@ -198,7 +200,11 @@ def run(
     evidence, sketch_result = gather_evidence(
         sketch, datasheet, requirement, backend_override
     )
-    intent, _ = build_design_intent(evidence)
+    # A text-only request is a generic generated plate, not automatically a
+    # motor adapter. Runs with the demo sketch/datasheet retain the established
+    # motor-adapter identity.
+    part_name = "motor_adapter_plate" if sketch is not None or datasheet is not None else "mounting_plate"
+    intent, _ = build_design_intent(evidence, part_name=part_name)
     return RunResult(
         evidence=evidence,
         revisions=[evaluate_revision(intent)],

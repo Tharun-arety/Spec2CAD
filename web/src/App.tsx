@@ -89,12 +89,11 @@ export default function App() {
       setViewing(next.latest_revision)
       setPicked(null)
       setFeature(null)
-      // Land on Evidence, not on the verdict.
-      //
-      // Jumping straight to the conflict shows the conclusion and skips the
-      // part that is actually being demonstrated -- heterogeneous documents
-      // becoming parameters. The guided Continue action walks the rest.
-      setStage('evidence')
+      const latest = next.revisions.find((r) => r.revision === next.latest_revision)
+      // Complete runs land on Evidence. Incomplete text requests stay in the
+      // agent workspace so the missing-input follow-up is visible beside the
+      // original prompt instead of sending the user into an empty CAD screen.
+      setStage(latest?.build_error ? 'sources' : 'evidence')
       setInspectorOpen(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))

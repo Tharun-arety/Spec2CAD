@@ -32,6 +32,7 @@ from spec2cad.schemas.evidence import (
 )
 
 _NUM = r"\d+(?:\.\d+)?"
+_UNIT = r"mm|cm|in|inch|inches|millimet(?:re|er)s?"
 
 MM_PER_INCH = 25.4
 
@@ -115,6 +116,116 @@ def extract_requirement(
 
     out: list[Evidence] = []
 
+    def add_length(
+        ev_id: str,
+        target: SemanticTarget,
+        kind: EvidenceKind,
+        raw_value: str,
+        raw_unit: str,
+        raw: str,
+        *,
+        confidence: float = 0.98,
+        explicit: bool = True,
+    ) -> None:
+        value_mm, unit = _to_mm(float(raw_value), raw_unit)
+        original = None if unit == raw_unit.lower() else f"{raw_value} {raw_unit}"
+        out.append(_mk(
+            ev_id, target, kind, value_mm, unit,
+            source_name=source_name, confidence=confidence, explicit=explicit,
+            raw=raw, original=original,
+        ))
+
+    # --- plate envelope: "60 mm wide, 40 mm high" ------------------------
+    envelope = re.search(
+        rf"({_NUM})\s*({_UNIT})\s+(?:wide|in\s+width)\s*[,;]?\s*"
+        rf"(?:and\s+)?({_NUM})\s*({_UNIT})\s+(?:high|tall|in\s+height)",
+        text, re.IGNORECASE,
+    )
+    if envelope:
+        add_length(
+            "ev_txt_plate_width", SemanticTarget.PLATE_WIDTH,
+            EvidenceKind.LINEAR_DIMENSION, envelope.group(1), envelope.group(2),
+            envelope.group(0),
+        )
+        add_length(
+            "ev_txt_plate_height", SemanticTarget.PLATE_HEIGHT,
+            EvidenceKind.LINEAR_DIMENSION, envelope.group(3), envelope.group(4),
+            envelope.group(0),
+        )
+    else:
+        # Compact engineering shorthand: "60 x 40 x 6 mm plate". The third
+        # value is thickness; the dedicated material rule below still wins if
+        # the prompt states thickness again next to a material.
+        envelope = re.search(
+            rf"({_NUM})\s*[x×]\s*({_NUM})\s*[x×]\s*({_NUM})\s*({_UNIT})\s+(?:mounting\s+)?plate",
+            text, re.IGNORECASE,
+        )
+        if envelope:
+            raw = envelope.group(0)
+            unit = envelope.group(4)
+            add_length("ev_txt_plate_width", SemanticTarget.PLATE_WIDTH,
+                       EvidenceKind.LINEAR_DIMENSION, envelope.group(1), unit, raw)
+            add_length("ev_txt_plate_height", SemanticTarget.PLATE_HEIGHT,
+                       EvidenceKind.LINEAR_DIMENSION, envelope.group(2), unit, raw)
+            add_length("ev_txt_plate_thickness_envelope", SemanticTarget.PLATE_THICKNESS,
+                       EvidenceKind.LINEAR_DIMENSION, envelope.group(3), unit, raw)
+
+    # --- rectangular mounting pattern: "44 mm by 24 mm ... pattern" ------
+    pattern = re.search(
+        rf"({_NUM})\s*({_UNIT})?\s*(?:x|×|by)\s*({_NUM})\s*({_UNIT})\s+"
+        rf"(?:rectangular\s+)?(?:mounting\s+|hole\s+)?pattern",
+        text, re.IGNORECASE,
+    )
+    if pattern:
+        first_unit = pattern.group(2) or pattern.group(4)
+        raw = pattern.group(0)
+        add_length("ev_txt_hole_spacing_x", SemanticTarget.HOLE_SPACING_X,
+                   EvidenceKind.HOLE_PATTERN, pattern.group(1), first_unit, raw)
+        add_length("ev_txt_hole_spacing_y", SemanticTarget.HOLE_SPACING_Y,
+                   EvidenceKind.HOLE_PATTERN, pattern.group(3), pattern.group(4), raw)
+
+    # --- mounting-hole count ----------------------------------------------
+    number_words = {
+        "one": 1, "two": 2, "three": 3, "four": 4,
+        "five": 5, "six": 6, "eight": 8,
+    }
+    count_match = re.search(
+        r"\b(one|two|three|four|five|six|eight|\d+)\s+(?:normal-clearance\s+)?"
+        r"(?:mounting\s+)?holes?\b",
+        text, re.IGNORECASE,
+    )
+    if count_match:
+        token = count_match.group(1).lower()
+        count = number_words.get(token, int(token) if token.isdigit() else 0)
+        out.append(_mk(
+            "ev_txt_hole_count", SemanticTarget.MOUNTING_HOLE_COUNT,
+            EvidenceKind.COUNT, count, None,
+            source_name=source_name, confidence=0.99, explicit=True,
+            raw=count_match.group(0),
+        ))
+    elif pattern:
+        # A rectangular corner pattern means four locations in the compiler's
+        # supported vocabulary. It is marked inferred rather than pretending
+        # the user literally supplied the count.
+        out.append(_mk(
+            "ev_txt_hole_count_pattern", SemanticTarget.MOUNTING_HOLE_COUNT,
+            EvidenceKind.COUNT, 4, None,
+            source_name=source_name, confidence=0.88, explicit=False,
+            raw=pattern.group(0),
+        ))
+
+    # --- centre/shaft opening: "20 mm centre opening" --------------------
+    opening = re.search(
+        rf"({_NUM})\s*({_UNIT})\s+(?:diameter\s+)?"
+        rf"(?:(?:centre|center|central|shaft)\s+(?:opening|hole)|opening\s+diameter)",
+        text, re.IGNORECASE,
+    )
+    if opening:
+        add_length(
+            "ev_txt_shaft_opening", SemanticTarget.SHAFT_OPENING_DIAMETER,
+            EvidenceKind.DIAMETER, opening.group(1), opening.group(2), opening.group(0),
+        )
+
     # --- thickness + material: "from 5 mm aluminium" -----------------------
     m = re.search(
         rf"({_NUM})\s*(mm|cm|in|inch|inches|millimet(?:re|er)s?)\s+"
@@ -125,12 +236,15 @@ def extract_requirement(
         raw_val, raw_unit, raw_mat = m.group(1), m.group(2), m.group(3)
         value_mm, unit = _to_mm(float(raw_val), raw_unit)
         original = None if unit == raw_unit.lower() else f"{raw_val} {raw_unit}"
-        out.append(_mk(
-            "ev_txt_plate_thickness", SemanticTarget.PLATE_THICKNESS,
-            EvidenceKind.LINEAR_DIMENSION, value_mm, unit,
-            source_name=source_name, confidence=0.99, explicit=True,
-            raw=m.group(0), original=original,
-        ))
+        # Avoid a duplicate thickness candidate when compact WxHxT shorthand
+        # and the material phrase refer to the same literal.
+        if not any(e.target is SemanticTarget.PLATE_THICKNESS for e in out):
+            out.append(_mk(
+                "ev_txt_plate_thickness", SemanticTarget.PLATE_THICKNESS,
+                EvidenceKind.LINEAR_DIMENSION, value_mm, unit,
+                source_name=source_name, confidence=0.99, explicit=True,
+                raw=m.group(0), original=original,
+            ))
         out.append(_mk(
             "ev_txt_material", SemanticTarget.MATERIAL, EvidenceKind.MATERIAL_SPEC,
             MATERIALS[raw_mat.lower()], None,
