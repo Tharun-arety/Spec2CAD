@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd web && npm install && VITE_REPLAY=1 npm run build",
+  "buildCommand": "cd web && npm install && VITE_API_BASE=https://spec2cad-api.onrender.com VITE_REPLAY_FALLBACK=1 npm run build",
   "outputDirectory": "web/dist",
   "installCommand": "echo 'dependencies are installed by buildCommand'",
   "framework": null,
