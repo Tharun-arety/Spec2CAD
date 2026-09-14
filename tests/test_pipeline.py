@@ -9,6 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from spec2cad.cad.compiler import compile_design, parameter_table
 from spec2cad.cad.executor import UnsupportedOperation, execute, export_step
@@ -16,6 +17,7 @@ from spec2cad.fusion.conflict_detector import edge_clearance, minimum_plate_dime
 from spec2cad.knowledge.fastener_tables import FitClass, UnknownThread, clearance_hole
 from spec2cad.knowledge.recommendations import recommended_rounded_width
 from spec2cad.pipeline import repair, run, verify_exported_step
+from spec2cad.preview import render_evidence_preview
 from spec2cad.repair.repair_planner import (
     ProposalSafety,
     UnsafeRepairRequiresAcknowledgement,
@@ -502,6 +504,21 @@ def test_two_sources_are_fused_without_requiring_the_third():
 def test_run_requires_at_least_one_source():
     with pytest.raises(ValueError, match="at least one source"):
         run()
+
+
+def test_sketch_preview_keeps_full_source_and_highlights_region(v1, tmp_path):
+    evidence = next(
+        item for item in v1.evidence.items
+        if item.source.file == "sketch.png" and item.source.region is not None
+    )
+    preview_path = render_evidence_preview(evidence, EXAMPLE, tmp_path / "preview.png")
+
+    with Image.open(EXAMPLE / "sketch.png").convert("RGB") as source:
+        with Image.open(preview_path).convert("RGB") as preview:
+            assert preview.size == source.size
+            x0, y0, _, _ = evidence.source.region
+            corner = (int(x0), int(y0))
+            assert preview.getpixel(corner) != source.getpixel(corner)
 
 
 # -------------------------------------------------- per-operation measurement

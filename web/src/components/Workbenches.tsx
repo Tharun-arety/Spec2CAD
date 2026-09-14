@@ -263,16 +263,16 @@ export function EvidenceWorkbench({ state, picked, onPick }: EvidenceWorkbenchPr
   }, [picked])
 
   const sourceEvidence = state.evidence.filter((e) => e.source.file === active)
-  const selected = picked?.source.file === active ? picked : sourceEvidence[0] ?? null
-  const derived = selected?.source.modality === 'engineering_rule'
+  const selected = picked?.source.file === active ? picked : null
+  const derived = sourceEvidence[0]?.source.modality === 'engineering_rule'
   const extension = active.split('.').pop()?.toLowerCase()
 
   const selectTab = (id: string) => {
     setActive(id)
-    onPick(state.evidence.find((e) => e.source.file === id) ?? null)
+    onPick(null)
   }
 
-  if (!selected) {
+  if (!active) {
     return <div className="grid h-full place-items-center text-[13px] text-c6">No evidence yet.</div>
   }
 
@@ -291,7 +291,7 @@ export function EvidenceWorkbench({ state, picked, onPick }: EvidenceWorkbenchPr
         <div className="relative min-h-0 overflow-auto p-[21px]">
           <div className="mx-auto flex h-full min-h-[260px] max-w-[920px] items-center
                           justify-center border border-c4 bg-c0 shadow-[var(--shadow-raised)]">
-            {selected.has_preview ? (
+            {selected?.has_preview ? (
               <img
                 key={selected.id}
                 src={api.previewUrl(state.run_id, selected.id)}
@@ -318,29 +318,37 @@ export function EvidenceWorkbench({ state, picked, onPick }: EvidenceWorkbenchPr
         </div>
 
         <div className="border-t border-c3 bg-c0">
-          <div className="flex flex-wrap items-center gap-x-[21px] gap-y-[6px]
-                          px-[13px] py-[10px]">
-            <div className="min-w-[190px]">
-              <div className="text-[11px] text-c6">Selected evidence</div>
-              <div className="text-[13px] font-medium text-c9">
-                {selected.target.replace(/_/g, ' ')}
+          {selected ? (
+            <>
+              <div className="flex flex-wrap items-center gap-x-[21px] gap-y-[6px]
+                              px-[13px] py-[10px]">
+                <div className="min-w-[190px]">
+                  <div className="text-[11px] text-c6">Selected evidence</div>
+                  <div className="text-[13px] font-medium text-c9">
+                    {selected.target.replace(/_/g, ' ')}
+                  </div>
+                </div>
+                <Num value={selected.value} unit={selected.unit} strong className="text-[17.8px]" />
+                <span className="text-[12px] text-c7">
+                  confidence <span className="num text-c9">{selected.confidence.toFixed(2)}</span>
+                </span>
+                <span className="text-[12px] text-c7">
+                  authority <span className="text-c9">{selected.authority}</span>
+                </span>
+                <Mark state={selected.is_fixture ? 'warn' : 'pass'} glyph>
+                  {selected.extraction_method.replace(/_/g, ' ')}
+                </Mark>
               </div>
-            </div>
-            <Num value={selected.value} unit={selected.unit} strong className="text-[17.8px]" />
-            <span className="text-[12px] text-c7">
-              confidence <span className="num text-c9">{selected.confidence.toFixed(2)}</span>
-            </span>
-            <span className="text-[12px] text-c7">
-              authority <span className="text-c9">{selected.authority}</span>
-            </span>
-            <Mark state={selected.is_fixture ? 'warn' : 'pass'} glyph>
-              {selected.extraction_method.replace(/_/g, ' ')}
-            </Mark>
-          </div>
-          {selected.raw_text && (
-            <div className="border-t border-c3 px-[13px] py-[8px] text-[12.5px] text-c7">
-              <span className="mr-[8px] text-c6">Source text</span>
-              “{selected.raw_text}”
+              {selected.raw_text && (
+                <div className="border-t border-c3 px-[13px] py-[8px] text-[12.5px] text-c7">
+                  <span className="mr-[8px] text-c6">Source text</span>
+                  “{selected.raw_text}”
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="px-[13px] py-[11px] text-[12.5px] text-c7">
+              Select a spec in the Evidence list to highlight where it was recorded.
             </div>
           )}
         </div>

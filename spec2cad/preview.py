@@ -1,4 +1,4 @@
-"""Render the source region an evidence item was read from.
+"""Render an evidence item's full source with its recorded region highlighted.
 
 Shared by the live API and the static freeze script so the highlight a viewer
 sees is produced by the same code either way -- a replay that drew its boxes
@@ -17,9 +17,9 @@ from PIL import Image, ImageDraw
 
 from spec2cad.schemas.evidence import Evidence
 
-HIGHLIGHT = (0, 0, 0)          # monochrome, to match the interface
+HIGHLIGHT = (91, 91, 214)      # the interface accent, visible on white source pages
+HIGHLIGHT_FILL = (*HIGHLIGHT, 42)
 PDF_DPI = 160
-IMAGE_PAD_PX = 130
 
 
 class NoRegion(ValueError):
@@ -44,19 +44,25 @@ def render_evidence_preview(
     if source.suffix.lower() == ".pdf":
         with fitz.open(str(source)) as doc:
             page = doc[(evidence.source.page or 1) - 1]
-            page.draw_rect(fitz.Rect(x0, y0, x1, y1), color=HIGHLIGHT, width=1.4)
-            clip = fitz.Rect(
-                max(0, x0 - 260), max(0, y0 - 60),
-                min(page.rect.x1, x1 + 160), y1 + 60,
+            pdf_highlight = tuple(channel / 255 for channel in HIGHLIGHT)
+            page.draw_rect(
+                fitz.Rect(x0, y0, x1, y1),
+                color=pdf_highlight,
+                fill=pdf_highlight,
+                fill_opacity=0.16,
+                width=2.2,
+                overlay=True,
             )
-            page.get_pixmap(clip=clip, dpi=PDF_DPI).save(str(out_path))
+            page.get_pixmap(dpi=PDF_DPI).save(str(out_path))
     else:
-        img = Image.open(source).convert("RGB")
-        ImageDraw.Draw(img).rectangle([x0, y0, x1, y1], outline=HIGHLIGHT, width=3)
-        img.crop((
-            max(0, int(x0) - IMAGE_PAD_PX), max(0, int(y0) - IMAGE_PAD_PX),
-            min(img.width, int(x1) + IMAGE_PAD_PX),
-            min(img.height, int(y1) + IMAGE_PAD_PX),
-        )).save(out_path)
+        img = Image.open(source).convert("RGBA")
+        overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
+        ImageDraw.Draw(overlay).rectangle(
+            [x0, y0, x1, y1],
+            fill=HIGHLIGHT_FILL,
+            outline=(*HIGHLIGHT, 255),
+            width=5,
+        )
+        Image.alpha_composite(img, overlay).convert("RGB").save(out_path)
 
     return out_path

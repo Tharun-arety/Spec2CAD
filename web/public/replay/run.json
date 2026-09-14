@@ -1,7 +1,7 @@
 {
   "mode": "recorded_replay",
   "disclaimer": "This is a recording of a pipeline run, not live generation. No CAD kernel is running behind this page. The STEP offered is the frozen artifact that the release gate authorised at the time of recording.",
-  "frozen_at": "2026-09-14T11:24:36.286539+00:00",
+  "frozen_at": "2026-09-14T11:32:42.895494+00:00",
   "sketch_backend": "recorded fixture (no vision API key configured)",
   "contains_fixture_evidence": true,
   "applied_proposal": "widen_to_recommended",
@@ -614,7 +614,7 @@
               "volume_delta": 10000.0,
               "is_valid": true,
               "solid_count": 1,
-              "seconds": 0.0044,
+              "seconds": 0.0086,
               "no_op": false
             }
           },
@@ -653,7 +653,7 @@
               "volume_delta": -1988.0391,
               "is_valid": true,
               "solid_count": 1,
-              "seconds": 0.0038,
+              "seconds": 0.01,
               "no_op": false
             }
           },
@@ -697,7 +697,7 @@
               "volume_delta": -181.5841,
               "is_valid": true,
               "solid_count": 1,
-              "seconds": 0.0054,
+              "seconds": 0.0118,
               "no_op": false
             }
           },
@@ -721,7 +721,7 @@
               "volume_delta": -10.0,
               "is_valid": true,
               "solid_count": 1,
-              "seconds": 0.0059,
+              "seconds": 0.013,
               "no_op": false
             }
           }
@@ -1327,7 +1327,7 @@
               "volume_delta": 11250.0,
               "is_valid": true,
               "solid_count": 1,
-              "seconds": 0.0031,
+              "seconds": 0.0066,
               "no_op": false
             }
           },
@@ -1366,7 +1366,7 @@
               "volume_delta": -1988.0391,
               "is_valid": true,
               "solid_count": 1,
-              "seconds": 0.0038,
+              "seconds": 0.0079,
               "no_op": false
             }
           },
@@ -1410,7 +1410,7 @@
               "volume_delta": -181.5841,
               "is_valid": true,
               "solid_count": 1,
-              "seconds": 0.0052,
+              "seconds": 0.0123,
               "no_op": false
             }
           },
@@ -1434,7 +1434,7 @@
               "volume_delta": -10.0,
               "is_valid": true,
               "solid_count": 1,
-              "seconds": 0.0059,
+              "seconds": 0.0136,
               "no_op": false
             }
           }

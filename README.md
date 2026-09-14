@@ -68,7 +68,7 @@ has CadQuery. Elsewhere: `pip install -r requirements.txt`.
 python examples/motor_adapter/generate_inputs.py     # seeded, byte-identical
 python -m spec2cad.cli examples/motor_adapter        # v1: blocked, exit 1
 python -m spec2cad.cli examples/motor_adapter --approve widen_to_recommended
-python -m pytest                                     # 49 tests
+python -m pytest                                     # 50 tests
 python -m eval.run_eval                              # 32 deterministic checks
 ```
 
