@@ -47,11 +47,11 @@ const liveApi = {
 
   runDemo: () => fetch(`${API_BASE}/runs/demo`, { method: 'POST' }).then(json<RunState>),
 
-  runUpload: (sketch: File, datasheet: File, requirement: string) => {
+  runUpload: (sketch: File | null, datasheet: File | null, requirement: string) => {
     const body = new FormData()
-    body.append('sketch', sketch)
-    body.append('datasheet', datasheet)
-    body.append('requirement', requirement)
+    if (sketch) body.append('sketch', sketch)
+    if (datasheet) body.append('datasheet', datasheet)
+    if (requirement.trim()) body.append('requirement', requirement.trim())
     return fetch(`${API_BASE}/runs`, { method: 'POST', body }).then(json<RunState>)
   },
 
@@ -83,11 +83,13 @@ const liveApi = {
     `${API_BASE}/runs/${runId}/revisions/${rev}/model.step`,
   previewUrl: (runId: string, evidenceId: string) =>
     `${API_BASE}/runs/${runId}/evidence/${evidenceId}/preview`,
+  sourceUrl: (runId: string, filename: string) =>
+    `${API_BASE}/runs/${runId}/sources/${encodeURIComponent(filename)}`,
 }
 
 const replayAdapter = {
   ...replayApi,
-  runUpload: (_s: File, _d: File, _r: string) => replayApi.runUpload(),
+  runUpload: (_s: File | null, _d: File | null, _r: string) => replayApi.runUpload(),
   repair: (runId: string, proposalId: string, _ack?: boolean) =>
     replayApi.repair(runId, proposalId),
   revise: (_id: string, _u: Record<string, number>, _r: string, _a?: boolean) =>
@@ -108,7 +110,7 @@ export const api = {
   get isReplay() { return impl.isReplay },
   health: () => impl.health(),
   runDemo: () => impl.runDemo(),
-  runUpload: (s: File, d: File, r: string) => impl.runUpload(s, d, r),
+  runUpload: (s: File | null, d: File | null, r: string) => impl.runUpload(s, d, r),
   repair: (runId: string, proposalId: string, ack?: boolean) =>
     impl.repair(runId, proposalId, ack),
   revise: (runId: string, updates: Record<string, number>, reason: string, ack?: boolean) =>
@@ -116,6 +118,7 @@ export const api = {
   stlUrl: (runId: string, rev: number) => impl.stlUrl(runId, rev),
   stepUrl: (runId: string, rev: number) => impl.stepUrl(runId, rev),
   previewUrl: (runId: string, evidenceId: string) => impl.previewUrl(runId, evidenceId),
+  sourceUrl: (runId: string, filename: string) => impl.sourceUrl(runId, filename),
 }
 
 export interface WakeProgress {

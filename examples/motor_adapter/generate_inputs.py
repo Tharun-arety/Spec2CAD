@@ -169,7 +169,10 @@ def build_sketch() -> dict:
 
     label("ADAPTER PLATE  -  SKETCH", 300, 48, f_title)
     label("ALL DIMS IN mm", 300, 88, f_small)
-    label("4x mounting holes", x0 - 40, y0 - 42, f_small)
+    label(
+        "4x mounting holes", x0 - 40, y0 - 42, f_small,
+        key="mounting_hole_count",
+    )
 
     img.save(HERE / "sketch.png")
     return regions
@@ -309,7 +312,7 @@ def build_truth_and_fixture(regions: dict) -> None:
              "region": regions["plate_height"], "raw_text": "50"},
             {"target": "mounting_hole_count", "kind": "count", "value": 4, "unit": None,
              "confidence": 0.93, "is_explicit_annotation": True,
-             "region": regions.get("orientation_note"), "raw_text": "4x mounting holes"},
+             "region": regions["mounting_hole_count"], "raw_text": "4x mounting holes"},
             {"target": "orientation_note", "kind": "note", "value": "MOTOR SIDE", "unit": None,
              "confidence": 0.95, "is_explicit_annotation": True,
              "region": regions["orientation_note"], "raw_text": "MOTOR SIDE"},

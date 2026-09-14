@@ -29,7 +29,13 @@ from spec2cad.repair.repair_planner import RepairProposal, apply_repair, plan_re
 from spec2cad.schemas.cad_ir import CADProgram
 from spec2cad.schemas.design_intent import DesignIntent
 from spec2cad.schemas.evidence import EvidenceSet, SemanticTarget
-from spec2cad.schemas.report import CheckStage, Report
+from spec2cad.schemas.report import (
+    CheckResult,
+    CheckStage,
+    CheckStatus,
+    ConflictClass,
+    Report,
+)
 from spec2cad.validation.dimensions import run_dimensions
 from spec2cad.validation.gate import ReleaseDecision, evaluate_release
 from spec2cad.validation.requirements import (
@@ -92,15 +98,33 @@ class RunResult:
 
 
 def gather_evidence(
-    sketch: Path, datasheet: Path, requirement: Path,
+    sketch: Optional[Path] = None,
+    datasheet: Optional[Path] = None,
+    requirement: Optional[Path] = None,
     backend_override: Optional[str] = None,
-) -> tuple[EvidenceSet, object]:
-    """Run all three extractors."""
-    sketch_result = extract_sketch(sketch, backend_override)
-    items = list(sketch_result.evidence)
-    items += extract_datasheet(datasheet)
-    items += extract_requirement(requirement)
-    return EvidenceSet(items=items, backend_used=sketch_result.label), sketch_result
+) -> tuple[EvidenceSet, object | None]:
+    """Run every extractor whose source was supplied.
+
+    Partial source sets are intentional. They still produce attributed evidence
+    and a DesignIntent with explicit missing parameters; downstream compilation
+    may then stop with a useful completeness error instead of the transport
+    layer refusing the run before the pipeline can say what it learned.
+    """
+    if sketch is None and datasheet is None and requirement is None:
+        raise ValueError("at least one source is required")
+
+    items = []
+    sketch_result = None
+    if sketch is not None:
+        sketch_result = extract_sketch(sketch, backend_override)
+        items.extend(sketch_result.evidence)
+    if datasheet is not None:
+        items.extend(extract_datasheet(datasheet))
+    if requirement is not None:
+        items.extend(extract_requirement(requirement))
+
+    label = sketch_result.label if sketch_result else "not used (no sketch supplied)"
+    return EvidenceSet(items=items, backend_used=label), sketch_result
 
 
 def evaluate_revision(intent: DesignIntent) -> RevisionResult:
@@ -119,7 +143,25 @@ def evaluate_revision(intent: DesignIntent) -> RevisionResult:
         result.execution = execute(program, values)
     except (ExecutionError, ValueError) as exc:
         result.build_error = f"{type(exc).__name__}: {exc}"
-        result.decision = evaluate_release(intent, [])
+        # An absent solid is never a releasable result. Passing an empty report
+        # list to the gate used to authorise failed builds because it saw no
+        # measured failures. Represent the build failure as a blocking check so
+        # the UI and API cannot call an incomplete run "released".
+        build_report = Report(
+            stage=CheckStage.SCHEMA,
+            design_revision=intent.revision,
+            checks=[CheckResult(
+                id="build_execution",
+                stage=CheckStage.SCHEMA,
+                name="Geometry generated",
+                status=CheckStatus.FAIL,
+                conflict_class=ConflictClass.EXECUTION,
+                responsible_parameters=intent.missing_parameters,
+                message=result.build_error,
+            )],
+        )
+        result.measured = [build_report]
+        result.decision = evaluate_release(intent, [build_report])
         return result
 
     shape = result.execution.shape
@@ -147,10 +189,12 @@ def evaluate_revision(intent: DesignIntent) -> RevisionResult:
 
 
 def run(
-    sketch: Path, datasheet: Path, requirement: Path,
+    sketch: Optional[Path] = None,
+    datasheet: Optional[Path] = None,
+    requirement: Optional[Path] = None,
     backend_override: Optional[str] = None,
 ) -> RunResult:
-    """Extract, fuse and evaluate DesignIntent v1."""
+    """Extract supplied sources, fuse them and evaluate DesignIntent v1."""
     evidence, sketch_result = gather_evidence(
         sketch, datasheet, requirement, backend_override
     )
@@ -158,9 +202,11 @@ def run(
     return RunResult(
         evidence=evidence,
         revisions=[evaluate_revision(intent)],
-        sketch_backend=sketch_result.label,
-        sketch_fell_back=sketch_result.fell_back,
-        sketch_fallback_reason=sketch_result.fallback_reason,
+        sketch_backend=(
+            sketch_result.label if sketch_result else "not used (no sketch supplied)"
+        ),
+        sketch_fell_back=sketch_result.fell_back if sketch_result else False,
+        sketch_fallback_reason=sketch_result.fallback_reason if sketch_result else None,
     )
 
 

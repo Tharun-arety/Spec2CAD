@@ -7,10 +7,11 @@ genuine frozen output rather than simulating it. Uploading documents and
 applying an unrecorded resolution both refuse, with the reason. For live
 generation run it locally or as a container — see `DEPLOYMENT.md`.
 
-Takes a hand sketch, a component datasheet and a written requirement, and
-produces a traceable engineering specification, a parametric feature plan, a
-generated STEP model and a validation report — and when the three sources are
-jointly impossible, says so instead of quietly building something.
+Takes any available combination of a hand sketch, component datasheet and
+written requirement, and produces the traceable evidence and design intent that
+the supplied sources support. Complete inputs continue through a parametric
+feature plan, generated STEP model and validation report — and when the sources
+are jointly impossible, the system says so instead of quietly building something.
 
 The thesis is not "an LLM can write CadQuery." It is the separation that makes
 generated geometry accountable:
@@ -67,7 +68,7 @@ has CadQuery. Elsewhere: `pip install -r requirements.txt`.
 python examples/motor_adapter/generate_inputs.py     # seeded, byte-identical
 python -m spec2cad.cli examples/motor_adapter        # v1: blocked, exit 1
 python -m spec2cad.cli examples/motor_adapter --approve widen_to_recommended
-python -m pytest                                     # 36 tests
+python -m pytest                                     # 49 tests
 python -m eval.run_eval                              # 32 deterministic checks
 ```
 
@@ -95,8 +96,8 @@ already produces rather than being imposed on it:
 | Shell element | What it actually shows |
 |---|---|
 | Command bar | part, material, process, the current revision, a link to this repo, and the history toggle |
-| Stage rail | Sources → Evidence → Intent → Inspect → Release, badged with live failure and proposal counts. Rail and inspector sit together on the **left**, the way an activity bar and its sidebar do, so choosing a stage and reading it are one glance; the active tab takes the panel's surface so the two read as one object. Clicking the active stage collapses the panel and gives the viewport the full width. |
-| Viewport | the built solid. The release state sits in the corner readout as a quiet `mm · v2 ✓ released` — the status bar already carries it, so the model is left alone |
+| Stage rail | Sources → Evidence → Intent → Inspect → Release, badged with live failure and proposal counts. Sources is an AI-style composer that accepts any one, two, or all three inputs. Rail and inspector sit together on the **left**, the way an activity bar and its sidebar do, so choosing a stage and reading it are one glance; the active tab takes the panel's surface so the two read as one object. Clicking the active stage collapses the panel and gives the viewport the full width. |
+| Editor / viewport | Evidence opens source documents in VS Code-style tabs and replaces the CAD view; selecting a value shows its highlighted extraction region. Intent, CAD and Validate retain the built-solid viewport. |
 | Timeline | the real feature history — `base_plate → shaft_opening → mounting_holes → external_chamfers`. Selecting one opens what that operation actually is: its resolved values and the parameter each came from. |
 | Inspector | the panel for the selected stage; a blocked run opens on Release, a released one on Inspect. Parameters are editable — changing one derives the next revision through the same `derive()` path an accepted proposal uses. |
 | Status bar | the gate decision plus the governing measurement, tinted by outcome |
@@ -275,7 +276,7 @@ web/            React + Vite + Tailwind v4 + three.js, five sheet zones
 examples/       seeded input generator + generated inputs
 eval/           metrics · run_eval → report.md
 scripts/        freeze_demo.py (static replay bundle)
-tests/          36 tests
+tests/          49 tests
 ```
 
 Geometry is deliberately **not** persisted. The pipeline is deterministic, so a

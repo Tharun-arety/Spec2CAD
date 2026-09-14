@@ -103,4 +103,6 @@ export const replayApi = {
   stepUrl: (_runId: string, rev: number) => `${BASE}/artifacts/v${rev}.step`,
   previewUrl: (_runId: string, evidenceId: string) =>
     `${BASE}/previews/${evidenceId}.png`,
+  sourceUrl: (_runId: string, filename: string) =>
+    `${BASE}/sources/${encodeURIComponent(filename)}`,
 }

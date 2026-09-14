@@ -17,6 +17,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { PlanView } from './components/PlanView'
 import { GuideBar } from './components/GuideBar'
 import { PipelinePreview } from './components/PipelinePreview'
+import { EvidenceWorkbench, SourceWorkspace } from './components/Workbenches'
 import { hasWebGL } from './lib/webgl'
 
 const VIEWER_FALLBACK_NOTE =
@@ -236,13 +237,10 @@ export default function App() {
               to a real backend would be a lie about what you are looking at. */}
           {stage === 'sources' && (
             <SourcesStage
-              busy={busy}
               backendLabel={health?.sketch_backend_label ?? 'checking…'}
               visionAvailable={health?.vision_available ?? false}
               replay={mode === 'replay' ? replay : null}
               evidence={state?.evidence}
-              onDemo={() => guard(api.runDemo)}
-              onUpload={(s, d, r) => guard(() => api.runUpload(s, d, r))}
             />
           )}
           {stage !== 'sources' && !(state && rev) && (
@@ -284,7 +282,20 @@ export default function App() {
         {/* viewport column */}
         <main className="flex min-w-[380px] flex-1 flex-col">
           <div className="viewport-ground grid-dots relative min-h-0 flex-1">
-            {rev?.build_error ? (
+            {stage === 'sources' ? (
+              <SourceWorkspace
+                busy={busy}
+                replayMode={mode === 'replay'}
+                visionAvailable={health?.vision_available ?? false}
+                state={state}
+                onDemo={() => guard(api.runDemo)}
+                onCompile={(sketch, datasheet, instruction) =>
+                  guard(() => api.runUpload(sketch, datasheet, instruction))
+                }
+              />
+            ) : stage === 'evidence' && state ? (
+              <EvidenceWorkbench state={state} picked={picked} onPick={setPicked} />
+            ) : rev?.build_error ? (
               <Empty>{rev.build_error}</Empty>
             ) : state && rev ? (
               <>
@@ -397,7 +408,9 @@ export default function App() {
             )}
           </div>
 
-          <Timeline rev={rev} selected={feature} onSelect={setFeature} />
+          {stage !== 'sources' && stage !== 'evidence' && (
+            <Timeline rev={rev} selected={feature} onSelect={setFeature} />
+          )}
         </main>
 
         {/* Revision history on the right. DesignIntent revisions are already an

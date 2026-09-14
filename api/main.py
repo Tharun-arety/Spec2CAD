@@ -278,40 +278,55 @@ def create_demo_run(backend: Optional[str] = None) -> JSONResponse:
 
 @app.post("/runs")
 async def create_run(
-    sketch: UploadFile = File(...),
-    datasheet: UploadFile = File(...),
-    requirement: str = Form(...),
+    sketch: Optional[UploadFile] = File(None),
+    datasheet: Optional[UploadFile] = File(None),
+    requirement: Optional[str] = Form(None),
     backend: Optional[str] = Form(None),
 ) -> JSONResponse:
+    requirement_text = (requirement or "").strip()
+    if sketch is None and datasheet is None and not requirement_text:
+        raise HTTPException(
+            400,
+            "add at least one source: a sketch, a datasheet, or a written instruction",
+        )
+
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     work = Path(tempfile.mkdtemp(dir=UPLOAD_DIR))
 
-    sketch_path = work / "sketch.png"
-    datasheet_path = work / "motor_datasheet.pdf"
-    requirement_path = work / "requirement.txt"
+    sketch_path: Optional[Path] = None
+    datasheet_path: Optional[Path] = None
+    requirement_path: Optional[Path] = None
 
-    with sketch_path.open("wb") as fh:
-        shutil.copyfileobj(sketch.file, fh)
-    with datasheet_path.open("wb") as fh:
-        shutil.copyfileobj(datasheet.file, fh)
-    requirement_path.write_text(requirement, encoding="utf-8")
+    if sketch is not None:
+        suffix = Path(sketch.filename or "").suffix.lower()
+        if suffix not in {".png", ".jpg", ".jpeg", ".webp"}:
+            suffix = ".png"
+        sketch_path = work / f"sketch{suffix}"
+        with sketch_path.open("wb") as fh:
+            shutil.copyfileobj(sketch.file, fh)
+    if datasheet is not None:
+        datasheet_path = work / "motor_datasheet.pdf"
+        with datasheet_path.open("wb") as fh:
+            shutil.copyfileobj(datasheet.file, fh)
+    if requirement_text:
+        requirement_path = work / "requirement.txt"
+        requirement_path.write_text(requirement_text, encoding="utf-8")
 
     # An uploaded sketch has no recorded fixture, so with no API key configured
     # there is nothing to fall back to. Say so plainly.
-    if select_backend(backend).value == "fixture":
-        fixture = work / "sketch.fixture.json"
-        if not fixture.exists():
-            raise HTTPException(
-                400,
-                "no vision API key is configured, and an uploaded sketch has no "
-                "recorded fixture to replay. Set OPENAI_API_KEY or ANTHROPIC_API_KEY "
-                "in .env to extract uploaded drawings, or use POST /runs/demo to run "
-                "the bundled example.",
-            )
+    if sketch_path is not None and select_backend(backend).value == "fixture":
+        shutil.rmtree(work, ignore_errors=True)
+        raise HTTPException(
+            400,
+            "no vision API key is configured, and an uploaded sketch has no "
+            "recorded fixture to replay. Add a vision API key, remove the sketch "
+            "and compile the other sources, or run the bundled example.",
+        )
 
     try:
         result = run(sketch_path, datasheet_path, requirement_path, backend)
     except Exception as exc:
+        shutil.rmtree(work, ignore_errors=True)
         raise HTTPException(422, f"pipeline failed: {type(exc).__name__}: {exc}") from exc
 
     run_id = store.create_run(
@@ -331,6 +346,31 @@ def list_runs() -> dict:
 @app.get("/runs/{run_id}")
 def get_run(run_id: str) -> JSONResponse:
     return JSONResponse(_run_json(run_id, _require(run_id)))
+
+
+@app.get("/runs/{run_id}/sources/{filename}")
+def get_source(run_id: str, filename: str):
+    """Return one supplied document for the evidence editor.
+
+    The filename must occur in this run's evidence and resolve directly inside
+    its input directory. Engineering-rule citations are evidence sources too,
+    but they are not uploaded files and therefore correctly return 404 here.
+    """
+    result = _require(run_id)
+    allowed = {
+        e.source.file
+        for e in result.evidence.items
+        if e.source.modality.value != "engineering_rule"
+    }
+    if filename not in allowed or Path(filename).name != filename:
+        raise HTTPException(404, f"unknown source {filename!r}")
+
+    stored = store.get_run(run_id)
+    input_dir = (stored.input_dir if stored else EXAMPLE_DIR).resolve()
+    source = (input_dir / filename).resolve()
+    if source.parent != input_dir or not source.is_file():
+        raise HTTPException(404, f"source file not found: {filename!r}")
+    return FileResponse(source)
 
 
 class RepairRequest(BaseModel):

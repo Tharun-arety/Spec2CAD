@@ -125,6 +125,20 @@ def test_hole_diameter_is_derived_from_a_standard(v1):
     assert dia.is_explicit_annotation is False, "a derived value is not an annotation"
 
 
+def test_sketch_evidence_highlights_its_own_annotation(v1):
+    """Count and orientation used to point at the same MOTOR SIDE rectangle."""
+    by_target = {
+        e.target.value: e
+        for e in v1.evidence.items
+        if e.source.modality.value == "sketch"
+    }
+    count_region = by_target["mounting_hole_count"].source.region
+    orientation_region = by_target["orientation_note"].source.region
+    assert count_region is not None
+    assert orientation_region is not None
+    assert count_region != orientation_region
+
+
 def test_confidence_and_authority_are_separate_fields(v1):
     process = [e for e in v1.evidence.items
                if e.target.value == "manufacturing_process"][0]
@@ -447,6 +461,47 @@ def test_fixture_evidence_cannot_be_scored_as_extraction(v1):
 def test_run_reports_which_backend_produced_the_sketch_evidence(v1):
     assert "fixture" in v1.sketch_backend.lower()
     assert v1.evidence.contains_fixture_data is True
+
+
+# ----------------------------------------------------------- partial sources
+
+
+@pytest.mark.parametrize(
+    "sources,expected_modality",
+    [
+        ({"sketch": EXAMPLE / "sketch.png", "backend_override": "fixture"}, "sketch"),
+        ({"datasheet": EXAMPLE / "motor_datasheet.pdf"}, "datasheet"),
+        ({"requirement": EXAMPLE / "requirement.txt"}, "requirement_text"),
+    ],
+)
+def test_any_single_source_can_start_a_run(sources, expected_modality):
+    result = run(**sources)
+    assert result.evidence.items
+    assert {e.source.modality.value for e in result.evidence.items} >= {
+        expected_modality
+    }
+    assert result.latest.build_error is not None
+    assert result.latest.decision.step_export_allowed is False
+    assert "Geometry generated" in {
+        c.name for report in result.latest.measured for c in report.checks
+    }
+
+
+def test_two_sources_are_fused_without_requiring_the_third():
+    result = run(
+        datasheet=EXAMPLE / "motor_datasheet.pdf",
+        requirement=EXAMPLE / "requirement.txt",
+    )
+    modalities = {e.source.modality.value for e in result.evidence.items}
+    assert {"datasheet", "requirement_text", "engineering_rule"} <= modalities
+    assert result.latest.intent.has("plate_thickness")
+    assert not result.latest.intent.has("plate_width")
+    assert result.latest.decision.step_export_allowed is False
+
+
+def test_run_requires_at_least_one_source():
+    with pytest.raises(ValueError, match="at least one source"):
+        run()
 
 
 # -------------------------------------------------- per-operation measurement

@@ -9,7 +9,6 @@ import { useState } from 'react'
 import type { Check, Evidence, Proposal, Revision, RunState } from '../types'
 import { api } from '../api'
 import { cn } from '../lib/cn'
-import { DropZone } from './DropZone'
 import { ExtractionMode } from './ExtractionMode'
 import { Button, Empty, Field, Mark, Num, PanelHead, Tip } from './ui'
 
@@ -18,27 +17,24 @@ const show = (v: unknown) => (v === null || v === undefined ? '—' : String(v))
 /* --------------------------------------------------------------- sources */
 
 export function SourcesStage({
-  onDemo, onUpload, busy, backendLabel, visionAvailable, replay, evidence,
+  backendLabel, visionAvailable, replay, evidence,
 }: {
-  onDemo: () => void
-  onUpload: (s: File, d: File, r: string) => void
-  busy: boolean
   backendLabel: string
   visionAvailable: boolean
   replay?: { disclaimer: string; limits: string[]; frozen_at: string } | null
   evidence?: Evidence[]
 }) {
-  const [sketch, setSketch] = useState<File | null>(null)
-  const [datasheet, setDatasheet] = useState<File | null>(null)
-  const [requirement, setRequirement] = useState(
-    'Manufacture the adapter from 5 mm aluminium. Use normal-clearance holes for M3 ' +
-    'screws, maintain at least 4 mm from every hole edge to the plate boundary, and ' +
-    'add 1 mm chamfers to the external edges.',
-  )
+  const documents = evidence
+    ? [...new Map(
+        evidence
+          .filter((e) => e.source.modality !== 'engineering_rule')
+          .map((e) => [e.source.file, e]),
+      ).values()]
+    : []
 
   return (
     <>
-      <PanelHead title="Sources" note="three documents, jointly impossible" />
+      <PanelHead title="Source explorer" note={documents.length ? `${documents.length} open` : 'optional inputs'} />
 
       {/* Stated up front and derived from the evidence, not asserted in prose.
           Which documents were actually read now is the load-bearing claim here. */}
@@ -61,58 +57,39 @@ export function SourcesStage({
         </div>
       )}
 
-      <div className="p-3.5">
-        <Button intent="solid" size="md" className="w-full" onClick={onDemo} disabled={busy}>
-          {busy ? 'Compiling…' : 'Compile the example'}
-        </Button>
+      <div className="border-b border-c3 px-[13px] py-[10px]">
+        <div className="text-[11px] font-semibold text-c6">WORKSPACE</div>
+        {documents.length ? (
+          <ul className="mt-[5px] space-y-[2px]">
+            {documents.map((e) => (
+              <li key={e.source.file}
+                  className="flex items-center gap-[7px] rounded-[4px] px-[5px] py-[5px]
+                             text-[12.5px] text-c8 hover:bg-c2">
+                <span className="h-[6px] w-[6px] rounded-full bg-success" aria-hidden />
+                <span className="min-w-0 flex-1 truncate">{e.source.file}</span>
+                <span className="num text-[10.5px] text-c6">
+                  {e.source.modality.replace('_', ' ')}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-[6px] text-[12px] leading-relaxed text-c6">
+            No sources attached. Use the agent editor to add one document, several,
+            or a written instruction.
+          </p>
+        )}
       </div>
 
-      <div className="border-y border-c3">
-        {[
-          ['Sketch', '40 × 50 mm outline, 4 holes'],
-          ['Datasheet', 'NEMA-17, 31 × 31 mm, 4 × M3'],
-          ['Requirement', '5 mm Al, ≥4 mm edge, 1 mm chamfer'],
-        ].map(([k, v]) => <Field key={k} label={k} dense>{v}</Field>)}
-      </div>
-
-      <p className="px-3.5 py-3 text-[12.5px] leading-relaxed text-c7">
-        The 40 mm width, the 31 mm pattern and the 4 mm clearance are each correct
-        and cannot all hold at once — that is what this tool is for.
-      </p>
-
-      <div className="border-t border-c3 p-3.5">
-        <h3 className="mb-2.5 text-[13px] font-semibold">Use your own</h3>
-        <div className="space-y-2.5">
-          <DropZone
-            label="Sketch image" hint="a PNG or JPG" accept="image/*"
-            file={sketch} onChange={setSketch} disabled={busy}
-          />
-          <DropZone
-            label="Datasheet PDF" hint="a PDF" accept="application/pdf,.pdf"
-            file={datasheet} onChange={setDatasheet} disabled={busy}
-          />
-          <label className="block">
-            <span className="mb-[5px] block text-[12.5px] font-medium text-c8">Requirement</span>
-            <textarea value={requirement} onChange={(e) => setRequirement(e.target.value)}
-              className="min-h-[76px] w-full resize-y rounded-[5px] border border-c4 bg-c0
-                         px-[10px] py-[6px] text-[12px] leading-relaxed
-                         transition-colors duration-150
-                         focus:border-accent focus:outline-none" />
-          </label>
-          <Tip label={visionAvailable
-            ? 'Runs the full pipeline on your documents'
-            : 'An uploaded drawing has no recorded fixture, so this needs a vision API key'}>
-            <span className="block">
-              <Button className="w-full" disabled={busy || !sketch || !datasheet || !visionAvailable}
-                onClick={() => sketch && datasheet && onUpload(sketch, datasheet, requirement)}>
-                Compile uploaded documents
-              </Button>
-            </span>
-          </Tip>
-        </div>
-        <p className="mt-2.5 text-[12px] leading-relaxed text-c6">
-          Extraction backend: {backendLabel}.
-          {!visionAvailable && ' The datasheet is parsed for real regardless.'}
+      <div className="px-[13px] py-[10px]">
+        <div className="text-[11px] font-semibold text-c6">CAPABILITIES</div>
+        <ul className="mt-[6px] space-y-[5px] text-[12px] text-c7">
+          <li>✓ Requirement text</li>
+          <li>✓ Datasheet PDF layout</li>
+          <li>{visionAvailable ? '✓' : '–'} Sketch vision</li>
+        </ul>
+        <p className="mt-[8px] text-[11.5px] leading-relaxed text-c6">
+          {backendLabel}. {!visionAvailable && 'Text and PDF inputs remain available.'}
         </p>
       </div>
     </>
