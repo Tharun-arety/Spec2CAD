@@ -1,5 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
-import { IS_REPLAY, api } from './api'
+import {
+  FORCED_REPLAY, REMOTE_BACKEND, REPLAY_AVAILABLE, api, setApiMode, wakeBackend,
+} from './api'
 import { replayApi, type ReplayManifest } from './replay'
 import type { Evidence, Health, Proposal, RunState } from './types'
 import {
@@ -30,11 +32,34 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [replay, setReplay] = useState<ReplayManifest | null>(null)
+  const [mode, setMode] = useState<'live' | 'replay'>(FORCED_REPLAY ? 'replay' : 'live')
+  const [waking, setWaking] = useState<number | null>(null)
+  const [backendDown, setBackendDown] = useState<string | null>(null)
 
   useEffect(() => {
-    api.health().then(setHealth).catch((e) => setError(String(e)))
-    if (IS_REPLAY) replayApi.manifest().then(setReplay).catch(() => {})
-  }, [])
+    if (REPLAY_AVAILABLE) replayApi.manifest().then(setReplay).catch(() => {})
+    if (mode === 'replay') {
+      api.health().then(setHealth).catch(() => {})
+      return
+    }
+    // A free instance sleeps after 15 minutes, so the first visitor waits for a
+    // container start plus the CadQuery import. Show that, do not hide it.
+    if (REMOTE_BACKEND) {
+      setWaking(0)
+      wakeBackend((p) => setWaking(p.elapsedSeconds))
+        .then((h) => { setHealth(h); setWaking(null); setBackendDown(null) })
+        .catch((e) => { setWaking(null); setBackendDown(String(e.message ?? e)) })
+    } else {
+      api.health().then(setHealth).catch((e) => setBackendDown(String(e)))
+    }
+  }, [mode])
+
+  const useReplayInstead = () => {
+    setApiMode('replay')
+    setMode('replay')
+    setBackendDown(null)
+    setError(null)
+  }
 
   const guard = useCallback(async (fn: () => Promise<RunState>) => {
     setBusy(true)
@@ -75,7 +100,7 @@ export default function App() {
         onSelectRevision={(n) => { setViewing(n); setScriptOpen(false) }}
         right={
           <>
-            {IS_REPLAY && (
+            {mode === 'replay' && (
               <span className="rounded-[5px] border border-warn-line bg-warn-wash px-[8px] py-[2px]
                                text-[10px] font-semibold uppercase tracking-[0.08em] text-warn">
                 recorded replay
@@ -144,12 +169,15 @@ export default function App() {
             </div>
           )}
 
+          {/* The replay notice is gated on the live mode, not merely on the
+              bundle being present -- claiming "this is a recording" while talking
+              to a real backend would be a lie about what you are looking at. */}
           {stage === 'sources' && (
             <SourcesStage
               busy={busy}
               backendLabel={health?.sketch_backend_label ?? 'checking…'}
               visionAvailable={health?.vision_available ?? false}
-              replay={replay}
+              replay={mode === 'replay' ? replay : null}
               onDemo={() => guard(api.runDemo)}
               onUpload={(s, d, r) => guard(() => api.runUpload(s, d, r))}
             />
@@ -203,17 +231,65 @@ export default function App() {
               </>
             ) : (
               <div className="grid h-full place-items-center">
-                <div className="max-w-[340px] px-[21px] text-center">
-                  <p className="text-[14px] leading-relaxed text-c7">
-                    {busy
-                      ? 'Extracting, fusing, compiling, building and measuring…'
-                      : 'Compile the example to watch a design get refused, repaired and released.'}
-                  </p>
-                  {!busy && (
-                    <Button intent="solid" size="md" className="mt-[21px]"
-                            onClick={() => guard(api.runDemo)}>
-                      Compile the example
-                    </Button>
+                <div className="max-w-[380px] px-[21px] text-center">
+                  {waking !== null ? (
+                    <>
+                      <p className="text-[14px] leading-relaxed text-c7">
+                        Waking the backend…
+                      </p>
+                      <p className="mt-[8px] text-[11.5px] leading-relaxed text-c6">
+                        It runs on a free instance that sleeps after 15 minutes
+                        idle. A cold start takes 30–50 s, plus a couple of seconds
+                        for the CAD kernel to load.
+                      </p>
+                      <p className="num mt-[13px] text-[12px] text-c7">{waking}s</p>
+                      <div aria-hidden
+                           className="mx-auto mt-[8px] h-[2px] w-[144px] overflow-hidden rounded-full bg-c3">
+                        <div className="h-full animate-pulse rounded-full bg-accent"
+                             style={{ width: `${Math.min(100, (waking / 60) * 100)}%` }} />
+                      </div>
+                    </>
+                  ) : backendDown ? (
+                    <>
+                      <p className="text-[14px] leading-relaxed text-c8">
+                        The backend is not responding.
+                      </p>
+                      <p className="mt-[8px] text-[11.5px] leading-relaxed text-c6">
+                        {backendDown}
+                      </p>
+                      <div className="mt-[21px] flex flex-wrap justify-center gap-[8px]">
+                        <Button intent="outline" size="md"
+                                onClick={() => { setBackendDown(null); setMode('live') }}>
+                          Try again
+                        </Button>
+                        {REPLAY_AVAILABLE && (
+                          <Button intent="solid" size="md" onClick={useReplayInstead}>
+                            View the recorded run
+                          </Button>
+                        )}
+                      </div>
+                      {REPLAY_AVAILABLE && (
+                        <p className="mt-[13px] text-[11px] leading-relaxed text-c6">
+                          The recording is genuine pipeline output, but it is a
+                          recording — no uploads, and only the resolution that was
+                          recorded can be applied.
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[14px] leading-relaxed text-c7">
+                        {busy
+                          ? 'Extracting, fusing, compiling, building and measuring…'
+                          : 'Compile the example to watch a design get refused, repaired and released.'}
+                      </p>
+                      {!busy && (
+                        <Button intent="solid" size="md" className="mt-[21px]"
+                                onClick={() => guard(api.runDemo)}>
+                          Compile the example
+                        </Button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

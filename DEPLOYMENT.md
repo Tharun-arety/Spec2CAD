@@ -120,3 +120,74 @@ the frozen bundle preserves that rather than quietly including one.
 
 Both limits follow from there being no kernel. Say so in the UI rather than
 disabling the buttons without explanation.
+
+
+---
+
+# Deploying the backend on Render (free, no card)
+
+Oracle and Cloud Run both require a card even to stay free. Render does not, and
+neither does Railway. Between those two, Render gives **750 instance-hours a
+month** against Railway's ~144 awake-hours ($1 of credit at 0.5 GB), and a cold
+Render service **answers slowly** where Railway documents that a first request
+to a slept service may return **502**. On a link handed to an employer,
+"loading" beats "error", so: Render.
+
+It is also x86, so unlike Oracle's ARM instances the existing `Dockerfile` needs
+no Python version change.
+
+## Sizing, measured
+
+| | |
+|---|---|
+| CadQuery import alone | **328 MB**, 2.4 s |
+| Peak during a full run + repair | **369 MB** |
+| With uvicorn | ≈ **410 MB** against a 512 MB cap |
+
+That is ~80% utilised. Fine for one visitor at a time, which is what a demo
+needs; it is not headroom for concurrent geometry builds.
+
+## Steps
+
+1. Create a Render account and connect the GitHub repo. No card required.
+2. Render reads `render.yaml` at the repo root and creates the `spec2cad-api`
+   web service from it: Docker runtime, free plan, health check on `/health`.
+3. Note the assigned URL, e.g. `https://spec2cad-api.onrender.com`.
+4. Point the frontend at it by setting two build variables on the Vercel
+   project, then redeploying:
+
+   ```
+   VITE_API_BASE=https://<your-service>.onrender.com
+   VITE_REPLAY_FALLBACK=1
+   ```
+
+   Remove `VITE_REPLAY=1` from `vercel.json`'s build command when you do — that
+   flag forces replay and ignores the backend entirely.
+
+5. Optionally set `OPENAI_API_KEY` in the Render dashboard to turn on real
+   sketch extraction. Without it the drawing falls back to its recorded
+   fixture, labelled as such.
+
+## What was fixed to make this work
+
+- **The Dockerfile hardcoded port 8000.** Render injects `$PORT`; a fixed port
+  fails the health check and the deploy rolls back. It now honours `${PORT:-8000}`.
+- **CORS was hardcoded to localhost.** It now reads `SPEC2CAD_ALLOWED_ORIGINS`
+  and additionally matches `https://spec2cad*.vercel.app` by regex, so preview
+  deployments work too.
+
+## Cold starts are shown, not hidden
+
+A free instance sleeps after 15 minutes idle. The frontend polls `/health` on
+load and renders a waking state with a running counter and an explanation of
+why the wait exists, rather than a spinner that looks hung. If the backend never
+answers within the budget, the user is **offered** the recorded replay as a
+button -- it is never substituted silently, and the "Recorded replay" notice is
+gated on actually being in replay mode.
+
+## Keeping the replay bundle
+
+`web/public/replay` stays in the repo. It is the fallback when the backend is
+asleep, out of hours, or not deployed at all, and it is what a `VITE_REPLAY=1`
+build serves. Regenerate it with `python scripts/freeze_demo.py --out
+web/public/replay` whenever the pipeline output changes.

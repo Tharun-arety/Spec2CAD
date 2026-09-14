@@ -23,5 +23,7 @@ COPY scripts/ ./scripts/
 # Generate the demo inputs at build time so POST /runs/demo works immediately.
 RUN python examples/motor_adapter/generate_inputs.py
 
+# Render (and most container hosts) inject the port to listen on. Hardcoding
+# 8000 makes the health check fail and the deploy roll back.
 EXPOSE 8000
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]

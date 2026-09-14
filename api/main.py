@@ -8,6 +8,7 @@ is returned in the body rather than as a bare error.
 
 from __future__ import annotations
 
+import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -39,9 +40,24 @@ ARTIFACT_DIR = BUILD_DIR / "artifacts"
 EXAMPLE_DIR = Path("examples/motor_adapter")
 
 app = FastAPI(title="Spec2CAD", version="1.0.0")
+
+# The deployed frontend lives on a different origin from this API, so the
+# allowed list is configuration rather than a constant. SPEC2CAD_ALLOWED_ORIGINS
+# is a comma-separated list; local dev origins are always included.
+_DEFAULT_ORIGINS = [
+    "http://localhost:5173", "http://127.0.0.1:5173",
+    "http://localhost:5174", "http://localhost:4173",
+]
+_configured = [
+    o.strip()
+    for o in os.environ.get("SPEC2CAD_ALLOWED_ORIGINS", "").split(",")
+    if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=_DEFAULT_ORIGINS + _configured,
+    # every *.vercel.app preview deployment of this project
+    allow_origin_regex=r"https://spec2cad[\w-]*\.vercel\.app",
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -1,0 +1,39 @@
+# Render blueprint for the Spec2CAD backend.
+#
+# The frontend stays on Vercel as a static build; this is only the FastAPI +
+# CadQuery service, which cannot run on a serverless function (the CadQuery
+# bundle measures 1165 MB against Vercel's 500 MB limit -- see DEPLOYMENT.md).
+#
+# Sizing note: a full run peaks at ~369 MB resident and CadQuery's import alone
+# is 328 MB, so the 512 MB free instance runs at roughly 80% utilisation. That
+# is enough for one visitor at a time, which is what a demo needs, but it is not
+# headroom for concurrent geometry builds.
+#
+# Free instances spin down after 15 minutes idle and take 30-50 s to wake, plus
+# ~2.4 s for the CadQuery import. The frontend is built to show that honestly
+# rather than hang.
+
+services:
+  - type: web
+    name: spec2cad-api
+    runtime: docker
+    plan: free
+    region: frankfurt          # closest to the author; change if you prefer
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      # Origins allowed to call this API. The production Vercel domain is listed
+      # explicitly; preview deployments are matched by regex in api/main.py.
+      - key: SPEC2CAD_ALLOWED_ORIGINS
+        value: https://spec2cad.vercel.app
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      # Set these in the Render dashboard to enable real sketch extraction.
+      # Without either, the sketch falls back to its recorded fixture, which is
+      # labelled as such in the UI.
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
