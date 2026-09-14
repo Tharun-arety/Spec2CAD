@@ -153,29 +153,6 @@
     border-left: 2px solid var(--color-danger);
   }
 
-  /* The release stamp. */
-  .stamp {
-    font-weight: 600;
-    font-size: var(--text-micro);
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    padding: 6px 13px;
-    border: 1.5px solid currentColor;
-    border-radius: var(--radius-sm);
-    transform: rotate(-3deg);
-    user-select: none;
-    line-height: 1.25;
-    backdrop-filter: blur(6px);
-  }
-  .stamp-blocked {
-    color: var(--color-danger);
-    background: color-mix(in oklch, var(--color-danger-wash) 88%, transparent);
-  }
-  .stamp-released {
-    color: var(--color-success);
-    background: color-mix(in oklch, var(--color-success-wash) 88%, transparent);
-  }
-
   /* Timeline feature node. */
   .feature {
     display: flex;

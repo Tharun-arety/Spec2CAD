@@ -8,7 +8,9 @@ import {
 import {
   EvidenceStage, InspectStage, IntentStage, ReleaseStage, SourcesStage,
 } from './components/Stages'
-import { Button, Empty } from './components/ui'
+import { PanelRightClose, PanelRightOpen } from 'lucide-react'
+import { Button, Empty, Tip } from './components/ui'
+import { VersionGraph } from './components/VersionGraph'
 
 // three.js is ~500 kB and is not needed until a run exists.
 const StlViewer = lazy(() =>
@@ -23,6 +25,7 @@ export default function App() {
   const [picked, setPicked] = useState<Evidence | null>(null)
   const [scriptOpen, setScriptOpen] = useState(false)
   const [inspectorOpen, setInspectorOpen] = useState(true)
+  const [historyOpen, setHistoryOpen] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [replay, setReplay] = useState<ReplayManifest | null>(null)
@@ -68,12 +71,32 @@ export default function App() {
       <CommandBar
         state={state} rev={rev} busy={busy}
         onSelectRevision={(n) => { setViewing(n); setScriptOpen(false) }}
-        right={IS_REPLAY ? (
-          <span className="rounded-[5px] border border-warn-line bg-warn-wash px-[8px] py-[2px]
-                           text-[10px] font-semibold uppercase tracking-[0.08em] text-warn">
-            recorded replay
-          </span>
-        ) : undefined}
+        right={
+          <>
+            {IS_REPLAY && (
+              <span className="rounded-[5px] border border-warn-line bg-warn-wash px-[8px] py-[2px]
+                               text-[10px] font-semibold uppercase tracking-[0.08em] text-warn">
+                recorded replay
+              </span>
+            )}
+            {state && (
+              <Tip side="bottom" label={historyOpen ? 'Hide revision history' : 'Show revision history'}>
+                <button
+                  onClick={() => setHistoryOpen((o) => !o)}
+                  aria-label={historyOpen ? 'Hide revision history' : 'Show revision history'}
+                  aria-expanded={historyOpen}
+                  className="grid h-[29px] w-[29px] cursor-pointer place-items-center rounded-[5px]
+                             border border-c4 bg-c0 text-c7 shadow-[var(--shadow-raised)]
+                             transition-colors duration-150 hover:border-c6 hover:text-c9"
+                >
+                  {historyOpen
+                    ? <PanelRightClose size={15} strokeWidth={1.7} aria-hidden />
+                    : <PanelRightOpen size={15} strokeWidth={1.7} aria-hidden />}
+                </button>
+              </Tip>
+            )}
+          </>
+        }
       />
 
       <div className="flex min-h-0 flex-1 overflow-x-auto">
@@ -188,6 +211,18 @@ export default function App() {
 
           <Timeline rev={rev} />
         </main>
+
+        {/* Revision history on the right. DesignIntent revisions are already an
+            immutable attributed chain, so they are drawn as a commit graph. */}
+        {state && rev && historyOpen && (
+          <aside className="pane w-[233px] shrink-0 border-l border-c3 bg-c0">
+            <VersionGraph
+              revisions={state.revisions}
+              current={rev.revision}
+              onSelect={(n) => { setViewing(n); setScriptOpen(false) }}
+            />
+          </aside>
+        )}
 
       </div>
 

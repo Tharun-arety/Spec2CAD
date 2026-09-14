@@ -9,6 +9,23 @@
 import {
   Box, CheckSquare, CircleSlash, FileStack, Ruler, ShieldCheck,
 } from 'lucide-react'
+
+export const REPO_URL = 'https://github.com/Tharun-arety/Spec2CAD'
+
+/** lucide removed its brand icons, so the GitHub mark is inlined. */
+function GithubMark({ size = 15 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 16 16" width={size} height={size} fill="currentColor" aria-hidden>
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38
+        0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01
+        1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95
+        0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.42 7.42 0 0 1 2-.27c.68 0
+        1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87
+        3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16
+        8c0-4.42-3.58-8-8-8Z" />
+    </svg>
+  )
+}
 import type { ReactNode } from 'react'
 import { cn } from '../lib/cn'
 import type { Revision, RunState } from '../types'
@@ -61,34 +78,34 @@ export function CommandBar({
             </span>
           </div>
 
-          {/* Revision selector, the way a CAD tool lets you step back through
-              document history. Earlier revisions stay openable. */}
-          <div className="ml-[3px] flex items-center overflow-hidden rounded-[5px]
-                          border border-c4 shadow-[var(--shadow-raised)]">
-            {state?.revisions.map((r) => (
-              <Tip key={r.revision} side="bottom"
-                   label={r.changes[0]
-                     ? `${r.changes[0].parameter} ${r.changes[0].before} → ${r.changes[0].after}, approved by ${r.approved_by}`
-                     : 'As extracted from the sources'}>
-                <button
-                  onClick={() => onSelectRevision(r.revision)}
-                  className={cn(
-                    'num h-[26px] cursor-pointer border-r border-c4 px-[10px] text-[11px]',
-                    'transition-colors duration-150 last:border-r-0',
-                    r.revision === rev.revision
-                      ? 'bg-accent font-semibold text-accent-fg'
-                      : 'bg-c0 text-c7 hover:bg-c2',
-                  )}
-                >
-                  v{r.revision}
-                </button>
-              </Tip>
-            ))}
-          </div>
+          {/* Which revision you are looking at. Switching between them is the
+              revision graph's job, so this stays a read-only indicator rather
+              than a second control doing the same work. */}
+          <Tip side="bottom" label={
+            rev.changes[0]
+              ? `${rev.changes[0].parameter} ${rev.changes[0].before} → ${rev.changes[0].after}, approved by ${rev.approved_by}`
+              : 'As extracted from the sources'
+          }>
+            <span className="num ml-[3px] rounded-[5px] border border-accent-line
+                             bg-accent-wash px-[8px] py-[2px] text-[11px] font-semibold
+                             text-accent">
+              v{rev.revision}
+            </span>
+          </Tip>
         </>
       )}
 
       <div className="ml-auto flex items-center gap-[8px]">
+        <Tip side="bottom" label="Source on GitHub">
+          <a href={REPO_URL} target="_blank" rel="noreferrer noopener"
+             aria-label="Source on GitHub"
+             className="flex h-[29px] items-center gap-[6px] rounded-[5px] border border-c4
+                        bg-c0 px-[10px] text-[11px] text-c7 shadow-[var(--shadow-raised)]
+                        transition-colors duration-150 hover:border-c6 hover:text-c9">
+            <GithubMark />
+            <span className="hidden sm:inline">GitHub</span>
+          </a>
+        </Tip>
         {busy && (
           <span className="num flex items-center gap-[6px] text-[11px] text-c6">
             <span aria-hidden className="h-[6px] w-[6px] animate-pulse rounded-full bg-accent" />
@@ -266,14 +283,14 @@ export function ViewportOverlay({
     <>
       {/* corner readout, as a CAD viewport shows units and orientation */}
       <div className="pointer-events-none absolute left-[13px] top-[13px] flex flex-col gap-[5px]">
-        <span className="num rounded-[5px] border border-c3 bg-c0/80 px-[8px]
-                         py-[3px] text-[10.5px] text-c7 backdrop-blur-md">
+        <span className="num flex items-center gap-[6px] rounded-[5px] border border-c3
+                         bg-c0/80 px-[8px] py-[3px] text-[10.5px] text-c7 backdrop-blur-md">
           mm · v{rev.revision}
+          <span aria-hidden className="h-[9px] w-px bg-c4" />
+          <Mark state={rev.release.step_export_allowed ? 'pass' : 'fail'} glyph>
+            {rev.release.step_export_allowed ? 'released' : 'refused'}
+          </Mark>
         </span>
-      </div>
-
-      <div className="absolute right-[13px] top-[13px]">
-        <ReleaseStampSlot rev={rev} />
       </div>
 
       <div className="absolute bottom-[13px] left-[13px] flex items-center gap-[5px]">
@@ -300,16 +317,6 @@ export function ViewportOverlay({
         drag to orbit · scroll to zoom
       </span>
     </>
-  )
-}
-
-function ReleaseStampSlot({ rev }: { rev: Revision }) {
-  const blocked = !rev.release.step_export_allowed
-  return (
-    <div className={cn('stamp', blocked ? 'stamp-blocked' : 'stamp-released')}
-         role="img" aria-label={blocked ? 'Not for manufacture' : 'Released'}>
-      {blocked ? <>Not for<br />manufacture</> : <>Released</>}
-    </div>
   )
 }
 

@@ -170,17 +170,3 @@ export function Empty({ children }: { children: ReactNode }) {
     </p>
   )
 }
-
-/* ----------------------------------------------------------------- stamp */
-
-export function ReleaseStamp({ blocked }: { blocked: boolean }) {
-  return (
-    <div
-      className={cn('stamp', blocked ? 'stamp-blocked' : 'stamp-released')}
-      role="img"
-      aria-label={blocked ? 'Not for manufacture' : 'Released'}
-    >
-      {blocked ? <>Not for<br />manufacture</> : <>Released</>}
-    </div>
-  )
-}
