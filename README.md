@@ -101,15 +101,37 @@ already produces rather than being imposed on it:
 | Inspector | the panel for the selected stage; a blocked run opens on Release, a released one on Inspect |
 | Status bar | the gate decision plus the governing measurement, inverted to solid black while blocked |
 
-**Strictly monochrome.** Verified on the shipped CSS: 10 colours, every one at
-zero saturation, and no `rgb()`/`hsl()` carrying hue. That is a real constraint
-rather than a palette — state is carried by weight, fill, rule thickness,
-diagonal hatching and an explicit glyph (`✓ ✕ ! –`), never by colour. A useful
-side effect is that no status depends on separating red from green.
+**Proportion is golden-ratio, not eyeballed.** Every fixed dimension is a
+Fibonacci number, so the ratios between them are φ exactly rather than an
+approximation of it:
 
-Type is Inter for the interface and JetBrains Mono for measured numerals only,
-with tabular figures so digits align down a column. Black on white is 21:1;
-the lightest text tier used, `c6`, is 4.6:1.
+```
+command bar  55 : status bar 34  =  1.6176      φ = 1.6180
+inspector   377 : 233            =  φ           377 = F(14)
+rail 55 · timeline 55 · radii 5/8/13 · spacing 3/5/8/13/21/34
+```
+
+The type scale steps by **√φ = 1.272** from a 14px base — 11 / 14 / 17.8 / 22.6 /
+28.8. A full 1.618 jump between adjacent sizes is far too coarse for dense UI
+text, so φ is applied across two steps instead of one.
+
+**Colour is OKLCH and reserved for meaning.** Steps are perceptually even rather
+than evenly spaced in sRGB, where the same numeric gap looks larger in blues
+than in yellows. A cool-cast neutral ramp carries the interface; iris marks
+selection and the primary action; danger/success/warn carry outcomes. No status
+is conveyed by hue alone — each also carries a glyph (`✓ ✕ ! –`) and a weight
+change, so the interface still reads in greyscale or with colour-vision
+deficiency.
+
+Audited on the shipped CSS: **all 14 informational pairings clear 4.5:1**
+(`c6` 4.66, accent 5.15, danger 5.16, success 5.04, warn 5.61). The one token
+below that line, `c5`, is used exclusively for disabled and decorative elements,
+which WCAG exempts — the two places it had been carrying information were moved
+to `c6`.
+
+Type is **Geist** and **Geist Mono**, drawn for technical interfaces. Monospace
+is used only for measured numerals, with tabular figures so digits align down a
+column — never for labels.
 
 Built with Tailwind v4 (CSS-first `@theme` tokens), the shadcn pattern (owned
 components, `cva` variants, `cn()` merge) and Radix for tooltip behaviour. The

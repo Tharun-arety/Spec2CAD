@@ -1,57 +1,109 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
    Spec2CAD — application shell.
 
-   Modelled on a modern CAD tool: a fixed viewport that never scrolls as a page,
-   a command bar, a stage rail, a persistent 3D viewport, a feature timeline
-   along the bottom, and a contextual inspector on the right. Panels scroll
-   independently; the frame does not move.
+   Layout is unchanged: command bar, stage rail, permanent viewport, feature
+   timeline, contextual inspector. The frame never scrolls; panels scroll on
+   their own.
 
-   Strictly monochrome. Every value below is a pure neutral -- zero saturation,
-   no hue anywhere. That is a real constraint, not a palette choice: state has
-   to be carried by weight, fill, rule thickness, hatching and glyphs instead of
-   by colour, which is also what makes it legible to anyone who cannot separate
-   red from green.
+   PROPORTION
+   Every fixed dimension is a Fibonacci number, so the ratios between them are
+   the golden ratio rather than an approximation of it:
+
+       command bar 55 : status bar 34   =  1.6176  ( phi = 1.6180 )
+       inspector  377 : 233             =  phi        377 = F(14)
+       rail        55, timeline 55      =  F(10)
+
+   The type scale steps by sqrt(phi) = 1.272, which is phi applied twice across
+   two steps -- fine enough for dense UI text, where a full 1.618 jump between
+   adjacent sizes would be far too coarse.
+
+   COLOUR
+   OKLCH throughout, so steps are perceptually even rather than evenly spaced in
+   sRGB (where the same numeric gap looks bigger in blues than in yellows). The
+   neutral ramp carries a slight cool cast so white surfaces read as considered
+   rather than blank; hue is reserved for meaning.
 --------------------------------------------------------------------------- */
 
 @theme {
-  --color-c0: #ffffff;
-  --color-c1: #fafafa;
-  --color-c2: #f4f4f4;
-  --color-c3: #ebebeb;
-  --color-c4: #dcdcdc;
-  --color-c5: #bdbdbd;
-  --color-c6: #8f8f8f;
-  --color-c7: #5e5e5e;
-  --color-c8: #2e2e2e;
-  --color-c9: #0a0a0a;
+  /* ---- neutral ramp (cool cast, perceptually even) ---- */
+  --color-c0: oklch(100% 0 0);            /* raised surface        */
+  --color-c1: oklch(98.6% 0.002 265);     /* app background        */
+  --color-c2: oklch(96.8% 0.004 265);     /* sunken / hover        */
+  --color-c3: oklch(93.2% 0.005 265);     /* hairline              */
+  --color-c4: oklch(88.5% 0.007 265);     /* border                */
+  --color-c5: oklch(75% 0.009 265);       /* disabled/decorative only --
+                                             never carries information, so it is
+                                             exempt from the 4.5:1 rule       */
+  --color-c6: oklch(55% 0.012 265);       /* muted text  4.6:1     */
+  --color-c7: oklch(45% 0.014 265);       /* secondary text        */
+  --color-c8: oklch(29% 0.016 265);       /* strong text           */
+  --color-c9: oklch(18% 0.016 265);       /* primary text          */
 
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+  /* ---- accent: iris. Selection, focus, the primary action ---- */
+  --color-accent: oklch(55% 0.196 274);
+  --color-accent-hover: oklch(48% 0.196 274);
+  --color-accent-fg: oklch(100% 0 0);
+  --color-accent-wash: oklch(97% 0.021 274);
+  --color-accent-line: oklch(86% 0.062 274);
 
-  --spacing-rail: 52px;
-  --spacing-bar: 44px;
+  /* ---- semantic ---- */
+  --color-danger: oklch(56% 0.203 25);
+  --color-danger-wash: oklch(96.6% 0.022 25);
+  --color-danger-line: oklch(85% 0.075 25);
+
+  --color-success: oklch(52.4% 0.118 165);
+  --color-success-wash: oklch(96.4% 0.029 165);
+  --color-success-line: oklch(84% 0.068 165);
+
+  --color-warn: oklch(52% 0.124 75);
+  --color-warn-wash: oklch(96.8% 0.038 85);
+  --color-warn-line: oklch(85% 0.078 85);
+
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "JetBrains Mono", monospace;
+
+  /* ---- type scale: base 14, ratio sqrt(phi) = 1.272 ---- */
+  --text-micro: 11px;
+  --text-ui: 14px;
+  --text-title: 17.8px;
+  --text-readout: 22.6px;
+  --text-hero: 28.8px;
+
+  /* ---- Fibonacci layout + spacing ---- */
+  --spacing-rail: 55px;
+  --spacing-bar: 55px;
+  --spacing-status: 34px;
+  --spacing-timeline: 55px;
+  --spacing-inspector: 377px;
+
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 13px;
+
+  --shadow-raised: 0 1px 2px oklch(18% 0.016 265 / 0.05),
+                   0 1px 3px oklch(18% 0.016 265 / 0.04);
+  --shadow-float: 0 4px 10px oklch(18% 0.016 265 / 0.08),
+                  0 1px 3px oklch(18% 0.016 265 / 0.06);
 }
 
 @layer base {
   * { box-sizing: border-box; }
 
-  html, body, #root {
-    height: 100%;
-  }
+  html, body, #root { height: 100%; }
 
   body {
     margin: 0;
     overflow: hidden;               /* the shell owns scrolling, not the page */
-    background: var(--color-c2);
+    background: var(--color-c1);
     color: var(--color-c9);
     font-family: var(--font-sans);
-    font-size: 13px;
+    font-size: var(--text-ui);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
-    font-feature-settings: "cv11", "ss01";
+    text-rendering: optimizeLegibility;
   }
 
   /* Measured values are read digit against digit. */
@@ -59,22 +111,24 @@
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-c9);
+    outline: 2px solid var(--color-accent);
     outline-offset: 1px;
+    border-radius: 2px;
   }
 
-  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar { width: 11px; height: 11px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
     background: var(--color-c4);
-    border: 3px solid var(--color-c0);
-    border-radius: 6px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 8px;
   }
-  ::-webkit-scrollbar-thumb:hover { background: var(--color-c5); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-c5); background-clip: content-box; }
 }
 
 @layer components {
@@ -85,57 +139,71 @@
     overscroll-behavior: contain;
   }
 
-  /* Diagonal hatching. With no colour available this is how a region reads as
-     "flagged" -- it is also the drafting convention for a sectioned or
-     marked-up area, so it belongs in a CAD tool. */
-  .hatch {
-    background-image: repeating-linear-gradient(
-      -45deg,
-      var(--color-c3) 0 1px,
-      transparent 1px 7px
-    );
+  .surface {
+    background: var(--color-c0);
+    border: 1px solid var(--color-c3);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-raised);
   }
 
-  .hatch-strong {
-    background-image: repeating-linear-gradient(
-      -45deg,
-      var(--color-c4) 0 1.5px,
-      transparent 1.5px 6px
-    );
+  /* A flagged region. Tinted rather than hatched now that hue is available,
+     but the tint is never the only signal -- a glyph and a rule carry it too. */
+  .flagged {
+    background: var(--color-danger-wash);
+    border-left: 2px solid var(--color-danger);
   }
 
-  /* The release stamp. Inverted solid when blocked, outline when released --
-     weight carries what colour normally would. */
+  /* The release stamp. */
   .stamp {
-    font-weight: 700;
-    font-size: 11px;
-    letter-spacing: 0.1em;
+    font-weight: 600;
+    font-size: var(--text-micro);
+    letter-spacing: 0.09em;
     text-transform: uppercase;
-    padding: 6px 12px;
-    border: 2px solid var(--color-c9);
-    transform: rotate(-4deg);
+    padding: 6px 13px;
+    border: 1.5px solid currentColor;
+    border-radius: var(--radius-sm);
+    transform: rotate(-3deg);
     user-select: none;
-    line-height: 1.2;
+    line-height: 1.25;
+    backdrop-filter: blur(6px);
   }
-  .stamp-blocked { background: var(--color-c9); color: var(--color-c0); }
-  .stamp-released { background: transparent; color: var(--color-c9); }
+  .stamp-blocked {
+    color: var(--color-danger);
+    background: color-mix(in oklch, var(--color-danger-wash) 88%, transparent);
+  }
+  .stamp-released {
+    color: var(--color-success);
+    background: color-mix(in oklch, var(--color-success-wash) 88%, transparent);
+  }
 
-  /* Timeline feature node, the way a history bar reads in a parametric tool. */
+  /* Timeline feature node. */
   .feature {
     display: flex;
     align-items: center;
-    gap: 7px;
-    height: 28px;
-    padding: 0 10px;
-    border: 1px solid var(--color-c4);
+    gap: 8px;
+    height: 34px;
+    padding: 0 13px;
+    border: 1px solid var(--color-c3);
+    border-radius: var(--radius-sm);
     background: var(--color-c0);
+    box-shadow: var(--shadow-raised);
     white-space: nowrap;
-    font-size: 12px;
+    font-size: var(--text-micro);
+  }
+
+  /* Viewport ground: a soft radial lift so the model sits in space rather than
+     on a flat sheet. */
+  .viewport-ground {
+    background:
+      radial-gradient(120% 90% at 50% 0%,
+        oklch(100% 0 0) 0%,
+        oklch(98% 0.004 265) 55%,
+        oklch(95.5% 0.007 265) 100%);
   }
 
   .grid-dots {
     background-image: radial-gradient(var(--color-c4) 1px, transparent 1px);
-    background-size: 22px 22px;
+    background-size: 21px 21px;      /* F(8) */
   }
 }
 

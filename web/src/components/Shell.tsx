@@ -38,23 +38,24 @@ export function CommandBar({
   right?: ReactNode
 }) {
   return (
-    <header className="flex h-[var(--spacing-bar)] shrink-0 items-center gap-3
-                       border-b border-c4 bg-c0 pl-3 pr-3">
-      <div className="flex items-center gap-2">
-        <div className="grid h-[22px] w-[22px] place-items-center border border-c9 bg-c9">
-          <span className="num text-[11px] font-bold leading-none text-c0">S2</span>
+    <header className="flex h-[var(--spacing-bar)] shrink-0 items-center gap-[13px]
+                       border-b border-c3 bg-c0 px-[13px]">
+      <div className="flex items-center gap-[8px]">
+        <div className="grid h-[26px] w-[26px] place-items-center rounded-[5px]
+                        bg-c9 shadow-[var(--shadow-raised)]">
+          <span className="num text-[11px] font-semibold leading-none text-c0">S2</span>
         </div>
-        <span className="text-[13px] font-semibold tracking-tight">Spec2CAD</span>
+        <span className="text-[14px] font-semibold tracking-[-0.014em]">Spec2CAD</span>
       </div>
 
       {rev && (
         <>
-          <span className="h-4 w-px bg-c4" />
-          <div className="flex min-w-0 items-baseline gap-2">
-            <span className="truncate text-[12.5px]">
+          <span className="h-[21px] w-px bg-c3" />
+          <div className="flex min-w-0 items-baseline gap-[8px]">
+            <span className="truncate text-[14px] font-medium tracking-[-0.008em]">
               {rev.part.name.replace(/_/g, ' ')}
             </span>
-            <span className="text-[11.5px] text-c6">
+            <span className="text-[11px] text-c6">
               {rev.part.material}
               {rev.part.manufacturing_process && ` · ${rev.part.manufacturing_process}`}
             </span>
@@ -62,7 +63,8 @@ export function CommandBar({
 
           {/* Revision selector, the way a CAD tool lets you step back through
               document history. Earlier revisions stay openable. */}
-          <div className="ml-1 flex items-center border border-c4">
+          <div className="ml-[3px] flex items-center overflow-hidden rounded-[5px]
+                          border border-c4 shadow-[var(--shadow-raised)]">
             {state?.revisions.map((r) => (
               <Tip key={r.revision} side="bottom"
                    label={r.changes[0]
@@ -71,9 +73,10 @@ export function CommandBar({
                 <button
                   onClick={() => onSelectRevision(r.revision)}
                   className={cn(
-                    'num h-[24px] cursor-pointer border-r border-c4 px-2 text-[11.5px] last:border-r-0',
+                    'num h-[26px] cursor-pointer border-r border-c4 px-[10px] text-[11px]',
+                    'transition-colors duration-150 last:border-r-0',
                     r.revision === rev.revision
-                      ? 'bg-c9 font-semibold text-c0'
+                      ? 'bg-accent font-semibold text-accent-fg'
                       : 'bg-c0 text-c7 hover:bg-c2',
                   )}
                 >
@@ -85,9 +88,12 @@ export function CommandBar({
         </>
       )}
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-[8px]">
         {busy && (
-          <span className="num text-[11px] text-c6">working…</span>
+          <span className="num flex items-center gap-[6px] text-[11px] text-c6">
+            <span aria-hidden className="h-[6px] w-[6px] animate-pulse rounded-full bg-accent" />
+            working…
+          </span>
         )}
         {right}
       </div>
@@ -106,8 +112,8 @@ export function StageRail({
   enabled: boolean
 }) {
   return (
-    <nav className="flex w-[var(--spacing-rail)] shrink-0 flex-col items-center gap-0.5
-                    border-r border-c4 bg-c1 py-2"
+    <nav className="flex w-[var(--spacing-rail)] shrink-0 flex-col items-center gap-[3px]
+                    border-r border-c3 bg-c1 py-[8px]"
          aria-label="Pipeline stages">
       {STAGES.map(({ id, label, icon: Icon, hint }, i) => {
         const on = id === active
@@ -119,18 +125,23 @@ export function StageRail({
               disabled={!enabled && id !== 'sources'}
               aria-current={on ? 'step' : undefined}
               className={cn(
-                'relative grid h-[46px] w-[42px] cursor-pointer place-items-center gap-0.5 border',
-                'transition-colors duration-100 disabled:cursor-not-allowed disabled:opacity-30',
-                on ? 'border-c9 bg-c9 text-c0' : 'border-transparent text-c7 hover:bg-c3',
+                'relative grid h-[47px] w-[45px] cursor-pointer place-items-center gap-[3px]',
+                'rounded-[8px] border transition-all duration-150',
+                'disabled:cursor-not-allowed disabled:opacity-30',
+                on
+                  ? 'border-accent bg-accent text-accent-fg shadow-[var(--shadow-raised)]'
+                  : 'border-transparent text-c7 hover:bg-c2 hover:text-c9',
               )}
             >
-              <Icon size={15} strokeWidth={1.75} aria-hidden />
-              <span className="text-[9.5px] leading-none">{label}</span>
+              <Icon size={16} strokeWidth={1.7} aria-hidden />
+              <span className="text-[9.5px] font-medium leading-none tracking-[-0.01em]">
+                {label}
+              </span>
               {!!flag && (
                 <span className={cn(
-                  'num absolute right-0.5 top-0.5 grid h-[13px] min-w-[13px] place-items-center',
-                  'border px-0.5 text-[9px] font-semibold leading-none',
-                  on ? 'border-c0 bg-c0 text-c9' : 'border-c9 bg-c9 text-c0',
+                  'num absolute right-[3px] top-[3px] grid h-[14px] min-w-[14px] place-items-center',
+                  'rounded-full px-[3px] text-[9px] font-semibold leading-none',
+                  on ? 'bg-accent-fg text-accent' : 'bg-danger text-c0',
                 )}>
                   {flag}
                 </span>
@@ -151,15 +162,16 @@ export function StageRail({
 
 export function Timeline({ rev }: { rev: Revision | null }) {
   return (
-    <div className="flex h-[46px] shrink-0 items-center gap-2 border-t border-c4 bg-c1 px-3">
-      <span className="shrink-0 text-[11px] text-c7">History</span>
-      <div className="flex min-w-0 flex-1 items-center gap-0 overflow-x-auto">
+    <div className="flex h-[var(--spacing-timeline)] shrink-0 items-center gap-[13px]
+                    border-t border-c3 bg-c1 px-[13px]">
+      <span className="shrink-0 text-[11px] font-medium text-c7">History</span>
+      <div className="flex min-w-0 flex-1 items-center gap-0 overflow-x-auto py-[8px]">
         {rev?.feature_sequence.length ? (
           rev.feature_sequence.map((f, i) => {
             const [id, kind] = f.replace(')', '').split(' (')
             return (
               <div key={f} className="flex shrink-0 items-center">
-                {i > 0 && <span aria-hidden className="h-px w-3 bg-c4" />}
+                {i > 0 && <span aria-hidden className="h-px w-[13px] bg-c4" />}
                 <Tip label={`${kind} operation`}>
                   <div className="feature cursor-default">
                     <span className="num text-[10px] text-c6">{i + 1}</span>
@@ -191,18 +203,22 @@ export function StatusBar({
 
   return (
     <footer className={cn(
-      'flex h-[28px] shrink-0 items-center gap-3 border-t px-3 text-[11.5px]',
-      blocked ? 'border-c9 bg-c9 text-c0' : 'border-c4 bg-c1 text-c7',
+      'flex h-[var(--spacing-status)] shrink-0 items-center gap-[13px]',
+      'border-t px-[13px] text-[11px]',
+      blocked
+        ? 'border-danger-line bg-danger-wash text-danger'
+        : rev ? 'border-success-line bg-success-wash text-success'
+              : 'border-c3 bg-c1 text-c7',
     )}>
       {rev ? (
         <>
           <button onClick={onGoRelease}
-            className={cn('cursor-pointer font-semibold uppercase tracking-[0.06em]',
-                          blocked ? 'underline underline-offset-2' : '')}>
+            className={cn('cursor-pointer font-semibold uppercase tracking-[0.07em]',
+                          blocked ? 'underline underline-offset-[3px]' : '')}>
             {blocked ? '✕ Blocked' : '✓ Released'}
           </button>
           {clearance?.measured_value != null && (
-            <span className={blocked ? 'text-c0' : 'text-c7'}>
+            <span className="text-c7">
               edge clearance{' '}
               <span className="num font-semibold">
                 {clearance.measured_value.toFixed(1)}
@@ -211,9 +227,7 @@ export function StatusBar({
               <span className="num">{clearance.required_value?.toFixed(1)}</span> mm required
             </span>
           )}
-          <span className={cn('ml-auto', blocked ? 'text-c5' : 'text-c6')}>
-            measured on the solid
-          </span>
+          <span className="ml-auto text-c6">measured on the solid</span>
         </>
       ) : (
         <>
@@ -239,17 +253,18 @@ export function ViewportOverlay({
   return (
     <>
       {/* corner readout, as a CAD viewport shows units and orientation */}
-      <div className="pointer-events-none absolute left-3 top-3 flex flex-col gap-1">
-        <span className="num bg-c0/85 px-1.5 py-0.5 text-[10.5px] text-c7">
+      <div className="pointer-events-none absolute left-[13px] top-[13px] flex flex-col gap-[5px]">
+        <span className="num rounded-[5px] border border-c3 bg-c0/80 px-[8px]
+                         py-[3px] text-[10.5px] text-c7 backdrop-blur-md">
           mm · v{rev.revision}
         </span>
       </div>
 
-      <div className="absolute right-3 top-3">
+      <div className="absolute right-[13px] top-[13px]">
         <ReleaseStampSlot rev={rev} />
       </div>
 
-      <div className="absolute bottom-3 left-3 flex items-center gap-1.5">
+      <div className="absolute bottom-[13px] left-[13px] flex items-center gap-[5px]">
         {onDownloadStep ? (
           <a href={onDownloadStep}>
             <Button intent="solid" size="sm">Download STEP</Button>
@@ -267,8 +282,9 @@ export function ViewportOverlay({
       </div>
 
       {/* hidden on narrow viewports, where it would sit on top of the buttons */}
-      <span className="pointer-events-none absolute bottom-3 right-3 hidden num
-                       bg-c0/85 px-1.5 py-0.5 text-[10.5px] text-c6 lg:block">
+      <span className="pointer-events-none absolute bottom-[13px] right-[13px] hidden num
+                       rounded-[5px] border border-c3 bg-c0/80 px-[8px] py-[3px]
+                       text-[10.5px] text-c6 backdrop-blur-md lg:block">
         drag to orbit · scroll to zoom
       </span>
     </>

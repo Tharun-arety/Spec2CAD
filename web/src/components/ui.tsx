@@ -1,10 +1,10 @@
 /**
- * Monochrome primitives.
+ * Primitives.
  *
- * With no colour available, state is carried by weight, fill, rule thickness,
- * hatching and an explicit glyph. Nothing in this file relies on hue, so every
- * status remains legible to anyone who cannot separate red from green -- and
- * every pairing sits at a neutral contrast well above 4.5:1.
+ * Hue is reserved for meaning: accent for selection and the primary action,
+ * danger/success/warn for outcomes. Nothing relies on hue alone -- every status
+ * also carries a glyph and a weight change, so the interface still reads if you
+ * cannot separate red from green, or if it is printed.
  */
 import { cva, type VariantProps } from 'class-variance-authority'
 import * as TooltipPrimitive from '@radix-ui/react-tooltip'
@@ -15,18 +15,25 @@ import { cn } from '../lib/cn'
 
 const buttonVariants = cva(
   'inline-flex cursor-pointer select-none items-center justify-center gap-1.5 whitespace-nowrap ' +
-  'border font-medium transition-[background-color,border-color,color] duration-100 ' +
-  'disabled:cursor-not-allowed disabled:opacity-40',
+  'rounded-[--radius-sm] border font-medium ' +
+  'transition-[background-color,border-color,color,box-shadow] duration-150 ' +
+  'disabled:cursor-not-allowed disabled:opacity-45',
   {
     variants: {
       intent: {
-        solid: 'border-c9 bg-c9 text-c0 hover:bg-c8 hover:border-c8',
-        outline: 'border-c4 bg-c0 text-c9 hover:border-c9',
+        solid:
+          'border-accent bg-accent text-accent-fg shadow-[var(--shadow-raised)] ' +
+          'hover:border-accent-hover hover:bg-accent-hover',
+        outline:
+          'border-c4 bg-c0 text-c8 shadow-[var(--shadow-raised)] ' +
+          'hover:border-c5 hover:text-c9',
         ghost: 'border-transparent bg-transparent text-c7 hover:bg-c2 hover:text-c9',
+        danger:
+          'border-danger-line bg-danger-wash text-danger hover:border-danger',
       },
       size: {
-        sm: 'h-[26px] px-2.5 text-[12px]',
-        md: 'h-[32px] px-3.5 text-[12.5px]',
+        sm: 'h-[29px] px-[13px] text-[11px]',
+        md: 'h-[34px] px-[21px] text-[14px]',
       },
     },
     defaultVariants: { intent: 'outline', size: 'sm' },
@@ -50,18 +57,17 @@ const markVariants = cva(
   {
     variants: {
       state: {
-        /* failure is the heaviest thing on screen; everything else recedes */
-        fail: 'font-semibold text-c9',
-        pass: 'font-normal text-c7',
-        warn: 'font-medium text-c8',
+        fail: 'font-semibold text-danger',
+        pass: 'font-normal text-success',
+        warn: 'font-medium text-warn',
         skipped: 'font-normal text-c6',
       },
-      box: { true: 'border px-1.5 py-px', false: '' },
+      box: { true: 'rounded-[--radius-sm] border px-[6px] py-[1px]', false: '' },
     },
     compoundVariants: [
-      { box: true, state: 'fail', class: 'border-c9 bg-c9 text-c0' },
-      { box: true, state: 'pass', class: 'border-c4 bg-c0' },
-      { box: true, state: 'warn', class: 'border-c8 bg-c0' },
+      { box: true, state: 'fail', class: 'border-danger-line bg-danger-wash' },
+      { box: true, state: 'pass', class: 'border-success-line bg-success-wash' },
+      { box: true, state: 'warn', class: 'border-warn-line bg-warn-wash' },
       { box: true, state: 'skipped', class: 'border-c4 bg-c2' },
     ],
     defaultVariants: { state: 'pass', box: false },
@@ -90,9 +96,9 @@ export function Num({
   value, unit, strong, className,
 }: { value: ReactNode; unit?: string | null; strong?: boolean; className?: string }) {
   return (
-    <span className={cn('num text-[12px]', strong && 'font-semibold', className)}>
+    <span className={cn('num text-[12.5px]', strong && 'font-semibold', className)}>
       {value}
-      {unit && <span className="ml-0.5 text-[10.5px] text-c6">{unit}</span>}
+      {unit && <span className="ml-[3px] text-[10.5px] font-normal text-c6">{unit}</span>}
     </span>
   )
 }
@@ -111,9 +117,9 @@ export function Tip({ label, children, side = 'top' }: {
         <TooltipPrimitive.Portal>
           <TooltipPrimitive.Content
             side={side}
-            sideOffset={6}
-            className="z-50 max-w-[300px] border border-c9 bg-c9 px-2.5 py-1.5
-                       text-[11.5px] leading-snug text-c0"
+            sideOffset={8}
+            className="z-50 max-w-[300px] rounded-[--radius-sm] bg-c9 px-[10px] py-[6px]
+                       text-[11px] leading-snug text-c1 shadow-[var(--shadow-float)]"
           >
             {label}
           </TooltipPrimitive.Content>
@@ -125,18 +131,17 @@ export function Tip({ label, children, side = 'top' }: {
 
 /* ----------------------------------------------------------- panel parts */
 
-/** Section heading inside the inspector. Sentence case, no eyebrow labels. */
 export function PanelHead({ title, note, aside }: {
   title: string
   note?: ReactNode
   aside?: ReactNode
 }) {
   return (
-    <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-c3
-                    bg-c0/95 px-3.5 py-2.5 backdrop-blur-sm">
-      <h2 className="text-[12.5px] font-semibold">{title}</h2>
-      {note && <span className="truncate text-[11.5px] text-c6">{note}</span>}
-      {aside && <div className="ml-auto flex items-center gap-1.5">{aside}</div>}
+    <div className="sticky top-0 z-10 flex items-center gap-[8px] border-b border-c3
+                    bg-c0/90 px-[13px] py-[10px] backdrop-blur-md">
+      <h2 className="text-[14px] font-semibold tracking-[-0.011em]">{title}</h2>
+      {note && <span className="truncate text-[11px] text-c6">{note}</span>}
+      {aside && <div className="ml-auto flex items-center gap-[5px]">{aside}</div>}
     </div>
   )
 }
@@ -149,18 +154,20 @@ export function Field({ label, children, dense }: {
 }) {
   return (
     <div className={cn(
-      'flex items-baseline gap-3 border-b border-c3 px-3.5',
-      dense ? 'py-1.5' : 'py-2',
+      'flex items-baseline gap-[13px] border-b border-c3 px-[13px]',
+      dense ? 'py-[5px]' : 'py-[8px]',
     )}>
-      <span className="w-[124px] shrink-0 truncate text-[11.5px] text-c7">{label}</span>
-      <span className="min-w-0 flex-1 text-[12px]">{children}</span>
+      <span className="w-[123px] shrink-0 truncate text-[11px] text-c7">{label}</span>
+      <span className="min-w-0 flex-1 text-[12.5px]">{children}</span>
     </div>
   )
 }
 
 export function Empty({ children }: { children: ReactNode }) {
   return (
-    <p className="px-6 py-10 text-center text-[12px] leading-relaxed text-c6">{children}</p>
+    <p className="px-[21px] py-[34px] text-center text-[12.5px] leading-relaxed text-c6">
+      {children}
+    </p>
   )
 }
 

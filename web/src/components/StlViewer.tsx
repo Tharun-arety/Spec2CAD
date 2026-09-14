@@ -28,11 +28,11 @@ export function StlViewer({ url }: Props) {
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enableDamping = true
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.78))
+    scene.add(new THREE.AmbientLight(0xffffff, 0.82))
     const key = new THREE.DirectionalLight(0xffffff, 1.5)
     key.position.set(90, 120, 140)
     scene.add(key)
-    const fill = new THREE.DirectionalLight(0xffffff, 0.5)
+    const fill = new THREE.DirectionalLight(0xe8ecf5, 0.55)
     fill.position.set(-110, -70, -90)
     scene.add(fill)
 
@@ -49,7 +49,7 @@ export function StlViewer({ url }: Props) {
         mesh = new THREE.Mesh(
           geometry,
           new THREE.MeshStandardMaterial({
-            color: 0xd8d8d8, metalness: 0.1, roughness: 0.62,
+            color: 0xdfe1e6, metalness: 0.14, roughness: 0.55,
             flatShading: false,
           }),
         )
@@ -59,7 +59,7 @@ export function StlViewer({ url }: Props) {
 
         const edges = new THREE.LineSegments(
           new THREE.EdgesGeometry(geometry, 24),
-          new THREE.LineBasicMaterial({ color: 0x2e2e2e }),
+          new THREE.LineBasicMaterial({ color: 0x3a3f4a, transparent: true, opacity: 0.72 }),
         )
         edges.rotation.x = -Math.PI / 2
         scene.add(edges)

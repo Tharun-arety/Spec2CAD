@@ -67,19 +67,19 @@ export default function App() {
         state={state} rev={rev} busy={busy}
         onSelectRevision={(n) => { setViewing(n); setScriptOpen(false) }}
         right={IS_REPLAY ? (
-          <span className="border border-c9 px-1.5 py-px text-[10.5px] font-semibold
-                           uppercase tracking-[0.07em]">
+          <span className="rounded-[5px] border border-warn-line bg-warn-wash px-[8px] py-[2px]
+                           text-[10px] font-semibold uppercase tracking-[0.08em] text-warn">
             recorded replay
           </span>
         ) : undefined}
       />
 
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 overflow-x-auto">
         <StageRail active={stage} onSelect={setStage} flags={flags} enabled={!!state} />
 
         {/* viewport column */}
-        <main className="flex min-w-0 flex-1 flex-col">
-          <div className="relative min-h-0 flex-1 grid-dots bg-c0">
+        <main className="flex min-w-[380px] flex-1 flex-col">
+          <div className="viewport-ground grid-dots relative min-h-0 flex-1">
             {rev?.build_error ? (
               <Empty>{rev.build_error}</Empty>
             ) : state && rev ? (
@@ -101,14 +101,14 @@ export default function App() {
               </>
             ) : (
               <div className="grid h-full place-items-center">
-                <div className="max-w-[340px] text-center">
-                  <p className="text-[12.5px] leading-relaxed text-c7">
+                <div className="max-w-[340px] px-[21px] text-center">
+                  <p className="text-[14px] leading-relaxed text-c7">
                     {busy
                       ? 'Extracting, fusing, compiling, building and measuring…'
                       : 'Compile the example to watch a design get refused, repaired and released.'}
                   </p>
                   {!busy && (
-                    <Button intent="solid" size="md" className="mt-4"
+                    <Button intent="solid" size="md" className="mt-[21px]"
                             onClick={() => guard(api.runDemo)}>
                       Compile the example
                     </Button>
@@ -119,9 +119,9 @@ export default function App() {
 
             {scriptOpen && rev && (
               <div className="absolute inset-x-0 bottom-0 max-h-[55%] overflow-auto
-                              border-t border-c4 bg-c0/97 backdrop-blur-sm">
-                <div className="sticky top-0 flex items-center gap-2 border-b border-c3
-                                bg-c0 px-3 py-1.5">
+                              border-t border-c3 bg-c0/95 backdrop-blur-md">
+                <div className="sticky top-0 flex items-center gap-[8px] border-b border-c3
+                                bg-c0 px-[13px] py-[8px]">
                   <span className="text-[11.5px] font-semibold">Generated CadQuery</span>
                   <span className="text-[11px] text-c6">
                     emitted for review — nothing executes it
@@ -129,7 +129,7 @@ export default function App() {
                   <Button intent="ghost" size="sm" className="ml-auto"
                           onClick={() => setScriptOpen(false)}>Close</Button>
                 </div>
-                <pre className="num p-3 text-[11px] leading-relaxed">{rev.script}</pre>
+                <pre className="num p-[13px] text-[11px] leading-relaxed text-c8">{rev.script}</pre>
               </div>
             )}
           </div>
@@ -138,11 +138,15 @@ export default function App() {
         </main>
 
         {/* inspector */}
-        <aside className="pane flex w-[360px] shrink-0 flex-col border-l border-c4 bg-c0">
+        <aside className="pane flex w-[233px] shrink-0 flex-col border-l border-c3
+                          bg-c0 xl:w-[var(--spacing-inspector)]">
           {error && (
-            <div className="border-b-2 border-c9 px-3.5 py-2.5">
-              <div className="text-[11.5px] font-semibold">✕ Something went wrong</div>
-              <p className="mt-1 text-[11px] leading-relaxed text-c7">{error}</p>
+            <div className="border-b border-danger-line bg-danger-wash px-[13px] py-[10px]">
+              <div className="flex items-center gap-[6px] text-[11.5px] font-semibold text-danger">
+                <span aria-hidden className="num text-[10px]">✕</span>
+                Something went wrong
+              </div>
+              <p className="mt-[5px] text-[11px] leading-relaxed text-c8">{error}</p>
             </div>
           )}
 

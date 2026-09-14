@@ -33,26 +33,28 @@ export function SourcesStage({
     'add 1 mm chamfers to the external edges.',
   )
 
-  const fileInput = 'block w-full cursor-pointer border border-c4 bg-c0 px-2 py-1.5 ' +
-    'text-[11.5px] file:mr-2 file:cursor-pointer file:border file:border-c4 ' +
-    'file:bg-c2 file:px-1.5 file:py-0.5 file:text-[11px] hover:border-c6'
+  const fileInput = 'block w-full cursor-pointer rounded-[5px] border border-c4 bg-c0 ' +
+    'px-[10px] py-[6px] text-[11px] transition-colors duration-150 ' +
+    'file:mr-[8px] file:cursor-pointer file:rounded-[4px] file:border file:border-c4 ' +
+    'file:bg-c2 file:px-[8px] file:py-[2px] file:text-[10.5px] file:text-c8 ' +
+    'hover:border-c5'
 
   return (
     <>
       <PanelHead title="Sources" note="three documents, jointly impossible" />
 
       {replay && (
-        <div className="hatch border-b-2 border-c9 px-3.5 py-3">
-          <div className="text-[11.5px] font-semibold">Recorded replay</div>
-          <p className="mt-1 text-[11px] leading-relaxed text-c8">{replay.disclaimer}</p>
-          <ul className="mt-2 space-y-1">
+        <div className="border-b border-warn-line bg-warn-wash px-[13px] py-[13px]">
+          <div className="text-[11.5px] font-semibold text-warn">Recorded replay</div>
+          <p className="mt-[5px] text-[11px] leading-relaxed text-c8">{replay.disclaimer}</p>
+          <ul className="mt-[8px] space-y-[5px]">
             {replay.limits.map((l) => (
-              <li key={l} className="flex gap-1.5 text-[11px] leading-relaxed text-c7">
+              <li key={l} className="flex gap-[6px] text-[11px] leading-relaxed text-c7">
                 <span aria-hidden className="num">–</span>{l}
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-[10.5px] text-c6">
+          <p className="mt-[8px] text-[10.5px] text-c6">
             frozen {new Date(replay.frozen_at).toISOString().slice(0, 16).replace('T', ' ')} UTC
           </p>
         </div>
@@ -93,8 +95,10 @@ export function SourcesStage({
           <label className="block">
             <span className="mb-1 block text-[11px] text-c7">Requirement</span>
             <textarea value={requirement} onChange={(e) => setRequirement(e.target.value)}
-              className="min-h-[76px] w-full resize-y border border-c4 bg-c0 px-2 py-1.5
-                         text-[11.5px] leading-relaxed focus:border-c9 focus:outline-none" />
+              className="min-h-[76px] w-full resize-y rounded-[5px] border border-c4 bg-c0
+                         px-[10px] py-[6px] text-[11px] leading-relaxed
+                         transition-colors duration-150
+                         focus:border-accent focus:outline-none" />
           </label>
           <Tip label={visionAvailable
             ? 'Runs the full pipeline on your documents'
@@ -135,25 +139,28 @@ export function EvidenceStage({
             const on = picked?.id === e.id
             return (
               <tr key={e.id} onClick={() => onPick(on ? null : e)}
-                  className={cn('cursor-pointer border-b border-c3',
-                                on ? 'bg-c9 text-c0' : 'hover:bg-c2')}>
-                <td className="py-1.5 pl-3.5 pr-2">
-                  <div className="text-[11.5px]">{e.target.replace(/_/g, ' ')}</div>
-                  <div className={cn('text-[10.5px]', on ? 'text-c5' : 'text-c6')}>
+                  className={cn('cursor-pointer border-b border-c3 transition-colors duration-100',
+                                on
+                                  ? 'bg-accent-wash shadow-[inset_2px_0_0_0_var(--color-accent)]'
+                                  : 'hover:bg-c2')}>
+                <td className="py-[6px] pl-[13px] pr-[8px]">
+                  <div className={cn('text-[11.5px]', on && 'font-medium text-accent')}>
+                    {e.target.replace(/_/g, ' ')}
+                  </div>
+                  <div className="text-[10.5px] text-c6">
                     {e.source.modality.replace('_', ' ')}
                     {e.source.page && ` p.${e.source.page}`}
                   </div>
                 </td>
-                <td className="py-1.5 pr-2 text-right">
-                  <Num value={show(e.value)} unit={e.unit} strong
-                       className={on ? 'text-c0' : undefined} />
+                <td className="py-[6px] pr-[8px] text-right">
+                  <Num value={show(e.value)} unit={e.unit} strong />
                 </td>
-                <td className="w-[18px] py-1.5 pr-3.5 text-right">
+                <td className="w-[18px] py-[6px] pr-[13px] text-right">
                   {/* an inferred value is marked, a stated one is not: the
                       absence of a mark is the common case */}
                   {!e.is_explicit_annotation && (
                     <Tip label="Derived from a rule or a standard, not stated on any document">
-                      <span className={cn('num text-[10px]', on ? 'text-c5' : 'text-c6')}>ƒ</span>
+                      <span className="num text-[10px] text-c6">ƒ</span>
                     </Tip>
                   )}
                 </td>
@@ -164,7 +171,7 @@ export function EvidenceStage({
       </table>
 
       {picked && (
-        <div className="border-t-2 border-c9">
+        <div className="border-t-2 border-accent">
           <PanelHead title="Where it came from" aside={
             <Button intent="ghost" size="sm" onClick={() => onPick(null)}>Close</Button>
           } />
@@ -180,7 +187,7 @@ export function EvidenceStage({
               </p>
             )}
             {picked.raw_text && (
-              <p className="mt-2.5 border-l-2 border-c4 pl-2.5 text-[11.5px]
+              <p className="mt-[10px] border-l-2 border-accent-line pl-[10px] text-[11px]
                             leading-relaxed text-c7">
                 {picked.raw_text}
               </p>
@@ -216,8 +223,8 @@ export function IntentStage({ rev }: { rev: Revision }) {
       <PanelHead title="Design intent" note={`revision ${rev.revision}`} />
 
       {rev.changes.length > 0 && (
-        <div className="hatch border-b border-c3 px-3.5 py-2.5">
-          <div className="text-[11px] text-c7">Changed in this revision</div>
+        <div className="border-b border-accent-line bg-accent-wash px-[13px] py-[10px]">
+          <div className="text-[11px] font-medium text-accent">Changed in this revision</div>
           {rev.changes.map((c) => (
             <div key={c.parameter} className="mt-1 text-[12px]">
               <span>{c.parameter.replace(/_/g, ' ')} </span>
@@ -263,8 +270,8 @@ export function IntentStage({ rev }: { rev: Revision }) {
 function CheckRow({ c }: { c: Check }) {
   const failed = c.status === 'fail'
   return (
-    <div className={cn('border-b border-c3 px-3.5 py-2',
-                       failed && 'hatch border-l-2 border-l-c9')}>
+    <div className={cn('border-b border-c3 px-[13px] py-[8px]',
+                       failed && 'flagged')}>
       <div className="flex items-baseline gap-2">
         <Mark state={c.status} glyph />
         <span className={cn('flex-1 text-[11.5px]', failed && 'font-semibold')}>{c.name}</span>
@@ -276,7 +283,7 @@ function CheckRow({ c }: { c: Check }) {
         </div>
       )}
       {failed && (
-        <p className="mt-1 pl-4 text-[11px] leading-snug text-c8">{c.message}</p>
+        <p className="mt-[5px] pl-[16px] text-[11px] leading-snug text-c8">{c.message}</p>
       )}
     </div>
   )
@@ -292,11 +299,13 @@ export function InspectStage({ rev }: { rev: Revision }) {
       <PanelHead
         title="Inspection"
         aside={
-          <div className="flex border border-c4">
+          <div className="flex overflow-hidden rounded-[5px] border border-c4
+                          shadow-[var(--shadow-raised)]">
             {(['measured', 'preflight'] as const).map((t) => (
               <button key={t} onClick={() => setTab(t)}
-                className={cn('cursor-pointer px-2 py-0.5 text-[11px] capitalize',
-                  tab === t ? 'bg-c9 text-c0' : 'bg-c0 text-c7 hover:bg-c2')}>
+                className={cn('cursor-pointer px-[10px] py-[3px] text-[11px] capitalize',
+                  'transition-colors duration-150',
+                  tab === t ? 'bg-accent text-accent-fg' : 'bg-c0 text-c7 hover:bg-c2')}>
                 {t}
               </button>
             ))}
@@ -349,13 +358,16 @@ export function ReleaseStage({
         </Mark>
       } />
 
-      <div className={cn('border-b border-c3 px-3.5 py-3', blocked && 'hatch')}>
+      <div className={cn('border-b px-[13px] py-[13px]',
+                         blocked
+                           ? 'border-danger-line bg-danger-wash'
+                           : 'border-success-line bg-success-wash')}>
         {blocked && clearance?.measured_value != null ? (
           <>
             <p className="text-[12.5px] leading-relaxed">
               The solid measures{' '}
               <Num value={clearance.measured_value.toFixed(1)} unit="mm" strong
-                   className="text-[15px]" />
+                   className="text-[22.6px] text-danger" />
               {' '}between the nearest hole edge and the boundary, where{' '}
               <Num value={clearance.required_value?.toFixed(1)} unit="mm" /> is required.
             </p>
@@ -389,19 +401,21 @@ export function ReleaseStage({
               const safe = p.safety === 'safe'
               return (
                 <article key={p.id}
-                  className={cn('border p-2.5', safe ? 'border-c4 bg-c0' : 'border-c9 bg-c0')}>
+                  className={cn('rounded-[8px] border bg-c0 p-[13px] shadow-[var(--shadow-raised)]',
+                                safe ? 'border-c4' : 'border-danger-line',
+                                p.recommended && 'border-accent ring-1 ring-accent/25')}>
                   <div className="mb-1.5 flex items-start gap-2">
                     <Mark state={safe ? 'pass' : 'fail'} box>
                       {safe ? 'keeps interface' : 'changes the part'}
                     </Mark>
                     {p.recommended && (
-                      <span className="num text-[10px] text-c7">recommended</span>
+                      <span className="num text-[10px] font-medium text-accent">recommended</span>
                     )}
                   </div>
                   <h4 className="text-[12px] font-semibold leading-snug">{p.title}</h4>
                   <p className="mt-1 text-[11px] leading-relaxed text-c7">{p.rationale}</p>
                   {p.consequence && (
-                    <p className="mt-1.5 border-l-2 border-c9 pl-2 text-[11px]
+                    <p className="mt-[8px] border-l-2 border-danger pl-[8px] text-[11px]
                                   leading-relaxed text-c8">
                       {p.consequence}
                     </p>
