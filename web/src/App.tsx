@@ -77,6 +77,58 @@ export default function App() {
       />
 
       <div className="flex min-h-0 flex-1 overflow-x-auto">
+        {/* Rail and inspector travel together on the left, the way an activity
+            bar and its sidebar do. The rail sits against the panel it drives, so
+            choosing a stage and reading it are one glance. */}
+        <StageRail
+          active={stage} flags={flags} enabled={!!state} open={inspectorOpen}
+          onSelect={(s) => {
+            if (s === stage) setInspectorOpen((o) => !o)
+            else { setStage(s); setInspectorOpen(true) }
+          }}
+        />
+
+        {inspectorOpen && (
+        <aside className="pane flex w-[233px] shrink-0 flex-col border-r border-c3
+                          bg-c0 xl:w-[var(--spacing-inspector)]">
+          {error && (
+            <div className="border-b border-danger-line bg-danger-wash px-[13px] py-[10px]">
+              <div className="flex items-center gap-[6px] text-[11.5px] font-semibold text-danger">
+                <span aria-hidden className="num text-[10px]">✕</span>
+                Something went wrong
+              </div>
+              <p className="mt-[5px] text-[11px] leading-relaxed text-c8">{error}</p>
+            </div>
+          )}
+
+          {stage === 'sources' && (
+            <SourcesStage
+              busy={busy}
+              backendLabel={health?.sketch_backend_label ?? 'checking…'}
+              visionAvailable={health?.vision_available ?? false}
+              replay={replay}
+              onDemo={() => guard(api.runDemo)}
+              onUpload={(s, d, r) => guard(() => api.runUpload(s, d, r))}
+            />
+          )}
+          {stage !== 'sources' && !(state && rev) && (
+            <Empty>Compile a run to inspect it.</Empty>
+          )}
+          {state && rev && stage === 'evidence' && (
+            <EvidenceStage state={state} picked={picked} onPick={setPicked} />
+          )}
+          {rev && stage === 'intent' && <IntentStage rev={rev} />}
+          {rev && stage === 'inspect' && <InspectStage rev={rev} />}
+          {rev && stage === 'release' && (
+            <ReleaseStage
+              rev={rev} busy={busy}
+              onRepair={(p: Proposal) =>
+                guard(() => api.repair(state!.run_id, p.id, !p.auto_applicable))
+              }
+            />
+          )}
+        </aside>
+        )}
         {/* viewport column */}
         <main className="flex min-w-[380px] flex-1 flex-col">
           <div className="viewport-ground grid-dots relative min-h-0 flex-1">
@@ -137,57 +189,6 @@ export default function App() {
           <Timeline rev={rev} />
         </main>
 
-        {/* Stage rail sits against the inspector it drives, not across the
-            window from it, so choosing a stage and reading it are one glance. */}
-        <StageRail
-          active={stage} flags={flags} enabled={!!state} open={inspectorOpen}
-          onSelect={(s) => {
-            if (s === stage) setInspectorOpen((o) => !o)
-            else { setStage(s); setInspectorOpen(true) }
-          }}
-        />
-
-        {inspectorOpen && (
-        <aside className="pane flex w-[233px] shrink-0 flex-col
-                          bg-c0 xl:w-[var(--spacing-inspector)]">
-          {error && (
-            <div className="border-b border-danger-line bg-danger-wash px-[13px] py-[10px]">
-              <div className="flex items-center gap-[6px] text-[11.5px] font-semibold text-danger">
-                <span aria-hidden className="num text-[10px]">✕</span>
-                Something went wrong
-              </div>
-              <p className="mt-[5px] text-[11px] leading-relaxed text-c8">{error}</p>
-            </div>
-          )}
-
-          {stage === 'sources' && (
-            <SourcesStage
-              busy={busy}
-              backendLabel={health?.sketch_backend_label ?? 'checking…'}
-              visionAvailable={health?.vision_available ?? false}
-              replay={replay}
-              onDemo={() => guard(api.runDemo)}
-              onUpload={(s, d, r) => guard(() => api.runUpload(s, d, r))}
-            />
-          )}
-          {stage !== 'sources' && !(state && rev) && (
-            <Empty>Compile a run to inspect it.</Empty>
-          )}
-          {state && rev && stage === 'evidence' && (
-            <EvidenceStage state={state} picked={picked} onPick={setPicked} />
-          )}
-          {rev && stage === 'intent' && <IntentStage rev={rev} />}
-          {rev && stage === 'inspect' && <InspectStage rev={rev} />}
-          {rev && stage === 'release' && (
-            <ReleaseStage
-              rev={rev} busy={busy}
-              onRepair={(p: Proposal) =>
-                guard(() => api.repair(state!.run_id, p.id, !p.auto_applicable))
-              }
-            />
-          )}
-        </aside>
-        )}
       </div>
 
       <StatusBar

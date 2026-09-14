@@ -113,14 +113,18 @@ export function StageRail({
   open: boolean
 }) {
   return (
-    <nav className="flex w-[var(--spacing-rail)] shrink-0 flex-col items-stretch gap-[2px]
-                    border-l border-c3 bg-c1 py-[8px] pl-[5px]"
+    <nav className={cn(
+           'flex w-[var(--spacing-rail)] shrink-0 flex-col items-stretch gap-[2px]',
+           'bg-c1 py-[8px] pl-[5px]',
+           // only needed when the panel is closed and the rail meets the viewport
+           !open && 'border-r border-c3',
+         )}
          aria-label="Pipeline stages">
       {STAGES.map(({ id, label, icon: Icon, hint }, i) => {
         const on = id === active
         const flag = flags[id]
         return (
-          <Tip key={id} side="left" label={
+          <Tip key={id} side="right" label={
             <><strong>{label}</strong> — {hint}
               {on && open && <><br />Click again to collapse the panel.</>}</>
           }>

@@ -95,7 +95,7 @@ already produces rather than being imposed on it:
 | Shell element | What it actually shows |
 |---|---|
 | Command bar | part, material, process, and a **revision selector** — v1 stays openable after v2 exists |
-| Stage rail | Sources → Evidence → Intent → Inspect → Release, badged with live failure and proposal counts. Sits **against the inspector it drives**, not across the window from it, so choosing a stage and reading it are one glance; the active tab takes the panel's surface so the two read as one object. Clicking the active stage collapses the panel and gives the viewport the full width. |
+| Stage rail | Sources → Evidence → Intent → Inspect → Release, badged with live failure and proposal counts. Rail and inspector sit together on the **left**, the way an activity bar and its sidebar do, so choosing a stage and reading it are one glance; the active tab takes the panel's surface so the two read as one object. Clicking the active stage collapses the panel and gives the viewport the full width. |
 | Viewport | the built solid, with the release **stamp**: solid-black `NOT FOR MANUFACTURE` at v1, outline `RELEASED` at v2 |
 | Timeline | the real feature history — `base_plate → shaft_opening → mounting_holes → external_chamfers` |
 | Inspector | the panel for the selected stage; a blocked run opens on Release, a released one on Inspect |
