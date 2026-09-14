@@ -1,7 +1,7 @@
 {
   "mode": "recorded_replay",
   "disclaimer": "This is a recording of a pipeline run, not live generation. No CAD kernel is running behind this page. The STEP offered is the frozen artifact that the release gate authorised at the time of recording.",
-  "frozen_at": "2026-09-14T08:42:51.799214+00:00",
+  "frozen_at": "2026-09-14T10:41:21.641362+00:00",
   "sketch_backend": "recorded fixture (no vision API key configured)",
   "contains_fixture_evidence": true,
   "applied_proposal": "widen_to_recommended",
@@ -608,7 +608,15 @@
                 "value": true,
                 "parameter": null
               }
-            ]
+            ],
+            "measured": {
+              "volume": 10000.0,
+              "volume_delta": 10000.0,
+              "is_valid": true,
+              "solid_count": 1,
+              "seconds": 0.0039,
+              "no_op": false
+            }
           },
           {
             "id": "shaft_opening",
@@ -639,7 +647,15 @@
                 "value": "through_all",
                 "parameter": null
               }
-            ]
+            ],
+            "measured": {
+              "volume": 8011.9609,
+              "volume_delta": -1988.0391,
+              "is_valid": true,
+              "solid_count": 1,
+              "seconds": 0.0041,
+              "no_op": false
+            }
           },
           {
             "id": "mounting_holes",
@@ -675,7 +691,15 @@
                 "value": "through_all",
                 "parameter": null
               }
-            ]
+            ],
+            "measured": {
+              "volume": 7830.3768,
+              "volume_delta": -181.5841,
+              "is_valid": true,
+              "solid_count": 1,
+              "seconds": 0.0061,
+              "no_op": false
+            }
           },
           {
             "id": "external_chamfers",
@@ -691,7 +715,15 @@
                 "value": 1.0,
                 "parameter": "external_chamfer"
               }
-            ]
+            ],
+            "measured": {
+              "volume": 7820.3768,
+              "volume_delta": -10.0,
+              "is_valid": true,
+              "solid_count": 1,
+              "seconds": 0.0068,
+              "no_op": false
+            }
           }
         ],
         "editable_parameters": [
@@ -1078,7 +1110,7 @@
             "updates": {
               "plate_width": 45.0
             },
-            "rationale": "minimum feasible 42.4 mm; recommended 45 mm (rounded up to the next 5 mm increment, leaving 2.6 mm margin). Widening the plate does not change how the part mates with the motor.",
+            "rationale": "minimum feasible 42.4 mm; rounded to 45 mm, providing 1.3 mm additional clearance per side. Widening the plate does not change how the part mates with the motor.",
             "consequence": null,
             "recommended": true,
             "auto_applicable": true
@@ -1289,7 +1321,15 @@
                 "value": true,
                 "parameter": null
               }
-            ]
+            ],
+            "measured": {
+              "volume": 11250.0,
+              "volume_delta": 11250.0,
+              "is_valid": true,
+              "solid_count": 1,
+              "seconds": 0.0062,
+              "no_op": false
+            }
           },
           {
             "id": "shaft_opening",
@@ -1320,7 +1360,15 @@
                 "value": "through_all",
                 "parameter": null
               }
-            ]
+            ],
+            "measured": {
+              "volume": 9261.9609,
+              "volume_delta": -1988.0391,
+              "is_valid": true,
+              "solid_count": 1,
+              "seconds": 0.006,
+              "no_op": false
+            }
           },
           {
             "id": "mounting_holes",
@@ -1356,7 +1404,15 @@
                 "value": "through_all",
                 "parameter": null
               }
-            ]
+            ],
+            "measured": {
+              "volume": 9080.3768,
+              "volume_delta": -181.5841,
+              "is_valid": true,
+              "solid_count": 1,
+              "seconds": 0.0101,
+              "no_op": false
+            }
           },
           {
             "id": "external_chamfers",
@@ -1372,7 +1428,15 @@
                 "value": 1.0,
                 "parameter": "external_chamfer"
               }
-            ]
+            ],
+            "measured": {
+              "volume": 9070.3768,
+              "volume_delta": -10.0,
+              "is_valid": true,
+              "solid_count": 1,
+              "seconds": 0.014,
+              "no_op": false
+            }
           }
         ],
         "editable_parameters": [

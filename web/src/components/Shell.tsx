@@ -326,12 +326,14 @@ export function StatusBar({
 /* ------------------------------------------------------------- viewport UI */
 
 export function ViewportOverlay({
-  rev, onDownloadStep, onToggleScript, scriptOpen,
+  rev, onDownloadStep, onToggleScript, scriptOpen, interactive = true,
 }: {
   rev: Revision
   onDownloadStep: string | null
   onToggleScript: () => void
   scriptOpen: boolean
+  /** False when the schematic fallback is showing: it does not orbit. */
+  interactive?: boolean
 }) {
   return (
     <>
@@ -365,11 +367,13 @@ export function ViewportOverlay({
       </div>
 
       {/* hidden on narrow viewports, where it would sit on top of the buttons */}
-      <span className="pointer-events-none absolute bottom-[13px] right-[13px] hidden num
-                       rounded-[5px] border border-c3 bg-c0/80 px-[8px] py-[3px]
-                       text-[11.5px] text-c6 backdrop-blur-md lg:block">
-        drag to orbit · scroll to zoom
-      </span>
+      {interactive && (
+        <span className="pointer-events-none absolute bottom-[13px] right-[13px] hidden num
+                         rounded-[5px] border border-c3 bg-c0/80 px-[8px] py-[3px]
+                         text-[11.5px] text-c6 backdrop-blur-md lg:block">
+          drag to orbit · scroll to zoom
+        </span>
+      )}
     </>
   )
 }

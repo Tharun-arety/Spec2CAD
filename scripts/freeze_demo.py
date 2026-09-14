@@ -34,6 +34,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="freeze_demo")
     parser.add_argument("--out", type=Path, default=ROOT / "build" / "frozen")
     parser.add_argument("--proposal", default="widen_to_recommended")
+    parser.add_argument(
+        "--publish", type=Path, default=ROOT / "web" / "public" / "replay",
+        help="also copy the bundle here so the web app serves it; --no-publish to skip",
+    )
+    parser.add_argument("--no-publish", dest="publish", action="store_const", const=None)
     parser.add_argument("--backend", default=None,
                         help="force a sketch backend; default is auto-selected")
     args = parser.parse_args(argv)
@@ -108,6 +113,16 @@ def main(argv: list[str] | None = None) -> int:
     }
     (out / "run.json").write_text(json.dumps(manifest, indent=2, default=str),
                                   encoding="utf-8")
+
+    # Publish into the web app unless told otherwise. This copy used to be a
+    # manual step, and it silently went stale: the frozen bundle kept an older
+    # payload shape than the live API, so replay and live disagreed about what
+    # a revision contains. Syncing here makes that impossible to forget.
+    if args.publish is not None:
+        if args.publish.exists():
+            shutil.rmtree(args.publish)
+        shutil.copytree(out, args.publish)
+        print(f"published to {args.publish}")
 
     total = sum(f.stat().st_size for f in out.rglob("*") if f.is_file())
     print(f"froze {len(result.revisions)} revisions to {out}")

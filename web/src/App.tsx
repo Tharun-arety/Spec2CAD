@@ -316,6 +316,7 @@ export default function App() {
                 )}
                 <ViewportOverlay
                   rev={rev}
+                  interactive={webglOk && !viewerFailed}
                   scriptOpen={scriptOpen}
                   onToggleScript={() => setScriptOpen((s) => !s)}
                   onDownloadStep={rev.release.step_export_allowed

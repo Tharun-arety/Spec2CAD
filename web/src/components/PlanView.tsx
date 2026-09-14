@@ -134,7 +134,9 @@ export function PlanView({ rev, note }: { rev: Revision; note?: string }) {
         </g>
       </svg>
 
-      <p className="shrink-0 px-[16px] pb-[13px] text-center text-[12px] leading-relaxed text-c6">
+      {/* pb clears the viewport overlay buttons pinned to the bottom edge */}
+      <p className="mx-auto max-w-[520px] shrink-0 px-[16px] pb-[47px] text-center
+                    text-[12px] leading-relaxed text-c6">
         {note ?? 'Schematic plan view, drawn from the revision parameters.'}
         {clearance > 0 && (
           <>
