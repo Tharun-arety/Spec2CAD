@@ -100,11 +100,29 @@ export default function App() {
         onSelectRevision={(n) => { setViewing(n); setScriptOpen(false) }}
         right={
           <>
-            {mode === 'replay' && (
-              <span className="rounded-[5px] border border-warn-line bg-warn-wash px-[8px] py-[2px]
-                               text-[10px] font-semibold uppercase tracking-[0.08em] text-warn">
-                recorded replay
-              </span>
+            {/* Which of the two backings is actually answering. Live mode used
+                to show nothing at all, which made a real CAD kernel and a
+                frozen recording look identical from the outside. */}
+            {mode === 'replay' ? (
+              <Tip side="bottom" label="A frozen recording of a real run. No kernel behind it: uploads and new revisions are refused rather than faked.">
+                <span className="rounded-[5px] border border-warn-line bg-warn-wash px-[8px] py-[2px]
+                                 text-[10px] font-semibold uppercase tracking-[0.08em] text-warn">
+                  recorded replay
+                </span>
+              </Tip>
+            ) : (
+              <Tip side="bottom" label={
+                REMOTE_BACKEND
+                  ? 'CadQuery is running on the deployed backend. Every solid on screen is built and measured on request.'
+                  : 'CadQuery is running locally. Every solid on screen is built and measured on request.'
+              }>
+                <span className="flex items-center gap-[6px] rounded-[5px] border border-success-line
+                                 bg-success-wash px-[8px] py-[2px] text-[10px] font-semibold
+                                 uppercase tracking-[0.08em] text-success">
+                  <span aria-hidden className="h-[5px] w-[5px] rounded-full bg-current" />
+                  live kernel
+                </span>
+              </Tip>
             )}
             {state && (
               <Tip side="bottom" label="Start a new design from fresh documents">
