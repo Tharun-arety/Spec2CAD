@@ -24,10 +24,11 @@ from spec2cad.extractors.drawing import extract_sketch
 from spec2cad.extractors.text import extract_requirement
 from spec2cad.fusion.conflict_detector import run_preflight
 from spec2cad.fusion.entity_resolver import build_design_intent
+from spec2cad.fusion.source_policy import is_interface_critical
 from spec2cad.repair.repair_planner import RepairProposal, apply_repair, plan_repairs
 from spec2cad.schemas.cad_ir import CADProgram
 from spec2cad.schemas.design_intent import DesignIntent
-from spec2cad.schemas.evidence import EvidenceSet
+from spec2cad.schemas.evidence import EvidenceSet, SemanticTarget
 from spec2cad.schemas.report import CheckStage, Report
 from spec2cad.validation.dimensions import run_dimensions
 from spec2cad.validation.gate import ReleaseDecision, evaluate_release
@@ -184,6 +185,75 @@ def repair(
     # A new RunResult rather than an in-place append. DesignIntent revisions are
     # immutable, and a run that silently re-pointed its own `latest` would make
     # "what did v1 conclude?" unanswerable once a repair had been applied.
+    return RunResult(
+        evidence=run_result.evidence,
+        revisions=[*run_result.revisions, evaluate_revision(next_intent)],
+        sketch_backend=run_result.sketch_backend,
+        sketch_fell_back=run_result.sketch_fell_back,
+        sketch_fallback_reason=run_result.sketch_fallback_reason,
+    )
+
+
+class InterfaceChangeRequiresAcknowledgement(PermissionError):
+    """Raised when a manual edit would move a mating interface unacknowledged."""
+
+
+def interface_critical(names: list[str]) -> list[str]:
+    """Which of these parameter names dictate how the part mates."""
+    out = []
+    for name in names:
+        try:
+            target = SemanticTarget(name)
+        except ValueError:
+            continue
+        if is_interface_critical(target):
+            out.append(name)
+    return out
+
+
+def revise(
+    run_result: RunResult,
+    updates: dict[str, float],
+    *,
+    approved_by: str,
+    reason: str = "manual parameter edit",
+    acknowledge_interface: bool = False,
+) -> RunResult:
+    """Derive the next revision from a hand-edited parameter.
+
+    Repair proposals only exist while something is blocked, so once a design is
+    released there would otherwise be no way to take it further. This is that
+    way -- and it goes through derive() like any other revision, so a manual
+    edit is recorded with its author and its before/after exactly as an accepted
+    proposal is.
+
+    Moving a mating interface by hand is possible but never silent: it needs an
+    explicit acknowledgement, for the same reason the repair planner refuses to
+    auto-apply one.
+    """
+    if not updates:
+        raise ValueError("a revision needs at least one parameter change")
+
+    current = run_result.latest
+    unknown = [n for n in updates if n not in current.intent.parameters]
+    if unknown:
+        raise KeyError(f"unknown parameter(s): {', '.join(sorted(unknown))}")
+
+    risky = interface_critical(list(updates))
+    if risky and not acknowledge_interface:
+        raise InterfaceChangeRequiresAcknowledgement(
+            f"{', '.join(risky)} dictate how the part mates with the motor. "
+            f"Changing them produces a part that builds cleanly, passes every check "
+            f"against the altered intent, and does not bolt on. Acknowledge explicitly "
+            f"to proceed."
+        )
+
+    next_intent = current.intent.derive(
+        updates=updates,
+        proposal_id="manual_edit",
+        approved_by=approved_by,
+        reason=reason,
+    )
     return RunResult(
         evidence=run_result.evidence,
         revisions=[*run_result.revisions, evaluate_revision(next_intent)],

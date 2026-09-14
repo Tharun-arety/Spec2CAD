@@ -70,6 +70,25 @@ export interface Release {
   responsible_parameters: string[]
 }
 
+export interface OpField {
+  name: string
+  value: number | boolean | string | null
+  parameter: string | null
+}
+
+export interface Operation {
+  id: string
+  type: string
+  fields: OpField[]
+}
+
+export interface EditableParam {
+  name: string
+  value: number
+  unit: string | null
+  interface_critical: boolean
+}
+
 export interface Revision {
   revision: number
   parent_revision: number | null
@@ -81,6 +100,8 @@ export interface Revision {
   parameters: Record<string, Parameter>
   constraints: { id: string; type: string; value: number; unit: string; severity: string }[]
   feature_sequence: string[]
+  operations: Operation[]
+  editable_parameters: EditableParam[]
   preflight: Check[]
   measured: Check[]
   cross_checks: Check[]

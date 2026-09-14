@@ -97,8 +97,8 @@ already produces rather than being imposed on it:
 | Command bar | part, material, process, the current revision, a link to this repo, and the history toggle |
 | Stage rail | Sources → Evidence → Intent → Inspect → Release, badged with live failure and proposal counts. Rail and inspector sit together on the **left**, the way an activity bar and its sidebar do, so choosing a stage and reading it are one glance; the active tab takes the panel's surface so the two read as one object. Clicking the active stage collapses the panel and gives the viewport the full width. |
 | Viewport | the built solid. The release state sits in the corner readout as a quiet `mm · v2 ✓ released` — the status bar already carries it, so the model is left alone |
-| Timeline | the real feature history — `base_plate → shaft_opening → mounting_holes → external_chamfers` |
-| Inspector | the panel for the selected stage; a blocked run opens on Release, a released one on Inspect |
+| Timeline | the real feature history — `base_plate → shaft_opening → mounting_holes → external_chamfers`. Selecting one opens what that operation actually is: its resolved values and the parameter each came from. |
+| Inspector | the panel for the selected stage; a blocked run opens on Release, a released one on Inspect. Parameters are editable — changing one derives the next revision through the same `derive()` path an accepted proposal uses. |
 | Status bar | the gate decision plus the governing measurement, tinted by outcome |
 | Revision graph | history as a commit log, newest first. DesignIntent revisions are already an immutable attributed chain — parent, proposal, change, approver — so they are drawn as one. A filled node was released, a hollow one refused; selecting a node opens that revision. |
 

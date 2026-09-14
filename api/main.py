@@ -20,7 +20,15 @@ from pydantic import BaseModel
 
 from spec2cad.cad.executor import export_step, export_stl
 from spec2cad.extractors.base import backend_label, select_backend
-from spec2cad.pipeline import RevisionResult, repair, run
+from spec2cad.cad.compiler import parameter_table
+from spec2cad.pipeline import (
+    InterfaceChangeRequiresAcknowledgement,
+    RevisionResult,
+    interface_critical,
+    repair,
+    revise,
+    run,
+)
 from spec2cad.preview import NoRegion, render_evidence_preview
 from spec2cad.repair.repair_planner import UnsafeRepairRequiresAcknowledgement
 from spec2cad.store import Store
@@ -122,6 +130,21 @@ def _revision_json(rev: RevisionResult) -> dict:
             for c in intent.constraints
         ],
         "feature_sequence": rev.program.feature_sequence() if rev.program else [],
+        # each feature with its numeric fields resolved, so the timeline can say
+        # what an operation actually is rather than only naming it
+        "operations": (
+            rev.program.describe(parameter_table(rev.intent)) if rev.program else []
+        ),
+        "editable_parameters": [
+            {
+                "name": name,
+                "value": p.value,
+                "unit": p.unit,
+                "interface_critical": name in interface_critical([name]),
+            }
+            for name, p in rev.intent.parameters.items()
+            if isinstance(p.value, (int, float))
+        ],
         "preflight": [_check_json(c) for c in rev.preflight.checks] if rev.preflight else [],
         "measured": [_check_json(c) for r in rev.measured for c in r.checks],
         "cross_checks": [_check_json(c) for c in rev.cross_checks],
@@ -283,6 +306,38 @@ def apply_repair_endpoint(run_id: str, body: RepairRequest) -> JSONResponse:
             acknowledge_unsafe=body.acknowledge_unsafe,
         )
     except UnsafeRepairRequiresAcknowledgement as exc:
+        raise HTTPException(409, str(exc)) from exc
+    except (KeyError, ValueError) as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+    _runs[run_id] = updated
+    _persist(run_id, updated)
+    return JSONResponse(_run_json(run_id, updated))
+
+
+class ReviseRequest(BaseModel):
+    updates: dict[str, float]
+    approved_by: str = "ui-user"
+    reason: str = "manual parameter edit"
+    acknowledge_interface: bool = False
+
+
+@app.post("/runs/{run_id}/revise")
+def revise_endpoint(run_id: str, body: ReviseRequest) -> JSONResponse:
+    """Derive a new revision from a hand-edited parameter.
+
+    Repair proposals only exist while something is blocked, so without this a
+    released design would be a dead end.
+    """
+    result = _require(run_id)
+    try:
+        updated = revise(
+            result, body.updates,
+            approved_by=body.approved_by,
+            reason=body.reason,
+            acknowledge_interface=body.acknowledge_interface,
+        )
+    except InterfaceChangeRequiresAcknowledgement as exc:
         raise HTTPException(409, str(exc)) from exc
     except (KeyError, ValueError) as exc:
         raise HTTPException(400, str(exc)) from exc

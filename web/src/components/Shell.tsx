@@ -189,34 +189,88 @@ export function StageRail({
 
 /* --------------------------------------------------------------- timeline */
 
-export function Timeline({ rev }: { rev: Revision | null }) {
+export function Timeline({
+  rev, selected, onSelect,
+}: {
+  rev: Revision | null
+  selected: string | null
+  onSelect: (id: string | null) => void
+}) {
+  const op = rev?.operations.find((o) => o.id === selected) ?? null
+
   return (
-    <div className="flex h-[var(--spacing-timeline)] shrink-0 items-center gap-[13px]
-                    border-t border-c3 bg-c1 px-[13px]">
-      <span className="shrink-0 text-[11px] font-medium text-c7">History</span>
-      <div className="flex min-w-0 flex-1 items-center gap-0 overflow-x-auto py-[8px]">
-        {rev?.feature_sequence.length ? (
-          rev.feature_sequence.map((f, i) => {
-            const [id, kind] = f.replace(')', '').split(' (')
-            return (
-              <div key={f} className="flex shrink-0 items-center">
-                {i > 0 && <span aria-hidden className="h-px w-[13px] bg-c4" />}
-                <Tip label={`${kind} operation`}>
-                  <div className="feature cursor-default">
-                    <span className="num text-[10px] text-c6">{i + 1}</span>
-                    <span>{id.replace(/_/g, ' ')}</span>
-                  </div>
-                </Tip>
-              </div>
-            )
-          })
-        ) : (
-          <span className="text-[11.5px] text-c6">No features built yet</span>
-        )}
+    <div className="shrink-0 border-t border-c3 bg-c1">
+      {/* Detail for the selected feature. These nodes looked clickable and did
+          nothing before; each now opens what the operation actually is -- its
+          resolved values, and the parameter each one came from. */}
+      {op && (
+        <div className="flex items-start gap-[13px] border-b border-c3 bg-c0 px-[13px] py-[10px]">
+          <span className="text-[11.5px] font-semibold">
+            {op.id.replace(/_/g, ' ')}
+          </span>
+          <span className="num rounded-[5px] border border-c3 bg-c1 px-[6px] py-px text-[10px] text-c7">
+            {op.type.replace(/_/g, ' ')}
+          </span>
+          <div className="flex flex-wrap items-center gap-x-[13px] gap-y-[5px]">
+            {op.fields.map((f) => (
+              <span key={f.name} className="flex items-baseline gap-[5px] text-[11px]">
+                <span className="text-c7">{f.name.replace(/_/g, ' ')}</span>
+                <Num value={typeof f.value === 'boolean'
+                             ? String(f.value)
+                             : typeof f.value === 'number'
+                               ? +f.value.toFixed(4)
+                               : String(f.value ?? '—')} strong />
+                {f.parameter && (
+                  <Tip label={`from the ${f.parameter.replace(/_/g, ' ')} parameter`}>
+                    <span className="num text-[9.5px] text-c6">
+                      ← {f.parameter.replace(/_/g, ' ')}
+                    </span>
+                  </Tip>
+                )}
+              </span>
+            ))}
+          </div>
+          <button onClick={() => onSelect(null)}
+                  className="ml-auto shrink-0 cursor-pointer text-[11px] text-c6 hover:text-c9">
+            Close
+          </button>
+        </div>
+      )}
+
+      <div className="flex h-[var(--spacing-timeline)] items-center gap-[13px] px-[13px]">
+        <span className="shrink-0 text-[11px] font-medium text-c7">History</span>
+        <div className="flex min-w-0 flex-1 items-center gap-0 overflow-x-auto py-[8px]">
+          {rev?.operations.length ? (
+            rev.operations.map((o, i) => {
+              const on = o.id === selected
+              return (
+                <div key={o.id} className="flex shrink-0 items-center">
+                  {i > 0 && <span aria-hidden className="h-px w-[13px] bg-c4" />}
+                  <button
+                    onClick={() => onSelect(on ? null : o.id)}
+                    aria-pressed={on}
+                    className={cn('feature cursor-pointer transition-colors duration-150',
+                                  on
+                                    ? 'border-accent bg-accent-wash text-accent'
+                                    : 'hover:border-c5')}
+                  >
+                    <span className={cn('num text-[10px]', on ? 'text-accent' : 'text-c6')}>
+                      {i + 1}
+                    </span>
+                    <span>{o.id.replace(/_/g, ' ')}</span>
+                  </button>
+                </div>
+              )
+            })
+          ) : (
+            <span className="text-[11px] text-c6">No features built yet</span>
+          )}
+        </div>
       </div>
     </div>
   )
 }
+
 
 /* ------------------------------------------------------------- status bar */
 

@@ -50,6 +50,17 @@ const liveApi = {
       }),
     }).then(json<RunState>),
 
+  revise: (runId: string, updates: Record<string, number>,
+           reason: string, acknowledgeInterface = false) =>
+    fetch(`${BASE}/runs/${runId}/revise`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        updates, approved_by: 'ui-user', reason,
+        acknowledge_interface: acknowledgeInterface,
+      }),
+    }).then(json<RunState>),
+
   stlUrl: (runId: string, rev: number) =>
     `${BASE}/runs/${runId}/revisions/${rev}/model.stl`,
   stepUrl: (runId: string, rev: number) =>
@@ -62,6 +73,8 @@ export const api = IS_REPLAY
   ? {
       ...replayApi,
       runUpload: (_s: File, _d: File, _r: string) => replayApi.runUpload(),
+      revise: (_id: string, _u: Record<string, number>, _r: string, _a?: boolean) =>
+        replayApi.revise(),
       repair: (runId: string, proposalId: string, _ack?: boolean) =>
         replayApi.repair(runId, proposalId),
     }

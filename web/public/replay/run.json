@@ -1,7 +1,7 @@
 {
   "mode": "recorded_replay",
   "disclaimer": "This is a recording of a pipeline run, not live generation. No CAD kernel is running behind this page. The STEP offered is the frozen artifact that the release gate authorised at the time of recording.",
-  "frozen_at": "2026-09-13T21:52:50.309237+00:00",
+  "frozen_at": "2026-09-14T08:42:51.799214+00:00",
   "sketch_backend": "recorded fixture (no vision API key configured)",
   "contains_fixture_evidence": true,
   "applied_proposal": "widen_to_recommended",
@@ -583,6 +583,179 @@
           "mounting_holes (rectangular_hole_pattern)",
           "external_chamfers (chamfer)"
         ],
+        "operations": [
+          {
+            "id": "base_plate",
+            "type": "box",
+            "fields": [
+              {
+                "name": "width",
+                "value": 40.0,
+                "parameter": "plate_width"
+              },
+              {
+                "name": "height",
+                "value": 50.0,
+                "parameter": "plate_height"
+              },
+              {
+                "name": "depth",
+                "value": 5.0,
+                "parameter": "plate_thickness"
+              },
+              {
+                "name": "centered",
+                "value": true,
+                "parameter": null
+              }
+            ]
+          },
+          {
+            "id": "shaft_opening",
+            "type": "hole",
+            "fields": [
+              {
+                "name": "support",
+                "value": "top_face",
+                "parameter": null
+              },
+              {
+                "name": "diameter",
+                "value": 22.5,
+                "parameter": "shaft_opening_diameter"
+              },
+              {
+                "name": "x",
+                "value": 0.0,
+                "parameter": null
+              },
+              {
+                "name": "y",
+                "value": 0.0,
+                "parameter": null
+              },
+              {
+                "name": "termination",
+                "value": "through_all",
+                "parameter": null
+              }
+            ]
+          },
+          {
+            "id": "mounting_holes",
+            "type": "rectangular_hole_pattern",
+            "fields": [
+              {
+                "name": "support",
+                "value": "top_face",
+                "parameter": null
+              },
+              {
+                "name": "diameter",
+                "value": 3.4,
+                "parameter": "mounting_hole_diameter"
+              },
+              {
+                "name": "spacing_x",
+                "value": 31.0,
+                "parameter": "hole_spacing_x"
+              },
+              {
+                "name": "spacing_y",
+                "value": 31.0,
+                "parameter": "hole_spacing_y"
+              },
+              {
+                "name": "count",
+                "value": 4,
+                "parameter": null
+              },
+              {
+                "name": "termination",
+                "value": "through_all",
+                "parameter": null
+              }
+            ]
+          },
+          {
+            "id": "external_chamfers",
+            "type": "chamfer",
+            "fields": [
+              {
+                "name": "edge_selector",
+                "value": "external_vertical_edges",
+                "parameter": null
+              },
+              {
+                "name": "distance",
+                "value": 1.0,
+                "parameter": "external_chamfer"
+              }
+            ]
+          }
+        ],
+        "editable_parameters": [
+          {
+            "name": "plate_width",
+            "value": 40.0,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "plate_height",
+            "value": 50.0,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "plate_thickness",
+            "value": 5.0,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "hole_spacing_x",
+            "value": 31.0,
+            "unit": "mm",
+            "interface_critical": true
+          },
+          {
+            "name": "hole_spacing_y",
+            "value": 31.0,
+            "unit": "mm",
+            "interface_critical": true
+          },
+          {
+            "name": "mounting_hole_count",
+            "value": 4,
+            "unit": null,
+            "interface_critical": true
+          },
+          {
+            "name": "mounting_hole_diameter",
+            "value": 3.4,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "motor_boss_diameter",
+            "value": 22.0,
+            "unit": "mm",
+            "interface_critical": true
+          },
+          {
+            "name": "external_chamfer",
+            "value": 1.0,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "shaft_opening_diameter",
+            "value": 22.5,
+            "unit": "mm",
+            "interface_critical": false
+          }
+        ],
         "preflight": [
           {
             "id": "pre_completeness",
@@ -1090,6 +1263,179 @@
           "shaft_opening (hole)",
           "mounting_holes (rectangular_hole_pattern)",
           "external_chamfers (chamfer)"
+        ],
+        "operations": [
+          {
+            "id": "base_plate",
+            "type": "box",
+            "fields": [
+              {
+                "name": "width",
+                "value": 45.0,
+                "parameter": "plate_width"
+              },
+              {
+                "name": "height",
+                "value": 50.0,
+                "parameter": "plate_height"
+              },
+              {
+                "name": "depth",
+                "value": 5.0,
+                "parameter": "plate_thickness"
+              },
+              {
+                "name": "centered",
+                "value": true,
+                "parameter": null
+              }
+            ]
+          },
+          {
+            "id": "shaft_opening",
+            "type": "hole",
+            "fields": [
+              {
+                "name": "support",
+                "value": "top_face",
+                "parameter": null
+              },
+              {
+                "name": "diameter",
+                "value": 22.5,
+                "parameter": "shaft_opening_diameter"
+              },
+              {
+                "name": "x",
+                "value": 0.0,
+                "parameter": null
+              },
+              {
+                "name": "y",
+                "value": 0.0,
+                "parameter": null
+              },
+              {
+                "name": "termination",
+                "value": "through_all",
+                "parameter": null
+              }
+            ]
+          },
+          {
+            "id": "mounting_holes",
+            "type": "rectangular_hole_pattern",
+            "fields": [
+              {
+                "name": "support",
+                "value": "top_face",
+                "parameter": null
+              },
+              {
+                "name": "diameter",
+                "value": 3.4,
+                "parameter": "mounting_hole_diameter"
+              },
+              {
+                "name": "spacing_x",
+                "value": 31.0,
+                "parameter": "hole_spacing_x"
+              },
+              {
+                "name": "spacing_y",
+                "value": 31.0,
+                "parameter": "hole_spacing_y"
+              },
+              {
+                "name": "count",
+                "value": 4,
+                "parameter": null
+              },
+              {
+                "name": "termination",
+                "value": "through_all",
+                "parameter": null
+              }
+            ]
+          },
+          {
+            "id": "external_chamfers",
+            "type": "chamfer",
+            "fields": [
+              {
+                "name": "edge_selector",
+                "value": "external_vertical_edges",
+                "parameter": null
+              },
+              {
+                "name": "distance",
+                "value": 1.0,
+                "parameter": "external_chamfer"
+              }
+            ]
+          }
+        ],
+        "editable_parameters": [
+          {
+            "name": "plate_width",
+            "value": 45.0,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "plate_height",
+            "value": 50.0,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "plate_thickness",
+            "value": 5.0,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "hole_spacing_x",
+            "value": 31.0,
+            "unit": "mm",
+            "interface_critical": true
+          },
+          {
+            "name": "hole_spacing_y",
+            "value": 31.0,
+            "unit": "mm",
+            "interface_critical": true
+          },
+          {
+            "name": "mounting_hole_count",
+            "value": 4,
+            "unit": null,
+            "interface_critical": true
+          },
+          {
+            "name": "mounting_hole_diameter",
+            "value": 3.4,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "motor_boss_diameter",
+            "value": 22.0,
+            "unit": "mm",
+            "interface_critical": true
+          },
+          {
+            "name": "external_chamfer",
+            "value": 1.0,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "shaft_opening_diameter",
+            "value": 22.5,
+            "unit": "mm",
+            "interface_critical": false
+          }
         ],
         "preflight": [
           {

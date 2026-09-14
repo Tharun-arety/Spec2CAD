@@ -78,6 +78,14 @@ export const replayApi = {
     )
   },
 
+  async revise(): Promise<RunState> {
+    throw new ReplayUnavailable(
+      'Creating a revision means rebuilding the part, and this deployment has no ' +
+      'CAD kernel behind it. Run the project locally, or deploy the FastAPI ' +
+      'backend as a container, to edit parameters and generate new revisions.',
+    )
+  },
+
   /** Only the resolution that was recorded has a rebuilt revision. */
   async repair(_runId: string, proposalId: string): Promise<RunState> {
     const m = await manifest()

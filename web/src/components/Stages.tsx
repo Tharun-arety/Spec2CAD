@@ -217,7 +217,29 @@ export function EvidenceStage({
 
 /* ---------------------------------------------------------------- intent */
 
-export function IntentStage({ rev }: { rev: Revision }) {
+export function IntentStage({
+  rev, onRevise, busy,
+}: {
+  rev: Revision
+  onRevise: (updates: Record<string, number>, reason: string, ack: boolean) => void
+  busy: boolean
+}) {
+  const [edits, setEdits] = useState<Record<string, string>>({})
+
+  const editable = new Map(rev.editable_parameters.map((p) => [p.name, p]))
+  const dirty = Object.entries(edits).filter(([name, raw]) => {
+    const n = Number(raw)
+    return raw.trim() !== '' && Number.isFinite(n) && n !== editable.get(name)?.value
+  })
+  const touchesInterface = dirty.some(([n]) => editable.get(n)?.interface_critical)
+
+  const apply = () => {
+    const updates: Record<string, number> = {}
+    dirty.forEach(([n, raw]) => { updates[n] = Number(raw) })
+    onRevise(updates, 'manual parameter edit', touchesInterface)
+    setEdits({})
+  }
+
   return (
     <>
       <PanelHead title="Design intent" note={`revision ${rev.revision}`} />
@@ -237,22 +259,72 @@ export function IntentStage({ rev }: { rev: Revision }) {
         </div>
       )}
 
+      <p className="border-b border-c3 px-[13px] py-[8px] text-[11px] leading-relaxed text-c7">
+        Edit a value to derive the next revision. Nothing is changed in place — the
+        current revision stays exactly as it is.
+      </p>
+
       <div>
-        {Object.entries(rev.parameters).map(([name, p]) => (
-          <Field key={name} label={name.replace(/_/g, ' ')} dense>
-            <span className="flex items-baseline gap-2">
-              <Num value={show(p.value)} unit={p.unit} strong />
-              {p.status !== 'confirmed' && (
-                <Tip label={p.derivation ?? p.provenance.join(', ')}>
-                  <span className="num text-[10px] text-c6">
-                    {p.status === 'inferred' ? 'ƒ derived' : p.status}
-                  </span>
-                </Tip>
-              )}
-            </span>
-          </Field>
-        ))}
+        {Object.entries(rev.parameters).map(([name, p]) => {
+          const ed = editable.get(name)
+          const raw = edits[name]
+          const changed = raw !== undefined && raw !== '' && Number(raw) !== ed?.value
+          return (
+            <Field key={name} label={name.replace(/_/g, ' ')} dense>
+              <span className="flex items-center gap-[8px]">
+                {ed ? (
+                  <input
+                    type="number"
+                    step="any"
+                    value={raw ?? String(ed.value)}
+                    onChange={(e) => setEdits({ ...edits, [name]: e.target.value })}
+                    aria-label={`${name.replace(/_/g, ' ')} value`}
+                    className={cn(
+                      'num w-[76px] rounded-[4px] border bg-c0 px-[6px] py-[2px] text-[12px]',
+                      'transition-colors duration-150 focus:border-accent focus:outline-none',
+                      changed ? 'border-accent text-accent' : 'border-c4',
+                    )}
+                  />
+                ) : (
+                  <Num value={show(p.value)} strong />
+                )}
+                {p.unit && <span className="text-[10.5px] text-c6">{p.unit}</span>}
+                {ed?.interface_critical && (
+                  <Tip label="This dictates how the part mates with the motor. Changing it needs an explicit acknowledgement.">
+                    <span className="num text-[10px] text-warn">mating</span>
+                  </Tip>
+                )}
+                {!ed && p.status !== 'confirmed' && (
+                  <Tip label={p.derivation ?? p.provenance.join(', ')}>
+                    <span className="num text-[10px] text-c6">ƒ derived</span>
+                  </Tip>
+                )}
+              </span>
+            </Field>
+          )
+        })}
       </div>
+
+      {dirty.length > 0 && (
+        <div className="sticky bottom-0 border-t border-accent-line bg-accent-wash
+                        px-[13px] py-[10px]">
+          <div className="text-[11px] text-c8">
+            {dirty.length} pending {dirty.length === 1 ? 'change' : 'changes'} → v{rev.revision + 1}
+          </div>
+          {touchesInterface && (
+            <p className="mt-[5px] text-[11px] leading-relaxed text-warn">
+              This moves the motor interface. The part will build and pass every check
+              against the altered intent, and will not bolt to the motor.
+            </p>
+          )}
+          <div className="mt-[8px] flex gap-[5px]">
+            <Button intent="solid" size="sm" disabled={busy} onClick={apply}>
+              {touchesInterface ? 'Acknowledge & create revision' : 'Create revision'}
+            </Button>
+            <Button intent="ghost" size="sm" onClick={() => setEdits({})}>Discard</Button>
+          </div>
+        </div>
+      )}
 
       <PanelHead title="Constraints" />
       {rev.constraints.map((c) => (
@@ -264,6 +336,7 @@ export function IntentStage({ rev }: { rev: Revision }) {
     </>
   )
 }
+
 
 /* --------------------------------------------------------------- inspect */
 

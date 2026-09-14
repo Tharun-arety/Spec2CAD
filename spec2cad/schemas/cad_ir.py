@@ -197,3 +197,37 @@ class CADProgram(BaseModel):
 
     def feature_sequence(self) -> list[str]:
         return [f"{op.id} ({op.type})" for op in self.operations]
+
+    def describe(self, values: dict[str, float]) -> list[dict]:
+        """Each operation with its numeric fields resolved.
+
+        Returned so a caller can show what a feature actually is -- the value
+        used, and the parameter it came from -- rather than just its name.
+        """
+        out: list[dict] = []
+        for op in self.operations:
+            fields: list[dict] = []
+            for name in type(op).model_fields:
+                if name in ("id", "type"):
+                    continue
+                value = getattr(op, name)
+                if isinstance(value, (NumberLiteral, ParamRef)):
+                    try:
+                        resolved = resolve(value, values)
+                    except UnresolvedReference:
+                        resolved = None
+                    fields.append({
+                        "name": name,
+                        "value": resolved,
+                        "parameter": value.ref if isinstance(value, ParamRef) else None,
+                    })
+                elif value is None:
+                    continue
+                else:
+                    fields.append({
+                        "name": name,
+                        "value": value.value if hasattr(value, "value") else value,
+                        "parameter": None,
+                    })
+            out.append({"id": op.id, "type": op.type, "fields": fields})
+        return out

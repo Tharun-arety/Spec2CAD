@@ -8,7 +8,7 @@ import {
 import {
   EvidenceStage, InspectStage, IntentStage, ReleaseStage, SourcesStage,
 } from './components/Stages'
-import { PanelRightClose, PanelRightOpen } from 'lucide-react'
+import { PanelRightClose, PanelRightOpen, Plus } from 'lucide-react'
 import { Button, Empty, Tip } from './components/ui'
 import { VersionGraph } from './components/VersionGraph'
 
@@ -26,6 +26,7 @@ export default function App() {
   const [scriptOpen, setScriptOpen] = useState(false)
   const [inspectorOpen, setInspectorOpen] = useState(true)
   const [historyOpen, setHistoryOpen] = useState(true)
+  const [feature, setFeature] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [replay, setReplay] = useState<ReplayManifest | null>(null)
@@ -43,6 +44,7 @@ export default function App() {
       setState(next)
       setViewing(next.latest_revision)
       setPicked(null)
+      setFeature(null)
       // Land on the stage that matters: a blocked run needs a decision, a
       // released one wants its report. Neither is the upload form.
       const latest = next.revisions[next.revisions.length - 1]
@@ -78,6 +80,24 @@ export default function App() {
                                text-[10px] font-semibold uppercase tracking-[0.08em] text-warn">
                 recorded replay
               </span>
+            )}
+            {state && (
+              <Tip side="bottom" label="Start a new design from fresh documents">
+                <button
+                  onClick={() => {
+                    setState(null); setViewing(null); setPicked(null)
+                    setFeature(null); setScriptOpen(false); setError(null)
+                    setStage('sources')
+                  }}
+                  className="flex h-[29px] cursor-pointer items-center gap-[6px] rounded-[5px]
+                             border border-c4 bg-c0 px-[10px] text-[11px] text-c7
+                             shadow-[var(--shadow-raised)] transition-colors duration-150
+                             hover:border-c6 hover:text-c9"
+                >
+                  <Plus size={14} strokeWidth={1.9} aria-hidden />
+                  New
+                </button>
+              </Tip>
             )}
             {state && (
               <Tip side="bottom" label={historyOpen ? 'Hide revision history' : 'Show revision history'}>
@@ -140,7 +160,14 @@ export default function App() {
           {state && rev && stage === 'evidence' && (
             <EvidenceStage state={state} picked={picked} onPick={setPicked} />
           )}
-          {rev && stage === 'intent' && <IntentStage rev={rev} />}
+          {rev && stage === 'intent' && (
+            <IntentStage
+              rev={rev} busy={busy}
+              onRevise={(updates, reason, ack) =>
+                guard(() => api.revise(state!.run_id, updates, reason, ack))
+              }
+            />
+          )}
           {rev && stage === 'inspect' && <InspectStage rev={rev} />}
           {rev && stage === 'release' && (
             <ReleaseStage
@@ -209,7 +236,7 @@ export default function App() {
             )}
           </div>
 
-          <Timeline rev={rev} />
+          <Timeline rev={rev} selected={feature} onSelect={setFeature} />
         </main>
 
         {/* Revision history on the right. DesignIntent revisions are already an
