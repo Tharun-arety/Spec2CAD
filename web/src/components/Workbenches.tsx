@@ -32,6 +32,8 @@ export function SourceWorkspace({
   const [instruction, setInstruction] = useState('')
   const sketchInput = useRef<HTMLInputElement>(null)
   const datasheetInput = useRef<HTMLInputElement>(null)
+  const instructionInput = useRef<HTMLTextAreaElement>(null)
+  const hasDraft = Boolean(sketch || datasheet || instruction.trim())
   const canCompile = !replayMode && !busy && Boolean(
     sketch || datasheet || instruction.trim(),
   )
@@ -53,15 +55,15 @@ export function SourceWorkspace({
       <div className="min-h-0 flex-1 overflow-y-auto bg-c1 px-[21px] py-[34px]">
         <div className="mx-auto max-w-[720px]">
           <div className="flex gap-[13px]">
-            <span className="grid h-[29px] w-[29px] shrink-0 place-items-center rounded-[6px]
+            <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[7px]
                              border border-accent-line bg-accent-wash text-accent">
-              <Bot size={16} strokeWidth={1.8} aria-hidden />
+              <Bot size={17} strokeWidth={1.8} aria-hidden />
             </span>
             <div className="min-w-0">
-              <h1 className="text-[17.8px] font-semibold tracking-[-0.02em] text-c9">
+              <h1 className="text-[25px] font-semibold leading-[1.12] tracking-[-0.03em] text-c9">
                 Start with whatever you have
               </h1>
-              <p className="mt-[5px] max-w-[610px] text-[13.5px] leading-relaxed text-c7">
+              <p className="mt-[8px] max-w-[610px] text-[14px] leading-[1.75] text-c7">
                 Describe the part, attach a sketch or datasheet, or combine them.
                 Spec2CAD will extract the available evidence and mark missing inputs
                 explicitly instead of blocking the run.
@@ -69,21 +71,62 @@ export function SourceWorkspace({
             </div>
           </div>
 
-          <div className="ml-[42px] mt-[21px] grid gap-[8px] sm:grid-cols-3">
-            {[
-              ['Instruction only', 'Extract dimensions and constraints from text.'],
-              ['One document', 'Inspect a sketch or datasheet on its own.'],
-              ['Mixed context', 'Reconcile any two or all three sources.'],
-            ].map(([title, detail]) => (
-              <div key={title} className="border-l-2 border-c4 pl-[10px]">
-                <div className="text-[12.5px] font-medium text-c8">{title}</div>
-                <div className="mt-[2px] text-[12px] leading-snug text-c6">{detail}</div>
-              </div>
-            ))}
+          <div className="ml-[47px] mt-[21px] grid gap-[8px] sm:grid-cols-3">
+            <button
+              type="button"
+              onClick={() => {
+                setInstruction('Create a manufacturable part from this requirement: ')
+                requestAnimationFrame(() => instructionInput.current?.focus())
+              }}
+              disabled={replayMode || busy}
+              className="group rounded-[6px] border border-c3 bg-c0 px-[11px] py-[10px]
+                         text-left transition-colors hover:border-accent-line hover:bg-accent-wash
+                         disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <span className="block text-[13px] font-medium text-c8 group-hover:text-accent">
+                Describe a part
+              </span>
+              <span className="mt-[3px] block text-[12px] leading-snug text-c6">
+                Start with dimensions and constraints.
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => datasheetInput.current?.click()}
+              disabled={replayMode || busy}
+              className="group rounded-[6px] border border-c3 bg-c0 px-[11px] py-[10px]
+                         text-left transition-colors hover:border-accent-line hover:bg-accent-wash
+                         disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <span className="block text-[13px] font-medium text-c8 group-hover:text-accent">
+                Open a document
+              </span>
+              <span className="mt-[3px] block text-[12px] leading-snug text-c6">
+                Inspect one datasheet on its own.
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setInstruction('Reconcile the attached sources, resolve matching dimensions, and flag any missing or conflicting inputs.')
+                requestAnimationFrame(() => instructionInput.current?.focus())
+              }}
+              disabled={replayMode || busy}
+              className="group rounded-[6px] border border-c3 bg-c0 px-[11px] py-[10px]
+                         text-left transition-colors hover:border-accent-line hover:bg-accent-wash
+                         disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <span className="block text-[13px] font-medium text-c8 group-hover:text-accent">
+                Combine sources
+              </span>
+              <span className="mt-[3px] block text-[12px] leading-snug text-c6">
+                Reconcile any two or all three inputs.
+              </span>
+            </button>
           </div>
 
           {state && (
-            <div className="ml-[42px] mt-[21px] border border-success-line bg-success-wash
+            <div className="ml-[47px] mt-[21px] border border-success-line bg-success-wash
                             px-[13px] py-[10px]">
               <div className="flex items-center gap-[8px]">
                 <Mark state="pass" glyph>Evidence captured</Mark>
@@ -101,15 +144,18 @@ export function SourceWorkspace({
       </div>
 
       <div className="border-t border-c3 bg-c0 px-[21px] py-[13px]">
-        <div className="mx-auto mb-[8px] flex max-w-[760px] flex-wrap items-center gap-[10px]
-                        rounded-[8px] border border-accent-line bg-accent-wash px-[11px] py-[9px]">
+        <div className={cn(
+          'mx-auto mb-[8px] flex max-w-[760px] flex-wrap items-center gap-[10px]',
+          'rounded-[8px] border px-[11px] py-[9px] transition-colors',
+          hasDraft ? 'border-c3 bg-c1' : 'border-accent-line bg-accent-wash',
+        )}>
           <div className="min-w-[180px] flex-1">
             <div className="text-[12.5px] font-semibold text-c9">Recorded example</div>
             <p className="mt-[1px] text-[11.5px] leading-snug text-c7">
               Run the bundled sketch, motor datasheet and requirement.
             </p>
           </div>
-          <Button intent="solid" size="sm" onClick={onDemo} disabled={busy}>
+          <Button intent={hasDraft ? 'outline' : 'solid'} size="sm" onClick={onDemo} disabled={busy}>
             <Play size={13} fill="currentColor" aria-hidden />
             {busy ? 'Compiling…' : 'Compile recorded example'}
           </Button>
@@ -121,6 +167,7 @@ export function SourceWorkspace({
             Describe what to generate
           </label>
           <textarea
+            ref={instructionInput}
             id="source-instruction"
             value={instruction}
             onChange={(event) => setInstruction(event.target.value)}
@@ -282,7 +329,8 @@ export function EvidenceWorkbench({ state, picked, onPick }: EvidenceWorkbenchPr
 
       <div className="flex h-[34px] shrink-0 items-center gap-[6px] border-b border-c3
                       bg-c1 px-[13px] text-[11.5px] text-c6">
-        <span>evidence</span><span>/</span><span className="text-c8">{active}</span>
+        <span>evidence</span><span>/</span>
+        <span className="min-w-0 truncate text-c8" title={active}>{active}</span>
         <span className="ml-auto num">{sourceEvidence.length} observation
           {sourceEvidence.length === 1 ? '' : 's'}</span>
       </div>
@@ -372,25 +420,36 @@ function EditorTabs({
         const lower = tab.label.toLowerCase()
         const Icon = tab.kind === 'agent' ? Bot : tab.kind === 'rule' ? BookOpen
           : lower.endsWith('.pdf') || lower.endsWith('.txt') ? FileText : ImageIcon
+        const displayLabel = compactTabLabel(tab.label)
         return (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={selected}
-            onClick={() => onSelect(tab.id)}
-            className={cn(
-              'relative flex h-full min-w-[132px] max-w-[230px] cursor-pointer items-center',
-              'gap-[7px] border-r border-c3 px-[11px] text-[12px] transition-colors',
-              selected ? 'bg-c0 text-c9' : 'bg-c1 text-c7 hover:bg-c2 hover:text-c9',
-            )}
-          >
-            <Icon size={13} strokeWidth={1.7} className="shrink-0 text-c6" aria-hidden />
-            <span className="truncate">{tab.label}</span>
-            {selected && <span className="absolute inset-x-0 top-0 h-[2px] bg-accent" />}
-          </button>
+          <Tip key={tab.id} label={tab.label} side="bottom">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              aria-label={tab.label}
+              onClick={() => onSelect(tab.id)}
+              className={cn(
+                'relative flex h-full min-w-[118px] max-w-[210px] cursor-pointer items-center',
+                'gap-[7px] border-r border-c3 px-[11px] text-[12.5px] transition-colors',
+                selected ? 'bg-c0 text-c9' : 'bg-c1 text-c7 hover:bg-c2 hover:text-c9',
+              )}
+            >
+              <Icon size={13} strokeWidth={1.7} className="shrink-0 text-c6" aria-hidden />
+              <span className="truncate">{displayLabel}</span>
+              {selected && <span className="absolute inset-x-0 top-0 h-[2px] bg-accent" />}
+            </button>
+          </Tip>
         )
       })}
     </div>
   )
+}
+
+function compactTabLabel(label: string) {
+  if (label.length <= 24) return label
+  const dot = label.lastIndexOf('.')
+  const extension = dot > 0 ? label.slice(dot) : ''
+  const base = dot > 0 ? label.slice(0, dot) : label
+  return `${base.slice(0, 12)}…${base.slice(-5)}${extension}`
 }

@@ -7,7 +7,6 @@
  */
 import { useState } from 'react'
 import type { Check, Evidence, Proposal, Revision, RunState } from '../types'
-import { api } from '../api'
 import { cn } from '../lib/cn'
 import { ExtractionMode } from './ExtractionMode'
 import { Button, Empty, Field, Mark, Num, PanelHead, Tip } from './ui'
@@ -58,7 +57,7 @@ export function SourcesStage({
       )}
 
       <div className="border-b border-c3 px-[13px] py-[10px]">
-        <div className="text-[11px] font-semibold text-c6">WORKSPACE</div>
+        <div className="text-[11.5px] font-medium text-c6">Workspace</div>
         {documents.length ? (
           <ul className="mt-[5px] space-y-[2px]">
             {documents.map((e) => (
@@ -82,7 +81,7 @@ export function SourcesStage({
       </div>
 
       <div className="px-[13px] py-[10px]">
-        <div className="text-[11px] font-semibold text-c6">CAPABILITIES</div>
+        <div className="text-[11.5px] font-medium text-c6">Capabilities</div>
         <ul className="mt-[6px] space-y-[5px] text-[12px] text-c7">
           <li>✓ Requirement text</li>
           <li>✓ Datasheet PDF layout</li>
@@ -113,84 +112,48 @@ export function EvidenceStage({
           read, so it is the panel that has to say how. */}
       <ExtractionMode evidence={state.evidence} />
 
-      <table className="w-full border-collapse">
-        <tbody>
-          {state.evidence.map((e) => {
-            const on = picked?.id === e.id
-            return (
-              <tr key={e.id} onClick={() => onPick(on ? null : e)}
-                  className={cn('cursor-pointer border-b border-c3 transition-colors duration-100',
-                                on
-                                  ? 'bg-accent-wash shadow-[inset_2px_0_0_0_var(--color-accent)]'
-                                  : 'hover:bg-c2')}>
-                <td className="py-[6px] pl-[13px] pr-[8px]">
-                  <div className={cn('text-[12.5px]', on && 'font-medium text-accent')}>
-                    {e.target.replace(/_/g, ' ')}
-                  </div>
-                  <div className="text-[11.5px] text-c6">
-                    {e.source.modality.replace('_', ' ')}
-                    {e.source.page && ` p.${e.source.page}`}
-                  </div>
-                </td>
-                <td className="py-[6px] pr-[8px] text-right">
-                  <Num value={show(e.value)} unit={e.unit} strong />
-                </td>
-                <td className="w-[18px] py-[6px] pr-[13px] text-right">
-                  {/* an inferred value is marked, a stated one is not: the
-                      absence of a mark is the common case */}
-                  {!e.is_explicit_annotation && (
-                    <Tip label="Derived from a rule or a standard, not stated on any document">
-                      <span className="num text-[11px] text-c6">ƒ</span>
-                    </Tip>
-                  )}
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-
-      {picked && (
-        <div className="border-t-2 border-accent">
-          <PanelHead title="Where it came from" aside={
-            <Button intent="ghost" size="sm" onClick={() => onPick(null)}>Close</Button>
-          } />
-          <div className="p-3.5">
-            {picked.has_preview ? (
-              <img src={api.previewUrl(state.run_id, picked.id)}
-                   alt={`Source of ${picked.target}`}
-                   className="w-full border border-c4" />
-            ) : (
-              <p className="text-[12.5px] leading-relaxed text-c7">
-                Derived from {picked.source.detail ?? 'a rule'}, so there is no region on a
-                document to point at.
-              </p>
-            )}
-            {picked.raw_text && (
-              <p className="mt-[10px] border-l-2 border-accent-line pl-[10px] text-[12px]
-                            leading-relaxed text-c7">
-                {picked.raw_text}
-              </p>
-            )}
-          </div>
-          <div className="border-t border-c3">
-            <Field label="Confidence" dense>
-              <Num value={picked.confidence.toFixed(2)} />
-              <span className="ml-2 text-[12px] text-c6">that the value was read correctly</span>
-            </Field>
-            <Field label="Authority" dense>
-              {picked.authority}
-              <span className="ml-2 text-[12px] text-c6">entitlement to define this</span>
-            </Field>
-            <Field label="Method" dense>
-              <span className="num text-[12px]">{picked.extraction_method.replace(/_/g, ' ')}</span>
-            </Field>
-            {picked.original_value && (
-              <Field label="Before units" dense>{picked.original_value}</Field>
-            )}
-          </div>
-        </div>
-      )}
+      <div role="listbox" aria-label="Extracted evidence" className="divide-y divide-c3">
+        {state.evidence.map((e) => {
+          const on = picked?.id === e.id
+          const label = e.target.replace(/_/g, ' ')
+          return (
+            <button
+              key={e.id}
+              type="button"
+              role="option"
+              aria-selected={on}
+              aria-label={`${label}, ${show(e.value)}${e.unit ? ` ${e.unit}` : ''}, from ${e.source.modality.replace('_', ' ')}`}
+              onClick={() => onPick(on ? null : e)}
+              className={cn(
+                'grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto_14px] items-center gap-[8px]',
+                'px-[13px] py-[8px] text-left transition-colors duration-100',
+                on
+                  ? 'bg-accent-wash shadow-[inset_2px_0_0_0_var(--color-accent)]'
+                  : 'hover:bg-c2',
+              )}
+            >
+              <span className="min-w-0">
+                <span className={cn('block truncate text-[13px]', on && 'font-medium text-accent')}>
+                  {label}
+                </span>
+                <span className="block truncate text-[12px] text-c6">
+                  {e.source.modality.replace('_', ' ')}
+                  {e.source.page && ` p.${e.source.page}`}
+                </span>
+              </span>
+              <Num value={show(e.value)} unit={e.unit} strong />
+              <span className="text-right">
+                {/* An inferred value is marked; stated values use the common blank state. */}
+                {!e.is_explicit_annotation && (
+                  <Tip label="Derived from a rule or standard, not stated in a document">
+                    <span className="num text-[11px] text-c6">ƒ</span>
+                  </Tip>
+                )}
+              </span>
+            </button>
+          )
+        })}
+      </div>
     </>
   )
 }
@@ -580,17 +543,17 @@ export function ReleaseStage({
           <>
             {/* The three numbers that decide the verdict, scannable before any
                 prose. The derivation belongs underneath, not in the way. */}
-            <dl className="flex items-end gap-[18px]">
+            <dl className="grid grid-cols-3 gap-[10px]">
               {([
                 ['Measured', clearance.measured_value, 'text-danger'],
                 ['Required', clearance.required_value ?? 0, 'text-c9'],
                 ['Gap', clearance.measured_value - (clearance.required_value ?? 0), 'text-danger'],
               ] as const).map(([label, value, tone]) => (
-                <div key={label}>
-                  <dt className="text-[11px] font-semibold uppercase tracking-[0.07em] text-c7">
+                <div key={label} className="min-w-0">
+                  <dt className="text-[11.5px] font-medium text-c7">
                     {label}
                   </dt>
-                  <dd className={cn('num text-[22.6px] font-semibold leading-tight', tone)}>
+                  <dd className={cn('num mt-[2px] whitespace-nowrap text-[clamp(17px,2vw,22.6px)] font-semibold leading-tight', tone)}>
                     {label === 'Required' ? '≥' : label === 'Gap' && value > 0 ? '+' : ''}
                     {value.toFixed(1)}
                     <span className="ml-[3px] text-[12px] font-normal text-c7">mm</span>

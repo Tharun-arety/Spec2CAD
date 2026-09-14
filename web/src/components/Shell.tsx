@@ -9,6 +9,7 @@
 import {
   Box, CheckSquare, CircleSlash, FileStack, Ruler, ShieldCheck,
 } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 export const REPO_URL = 'https://github.com/Tharun-arety/Spec2CAD'
 
@@ -26,7 +27,6 @@ function GithubMark({ size = 15 }: { size?: number }) {
     </svg>
   )
 }
-import type { ReactNode } from 'react'
 import { cn } from '../lib/cn'
 import type { Revision, RunState } from '../types'
 import { Button, Mark, Num, Tip } from './ui'
@@ -55,24 +55,24 @@ export function CommandBar({
   right?: ReactNode
 }) {
   return (
-    <header className="flex h-[var(--spacing-bar)] shrink-0 items-center gap-[13px]
-                       border-b border-c3 bg-c0 px-[13px]">
-      <div className="flex items-center gap-[8px]">
-        <div className="grid h-[26px] w-[26px] place-items-center rounded-[5px]
-                        bg-c9 shadow-[var(--shadow-raised)]">
-          <span className="num text-[12px] font-semibold leading-none text-c0">S2</span>
+    <header className="chrome-grain flex h-[var(--spacing-bar)] shrink-0 items-center gap-[8px]
+                       overflow-hidden border-b border-c3 bg-c0 px-[8px] sm:px-[13px]">
+      <div className="flex shrink-0 items-center gap-[8px]">
+        <div className="brand-mark grid h-[27px] w-[27px] place-items-center rounded-[6px]
+                        border border-c4 bg-c2 shadow-[var(--shadow-raised)]">
+          <span className="display-type text-[11px] font-semibold leading-none text-accent">S2</span>
         </div>
-        <span className="text-[14px] font-semibold tracking-[-0.014em]">Spec2CAD</span>
+        <span className="display-type text-[14px] font-semibold tracking-[-0.025em]">Spec2CAD</span>
       </div>
 
       {rev && (
         <>
-          <span className="h-[21px] w-px bg-c3" />
-          <div className="flex min-w-0 items-baseline gap-[8px]">
-            <span className="truncate text-[14px] font-medium tracking-[-0.008em]">
+          <span className="hidden h-[21px] w-px bg-c3 md:block" />
+          <div className="hidden min-w-0 items-baseline gap-[8px] md:flex">
+            <span className="max-w-[210px] truncate text-[14px] font-medium tracking-[-0.008em]">
               {rev.part.name.replace(/_/g, ' ')}
             </span>
-            <span className="text-[12px] text-c6">
+            <span className="hidden whitespace-nowrap text-[12px] text-c6 2xl:inline">
               {rev.part.material}
               {rev.part.manufacturing_process && ` · ${rev.part.manufacturing_process}`}
             </span>
@@ -86,7 +86,7 @@ export function CommandBar({
               ? `${rev.changes[0].parameter} ${rev.changes[0].before} → ${rev.changes[0].after}, approved by ${rev.approved_by}`
               : 'As extracted from the sources'
           }>
-            <span className="num ml-[3px] rounded-[5px] border border-accent-line
+            <span className="num shrink-0 rounded-[5px] border border-accent-line
                              bg-accent-wash px-[8px] py-[2px] text-[12px] font-semibold
                              text-accent">
               v{rev.revision}
@@ -95,15 +95,16 @@ export function CommandBar({
         </>
       )}
 
-      <div className="ml-auto flex items-center gap-[8px]">
+      <div className="ml-auto flex min-w-0 items-center gap-[5px]">
         <Tip side="bottom" label="Source on GitHub">
           <a href={REPO_URL} target="_blank" rel="noreferrer noopener"
              aria-label="Source on GitHub"
-             className="flex h-[29px] items-center gap-[6px] rounded-[5px] border border-c4
-                        bg-c0 px-[10px] text-[12px] text-c7 shadow-[var(--shadow-raised)]
+             className="flex h-[29px] w-[29px] shrink-0 items-center justify-center gap-[6px]
+                        rounded-[5px] border border-c4 bg-c0 text-[12px] text-c7
+                        shadow-[var(--shadow-raised)] xl:w-auto xl:px-[10px]
                         transition-colors duration-150 hover:border-c6 hover:text-c9">
             <GithubMark />
-            <span className="hidden sm:inline">GitHub</span>
+            <span className="hidden xl:inline">GitHub</span>
           </a>
         </Tip>
         {busy && (
@@ -132,7 +133,7 @@ export function StageRail({
   return (
     <nav className={cn(
            'flex w-[var(--spacing-rail)] shrink-0 flex-col items-stretch gap-[2px]',
-           'bg-c1 py-[8px] pl-[5px]',
+           'chrome-grain bg-c1 py-[8px] pl-[5px]',
            // only needed when the panel is closed and the rail meets the viewport
            !open && 'border-r border-c3',
          )}
@@ -162,7 +163,7 @@ export function StageRail({
               )}
             >
               <Icon size={16} strokeWidth={1.7} aria-hidden />
-              <span className="text-[9.5px] font-medium leading-none tracking-[-0.01em]">
+              <span className="text-[10.5px] font-medium leading-none tracking-[-0.01em]">
                 {label}
               </span>
               {!!flag && (
@@ -287,7 +288,7 @@ export function StatusBar({
   return (
     <footer className={cn(
       'flex h-[var(--spacing-status)] shrink-0 items-center gap-[13px]',
-      'border-t px-[13px] text-[12px]',
+      'chrome-grain border-t px-[13px] text-[12px]',
       blocked
         ? 'border-danger-line bg-danger-wash text-danger'
         : rev ? 'border-success-line bg-success-wash text-success'
@@ -310,7 +311,7 @@ export function StatusBar({
               <span className="num">{clearance.required_value?.toFixed(1)}</span> mm required
             </span>
           )}
-          <span className="ml-auto text-c6">measured on the solid</span>
+          <span className="ml-auto hidden text-c6 md:inline">measured on the solid</span>
         </>
       ) : (
         <>

@@ -36,7 +36,9 @@ export default function App() {
   const [stage, setStage] = useState<StageId>('sources')
   const [picked, setPicked] = useState<Evidence | null>(null)
   const [scriptOpen, setScriptOpen] = useState(false)
-  const [inspectorOpen, setInspectorOpen] = useState(true)
+  const [inspectorOpen, setInspectorOpen] = useState(() =>
+    typeof window === 'undefined' || window.matchMedia('(min-width: 861px)').matches,
+  )
   // Collapsed by default: the canvas was being squeezed between the inspector
   // and the history panel. History is opened from the revision chip when wanted.
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -113,7 +115,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-c2">
+    <div className="app-shell flex h-full flex-col bg-c2">
       <CommandBar
         state={state} rev={rev} busy={busy}
         onSelectRevision={(n) => { setViewing(n); setScriptOpen(false) }}
@@ -124,9 +126,10 @@ export default function App() {
                 frozen recording look identical from the outside. */}
             {mode === 'replay' ? (
               <Tip side="bottom" label="A frozen recording of a real run. No kernel behind it: uploads and new revisions are refused rather than faked.">
-                <span className="rounded-[5px] border border-warn-line bg-warn-wash px-[8px] py-[2px]
-                                 text-[11px] font-semibold uppercase tracking-[0.08em] text-warn">
-                  recorded replay
+                <span className="flex h-[29px] items-center gap-[6px] rounded-[5px] border border-c4
+                                 bg-c1 px-[8px] text-[12px] text-c7">
+                  <span aria-hidden className="h-[6px] w-[6px] rounded-full bg-warn" />
+                  <span className="hidden lg:inline">Recorded replay</span>
                 </span>
               </Tip>
             ) : (
@@ -135,11 +138,10 @@ export default function App() {
                   ? 'CadQuery is running on the deployed backend. Every solid on screen is built and measured on request.'
                   : 'CadQuery is running locally. Every solid on screen is built and measured on request.'
               }>
-                <span className="flex items-center gap-[6px] rounded-[5px] border border-success-line
-                                 bg-success-wash px-[8px] py-[2px] text-[11px] font-semibold
-                                 uppercase tracking-[0.08em] text-success">
-                  <span aria-hidden className="h-[5px] w-[5px] rounded-full bg-current" />
-                  live kernel
+                <span className="flex h-[29px] items-center gap-[6px] rounded-[5px] border border-c4
+                                 bg-c1 px-[8px] text-[12px] text-c7">
+                  <span aria-hidden className="h-[6px] w-[6px] rounded-full bg-success" />
+                  <span className="hidden lg:inline">Live kernel</span>
                 </span>
               </Tip>
             )}
@@ -159,8 +161,8 @@ export default function App() {
                 <Tip side="bottom" label={rev.release.reasons.join(' ')}>
                   <button
                     onClick={() => setStage('validate')}
-                    className="flex h-[29px] cursor-pointer items-center gap-[6px] rounded-[5px]
-                               border border-danger-line bg-danger-wash px-[11px] text-[12px]
+                  className="flex h-[29px] shrink-0 cursor-pointer items-center gap-[6px] rounded-[5px]
+                             border border-danger-line bg-danger-wash px-[8px] text-[12px] sm:px-[11px]
                                font-semibold text-danger transition-colors duration-150
                                hover:border-danger">
                     <Lock size={13} strokeWidth={2} aria-hidden />
@@ -177,13 +179,13 @@ export default function App() {
                     setFeature(null); setScriptOpen(false); setError(null)
                     setStage('sources')
                   }}
-                  className="flex h-[29px] cursor-pointer items-center gap-[6px] rounded-[5px]
-                             border border-c4 bg-c0 px-[10px] text-[12px] text-c7
+                  className="flex h-[29px] w-[29px] shrink-0 cursor-pointer items-center justify-center
+                             gap-[6px] rounded-[5px] border border-c4 bg-c0 text-[12px] text-c7
                              shadow-[var(--shadow-raised)] transition-colors duration-150
-                             hover:border-c6 hover:text-c9"
+                             hover:border-c6 hover:text-c9 xl:w-auto xl:px-[10px]"
                 >
                   <Plus size={14} strokeWidth={1.9} aria-hidden />
-                  New
+                  <span className="hidden xl:inline">New</span>
                 </button>
               </Tip>
             )}
@@ -207,7 +209,7 @@ export default function App() {
         }
       />
 
-      <div className="flex min-h-0 flex-1 overflow-x-auto">
+      <div className="workbench-body relative flex min-h-0 flex-1 overflow-hidden">
         {/* Rail and inspector travel together on the left, the way an activity
             bar and its sidebar do. The rail sits against the panel it drives, so
             choosing a stage and reading it are one glance. */}
@@ -220,8 +222,7 @@ export default function App() {
         />
 
         {inspectorOpen && (
-        <aside className="pane flex w-[233px] shrink-0 flex-col border-r border-c3
-                          bg-c0 xl:w-[var(--spacing-inspector)]">
+        <aside className="context-panel chrome-grain pane flex shrink-0 flex-col border-r border-c3 bg-c0">
           {error && (
             <div className="border-b border-danger-line bg-danger-wash px-[13px] py-[10px]">
               <div className="flex items-center gap-[6px] text-[12.5px] font-semibold text-danger">
@@ -280,7 +281,7 @@ export default function App() {
         </aside>
         )}
         {/* viewport column */}
-        <main className="flex min-w-[380px] flex-1 flex-col">
+        <main className="workspace-main flex min-w-0 flex-1 flex-col">
           <div className="viewport-ground grid-dots relative min-h-0 flex-1">
             {stage === 'sources' ? (
               <SourceWorkspace
@@ -416,7 +417,7 @@ export default function App() {
         {/* Revision history on the right. DesignIntent revisions are already an
             immutable attributed chain, so they are drawn as a commit graph. */}
         {state && rev && historyOpen && (
-          <aside className="pane w-[233px] shrink-0 border-l border-c3 bg-c0">
+          <aside className="history-panel chrome-grain pane w-[280px] shrink-0 border-l border-c3 bg-c0">
             <VersionGraph
               revisions={state.revisions}
               current={rev.revision}

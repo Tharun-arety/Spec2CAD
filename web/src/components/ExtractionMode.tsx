@@ -1,3 +1,4 @@
+import { ChevronDown } from 'lucide-react'
 import type { Evidence } from '../types'
 
 /**
@@ -60,53 +61,66 @@ export function ExtractionMode({ evidence }: { evidence: Evidence[] }) {
       ? 'Mixed: some documents parsed live, some replayed'
       : 'All documents parsed live'
 
+  const liveCount = docs.filter((r) => r.live > 0).length
+  const recordedCount = docs.filter((r) => r.fixture > 0 && r.live === 0).length
+  const standardCount = rows.filter((r) => r.derived).length
+  const summary = [
+    liveCount ? `${liveCount} live` : '',
+    recordedCount ? `${recordedCount} recorded` : '',
+    standardCount ? `${standardCount} standard` : '',
+  ].filter(Boolean).join(' / ')
+
   return (
-    <section className={[
-      'border-b',
-      anyFixture ? 'border-warn-line bg-warn-wash' : 'border-success-line bg-success-wash',
-    ].join(' ')}>
-      <div className="flex items-baseline gap-[8px] px-[14px] pt-[11px]">
-        <span className={[
-          'rounded-[4px] px-[6px] py-px text-[11px] font-semibold uppercase tracking-[0.08em]',
-          anyFixture ? 'bg-warn text-c0' : 'bg-success text-c0',
-        ].join(' ')}>
-          Extraction mode
-        </span>
-        <span className={[
-          'text-[13px] font-medium',
-          anyFixture ? 'text-warn' : 'text-success',
-        ].join(' ')}>
-          {headline}
-        </span>
-      </div>
+    <section className="border-b border-c3 bg-c1">
+      <details className="group">
+        <summary className="grid cursor-pointer list-none grid-cols-[auto_minmax(0,1fr)_auto]
+                            items-center gap-x-[8px] gap-y-[2px] px-[13px] py-[8px]
+                            text-[12.5px] text-c7 transition-colors hover:bg-c2 hover:text-c9">
+          <span aria-hidden className={[
+            'h-[7px] w-[7px] shrink-0 rounded-full',
+            anyFixture ? 'bg-warn' : 'bg-success',
+          ].join(' ')} />
+          <span className="font-medium text-c8">Source provenance</span>
+          <ChevronDown size={14} strokeWidth={1.8} aria-hidden
+                       className="shrink-0 transition-transform duration-150 group-open:rotate-180" />
+          <span className="num col-span-2 col-start-2 text-[11.5px] text-c6">{summary}</span>
+        </summary>
 
-      <ul className="px-[14px] py-[9px]">
-        {rows.map((r) => {
-          const isFixture = !r.derived && r.fixture > 0 && r.live === 0
-          return (
-            <li key={r.file} className="flex items-baseline gap-[8px] py-[2px] text-[12.5px]">
-              <span aria-hidden className={[
-                'mt-[1px] h-[6px] w-[6px] shrink-0 rounded-full',
-                r.derived ? 'bg-c5' : isFixture ? 'bg-warn' : 'bg-success',
-              ].join(' ')} />
-              <span className="min-w-0 flex-1 truncate font-medium text-c9">
-                {short(r.file)}
-              </span>
-              <span className="num shrink-0 text-[11.5px] text-c7">
-                {r.derived ? 'standard' : isFixture ? 'recorded' : 'live'} · {r.methods.join(', ')}
-              </span>
-            </li>
-          )
-        })}
-      </ul>
+        <div className="border-t border-c3 px-[13px] pb-[11px] pt-[9px]">
+          <p className={[
+            'text-[12.5px] font-medium',
+            anyFixture ? 'text-warn' : 'text-success',
+          ].join(' ')}>
+            {headline}
+          </p>
+          <ul className="mt-[7px]">
+            {rows.map((r) => {
+              const isFixture = !r.derived && r.fixture > 0 && r.live === 0
+              return (
+                <li key={r.file} className="flex items-baseline gap-[8px] py-[3px] text-[12.5px]">
+                  <span aria-hidden className={[
+                    'mt-[1px] h-[6px] w-[6px] shrink-0 rounded-full',
+                    r.derived ? 'bg-c5' : isFixture ? 'bg-warn' : 'bg-success',
+                  ].join(' ')} />
+                  <span className="min-w-0 flex-1 truncate font-medium text-c9" title={short(r.file)}>
+                    {short(r.file)}
+                  </span>
+                  <span className="num shrink-0 text-[11.5px] text-c7">
+                    {r.derived ? 'standard' : isFixture ? 'recorded' : 'live'} / {r.methods.join(', ')}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
 
-      {anyFixture && (
-        <p className="px-[14px] pb-[11px] text-[12px] leading-relaxed text-c8">
-          Recorded evidence is a real prior reading replayed verbatim, not a
-          guess — but it is not being read now. Set an API key on the backend to
-          extract the sketch live.
-        </p>
-      )}
+          {anyFixture && (
+            <p className="mt-[7px] text-[12px] leading-relaxed text-c7">
+              Recorded values replay a verified prior reading; they are not being
+              extracted again in this run. Add a vision API key to read the sketch live.
+            </p>
+          )}
+        </div>
+      </details>
     </section>
   )
 }
