@@ -64,7 +64,31 @@ def test_iso273_lookup_is_cited_not_guessed():
 def test_recommendation_always_leaves_margin():
     """A minimum landing exactly on an increment steps up rather than sitting on the limit."""
     assert recommended_rounded_width(45.0).recommended_mm == pytest.approx(50.0)
-    assert recommended_rounded_width(42.4).margin_mm > 0
+    assert recommended_rounded_width(42.4).extra_width_mm > 0
+
+
+def test_extra_width_is_not_reported_as_extra_clearance():
+    """Width is shared between two edges, so clearance gains half of it.
+
+    Reporting the full 2.6 mm next to a clearance requirement reads as
+    clearance margin and overstates the gain by exactly a factor of two.
+    """
+    rec = recommended_rounded_width(42.4)
+    assert rec.recommended_mm == pytest.approx(45.0)
+    assert rec.extra_width_mm == pytest.approx(2.6)
+    assert rec.extra_clearance_per_side_mm == pytest.approx(1.3)
+    assert "1.3 mm additional clearance per side" in rec.describe()
+    assert "2.6" not in rec.describe()
+
+
+def test_recommended_width_lands_on_the_measured_clearance():
+    """The advertised per-side gain must reconcile with the final measurement.
+
+    2.8 mm measured at 40 mm, +1.3 mm per side beyond the 4.0 mm minimum, is
+    the 5.3 mm the repaired revision actually measures.
+    """
+    rec = recommended_rounded_width(42.4)
+    assert 4.0 + rec.extra_clearance_per_side_mm == pytest.approx(5.3)
 
 
 # ---------------------------------------------------------------- extraction
@@ -423,3 +447,54 @@ def test_fixture_evidence_cannot_be_scored_as_extraction(v1):
 def test_run_reports_which_backend_produced_the_sketch_evidence(v1):
     assert "fixture" in v1.sketch_backend.lower()
     assert v1.evidence.contains_fixture_data is True
+
+
+# -------------------------------------------------- per-operation measurement
+
+
+def test_every_operation_is_measured_on_the_intermediate_solid(v1):
+    """The feature list must be evidence, not a restatement of the program.
+
+    Without this, a feature row says only what we asked the kernel to do, and
+    would look identical if the kernel had silently done nothing.
+    """
+    ops = v1.latest.program.operations
+    measured = v1.latest.execution.measurements
+    assert [m.operation_id for m in measured] == [o.id for o in ops]
+    assert all(m.is_valid for m in measured)
+    assert all(m.solid_count == 1 for m in measured)
+
+
+def test_no_operation_is_a_silent_no_op(v1):
+    """Every feature in the program must actually change the solid."""
+    for m in v1.latest.execution.measurements:
+        assert not m.no_op, f"{m.operation_id} built but changed no material"
+
+
+def test_material_removal_matches_the_feature_kind(v1):
+    """The first operation adds material; every cut removes it."""
+    measured = v1.latest.execution.measurements
+    assert measured[0].volume_delta > 0, "base_plate should add material"
+    for m in measured[1:]:
+        assert m.removed_material, f"{m.operation_id} should remove material"
+
+
+def test_measured_volumes_are_cumulative_and_end_at_the_part_volume(v1):
+    """Intermediate volumes must reconcile with the finished solid."""
+    measured = v1.latest.execution.measurements
+    running = 0.0
+    for m in measured:
+        running += m.volume_delta
+        assert m.volume == pytest.approx(running, abs=1e-6)
+    assert measured[-1].volume == pytest.approx(
+        v1.latest.execution.shape.Volume(), abs=1e-6
+    )
+
+
+def test_widening_the_plate_changes_only_the_base_plate_measurement(v1, v2):
+    """A width repair must not disturb the features cut into the plate."""
+    before = {m.operation_id: m.volume_delta for m in v1.latest.execution.measurements}
+    after = {m.operation_id: m.volume_delta for m in v2.latest.execution.measurements}
+    assert after["base_plate"] > before["base_plate"]
+    for op_id in ("shaft_opening", "mounting_holes", "external_chamfers"):
+        assert after[op_id] == pytest.approx(before[op_id], abs=1e-6)

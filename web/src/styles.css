@@ -66,7 +66,7 @@
   --font-mono: "Geist Mono", ui-monospace, "JetBrains Mono", monospace;
 
   /* ---- type scale: base 14, ratio sqrt(phi) = 1.272 ---- */
-  --text-micro: 11px;
+  --text-micro: 12px;
   --text-ui: 14px;
   --text-title: 17.8px;
   --text-readout: 22.6px;

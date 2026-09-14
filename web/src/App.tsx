@@ -8,11 +8,20 @@ import {
   CommandBar, StageRail, StatusBar, Timeline, ViewportOverlay, type StageId,
 } from './components/Shell'
 import {
-  EvidenceStage, InspectStage, IntentStage, ReleaseStage, SourcesStage,
+  CadStage, EvidenceStage, IntentStage, SourcesStage, ValidateStage,
 } from './components/Stages'
-import { PanelRightClose, PanelRightOpen, Plus } from 'lucide-react'
+import { Download, Lock, PanelRightClose, PanelRightOpen, Plus } from 'lucide-react'
 import { Button, Empty, Tip } from './components/ui'
 import { VersionGraph } from './components/VersionGraph'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { PlanView } from './components/PlanView'
+import { GuideBar } from './components/GuideBar'
+import { PipelinePreview } from './components/PipelinePreview'
+import { hasWebGL } from './lib/webgl'
+
+const VIEWER_FALLBACK_NOTE =
+  'This browser has no WebGL context, so the 3D viewer is unavailable. ' +
+  'Everything else — evidence, intent, measurement and release — is unaffected.'
 
 // three.js is ~500 kB and is not needed until a run exists.
 const StlViewer = lazy(() =>
@@ -27,13 +36,20 @@ export default function App() {
   const [picked, setPicked] = useState<Evidence | null>(null)
   const [scriptOpen, setScriptOpen] = useState(false)
   const [inspectorOpen, setInspectorOpen] = useState(true)
-  const [historyOpen, setHistoryOpen] = useState(true)
+  // Collapsed by default: the canvas was being squeezed between the inspector
+  // and the history panel. History is opened from the revision chip when wanted.
+  const [historyOpen, setHistoryOpen] = useState(false)
   const [feature, setFeature] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [replay, setReplay] = useState<ReplayManifest | null>(null)
   const [mode, setMode] = useState<'live' | 'replay'>(FORCED_REPLAY ? 'replay' : 'live')
   const [waking, setWaking] = useState<number | null>(null)
+  // Probed once, before three.js is imported. Environments without a GPU
+  // context (VMs, remote desktops, locked-down laptops, headless browsers) get
+  // the schematic instead of a white screen.
+  const [webglOk] = useState(hasWebGL)
+  const [viewerFailed, setViewerFailed] = useState<string | null>(null)
   const [backendDown, setBackendDown] = useState<string | null>(null)
 
   useEffect(() => {
@@ -70,10 +86,12 @@ export default function App() {
       setViewing(next.latest_revision)
       setPicked(null)
       setFeature(null)
-      // Land on the stage that matters: a blocked run needs a decision, a
-      // released one wants its report. Neither is the upload form.
-      const latest = next.revisions[next.revisions.length - 1]
-      setStage(latest.release.step_export_allowed ? 'inspect' : 'release')
+      // Land on Evidence, not on the verdict.
+      //
+      // Jumping straight to the conflict shows the conclusion and skips the
+      // part that is actually being demonstrated -- heterogeneous documents
+      // becoming parameters. The guided Continue action walks the rest.
+      setStage('evidence')
       setInspectorOpen(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -89,8 +107,8 @@ export default function App() {
   const flags: Partial<Record<StageId, number>> = {}
   if (rev) {
     const failing = rev.measured.filter((c) => c.status === 'fail').length
-    if (failing) flags.inspect = failing
-    if (!rev.release.step_export_allowed) flags.release = rev.proposals.length || 1
+    if (failing) flags.cad = failing
+    if (!rev.release.step_export_allowed) flags.validate = rev.proposals.length || 1
   }
 
   return (
@@ -106,7 +124,7 @@ export default function App() {
             {mode === 'replay' ? (
               <Tip side="bottom" label="A frozen recording of a real run. No kernel behind it: uploads and new revisions are refused rather than faked.">
                 <span className="rounded-[5px] border border-warn-line bg-warn-wash px-[8px] py-[2px]
-                                 text-[10px] font-semibold uppercase tracking-[0.08em] text-warn">
+                                 text-[11px] font-semibold uppercase tracking-[0.08em] text-warn">
                   recorded replay
                 </span>
               </Tip>
@@ -117,12 +135,38 @@ export default function App() {
                   : 'CadQuery is running locally. Every solid on screen is built and measured on request.'
               }>
                 <span className="flex items-center gap-[6px] rounded-[5px] border border-success-line
-                                 bg-success-wash px-[8px] py-[2px] text-[10px] font-semibold
+                                 bg-success-wash px-[8px] py-[2px] text-[11px] font-semibold
                                  uppercase tracking-[0.08em] text-success">
                   <span aria-hidden className="h-[5px] w-[5px] rounded-full bg-current" />
                   live kernel
                 </span>
               </Tip>
+            )}
+            {rev && (
+              rev.release.step_export_allowed ? (
+                <Tip side="bottom" label="The gate authorised this revision. Downloads the measured solid as STEP.">
+                  <a href={api.stepUrl(state!.run_id, rev.revision)}
+                     className="flex h-[29px] items-center gap-[6px] rounded-[5px] border
+                                border-success bg-success px-[11px] text-[12px] font-medium
+                                text-c0 shadow-[var(--shadow-raised)]
+                                transition-opacity duration-150 hover:opacity-90">
+                    <Download size={13} strokeWidth={2} aria-hidden />
+                    Export STEP
+                  </a>
+                </Tip>
+              ) : (
+                <Tip side="bottom" label={rev.release.reasons.join(' ')}>
+                  <button
+                    onClick={() => setStage('validate')}
+                    className="flex h-[29px] cursor-pointer items-center gap-[6px] rounded-[5px]
+                               border border-danger-line bg-danger-wash px-[11px] text-[12px]
+                               font-semibold text-danger transition-colors duration-150
+                               hover:border-danger">
+                    <Lock size={13} strokeWidth={2} aria-hidden />
+                    Export blocked
+                  </button>
+                </Tip>
+              )
             )}
             {state && (
               <Tip side="bottom" label="Start a new design from fresh documents">
@@ -133,7 +177,7 @@ export default function App() {
                     setStage('sources')
                   }}
                   className="flex h-[29px] cursor-pointer items-center gap-[6px] rounded-[5px]
-                             border border-c4 bg-c0 px-[10px] text-[11px] text-c7
+                             border border-c4 bg-c0 px-[10px] text-[12px] text-c7
                              shadow-[var(--shadow-raised)] transition-colors duration-150
                              hover:border-c6 hover:text-c9"
                 >
@@ -179,11 +223,11 @@ export default function App() {
                           bg-c0 xl:w-[var(--spacing-inspector)]">
           {error && (
             <div className="border-b border-danger-line bg-danger-wash px-[13px] py-[10px]">
-              <div className="flex items-center gap-[6px] text-[11.5px] font-semibold text-danger">
-                <span aria-hidden className="num text-[10px]">✕</span>
+              <div className="flex items-center gap-[6px] text-[12.5px] font-semibold text-danger">
+                <span aria-hidden className="num text-[11px]">✕</span>
                 Something went wrong
               </div>
-              <p className="mt-[5px] text-[11px] leading-relaxed text-c8">{error}</p>
+              <p className="mt-[5px] text-[12px] leading-relaxed text-c8">{error}</p>
             </div>
           )}
 
@@ -196,6 +240,7 @@ export default function App() {
               backendLabel={health?.sketch_backend_label ?? 'checking…'}
               visionAvailable={health?.vision_available ?? false}
               replay={mode === 'replay' ? replay : null}
+              evidence={state?.evidence}
               onDemo={() => guard(api.runDemo)}
               onUpload={(s, d, r) => guard(() => api.runUpload(s, d, r))}
             />
@@ -214,14 +259,25 @@ export default function App() {
               }
             />
           )}
-          {rev && stage === 'inspect' && <InspectStage rev={rev} />}
-          {rev && stage === 'release' && (
-            <ReleaseStage
+          {rev && stage === 'cad' && (
+            <CadStage
+              rev={rev} selected={feature} onSelect={setFeature}
+              scriptOpen={scriptOpen} onToggleScript={() => setScriptOpen((o) => !o)}
+            />
+          )}
+          {rev && stage === 'validate' && (
+            <ValidateStage
               rev={rev} busy={busy}
               onRepair={(p: Proposal) =>
                 guard(() => api.repair(state!.run_id, p.id, !p.auto_applicable))
               }
             />
+          )}
+
+          {/* One contextual next step, so the pipeline is walked in order
+              instead of discovered in the sidebar. */}
+          {state && rev && stage !== 'sources' && (
+            <GuideBar stage={stage} state={state} rev={rev} onGo={setStage} />
           )}
         </aside>
         )}
@@ -232,13 +288,32 @@ export default function App() {
               <Empty>{rev.build_error}</Empty>
             ) : state && rev ? (
               <>
-                <Suspense fallback={
-                  <div className="grid h-full place-items-center text-[11.5px] text-c6">
-                    Loading viewer…
-                  </div>
-                }>
-                  <StlViewer url={api.stlUrl(state.run_id, rev.revision)} />
-                </Suspense>
+                {/* The 3D viewer is the only part of this app that needs a GPU,
+                    so it is the only part allowed to fail for want of one. The
+                    probe runs before three.js is even imported; the boundary
+                    catches anything that still gets through. */}
+                {webglOk && !viewerFailed ? (
+                  <ErrorBoundary
+                    label="StlViewer"
+                    fallback={() => <PlanView rev={rev} note={VIEWER_FALLBACK_NOTE} />}
+                  >
+                    <Suspense fallback={
+                      <div className="grid h-full place-items-center text-[12.5px] text-c6">
+                        Loading viewer…
+                      </div>
+                    }>
+                      <StlViewer
+                        url={api.stlUrl(state.run_id, rev.revision)}
+                        onFailure={setViewerFailed}
+                      />
+                    </Suspense>
+                  </ErrorBoundary>
+                ) : (
+                  <PlanView
+                    rev={rev}
+                    note={viewerFailed ?? VIEWER_FALLBACK_NOTE}
+                  />
+                )}
                 <ViewportOverlay
                   rev={rev}
                   scriptOpen={scriptOpen}
@@ -248,19 +323,19 @@ export default function App() {
                 />
               </>
             ) : (
-              <div className="grid h-full place-items-center">
-                <div className="max-w-[380px] px-[21px] text-center">
+              <div className="grid h-full place-items-center overflow-auto py-[21px]">
+                <div className="max-w-[460px] px-[21px] text-center">
                   {waking !== null ? (
                     <>
                       <p className="text-[14px] leading-relaxed text-c7">
                         Waking the backend…
                       </p>
-                      <p className="mt-[8px] text-[11.5px] leading-relaxed text-c6">
+                      <p className="mt-[8px] text-[12.5px] leading-relaxed text-c6">
                         It runs on a free instance that sleeps after 15 minutes
                         idle. A cold start takes 30–50 s, plus a couple of seconds
                         for the CAD kernel to load.
                       </p>
-                      <p className="num mt-[13px] text-[12px] text-c7">{waking}s</p>
+                      <p className="num mt-[13px] text-[13px] text-c7">{waking}s</p>
                       <div aria-hidden
                            className="mx-auto mt-[8px] h-[2px] w-[144px] overflow-hidden rounded-full bg-c3">
                         <div className="h-full animate-pulse rounded-full bg-accent"
@@ -272,7 +347,7 @@ export default function App() {
                       <p className="text-[14px] leading-relaxed text-c8">
                         The backend is not responding.
                       </p>
-                      <p className="mt-[8px] text-[11.5px] leading-relaxed text-c6">
+                      <p className="mt-[8px] text-[12.5px] leading-relaxed text-c6">
                         {backendDown}
                       </p>
                       <div className="mt-[21px] flex flex-wrap justify-center gap-[8px]">
@@ -287,7 +362,7 @@ export default function App() {
                         )}
                       </div>
                       {REPLAY_AVAILABLE && (
-                        <p className="mt-[13px] text-[11px] leading-relaxed text-c6">
+                        <p className="mt-[13px] text-[12px] leading-relaxed text-c6">
                           The recording is genuine pipeline output, but it is a
                           recording — no uploads, and only the resolution that was
                           recorded can be applied.
@@ -295,19 +370,10 @@ export default function App() {
                       )}
                     </>
                   ) : (
-                    <>
-                      <p className="text-[14px] leading-relaxed text-c7">
-                        {busy
-                          ? 'Extracting, fusing, compiling, building and measuring…'
-                          : 'Compile the example to watch a design get refused, repaired and released.'}
-                      </p>
-                      {!busy && (
-                        <Button intent="solid" size="md" className="mt-[21px]"
-                                onClick={() => guard(api.runDemo)}>
-                          Compile the example
-                        </Button>
-                      )}
-                    </>
+                    // No second compile button here: the inspector already has
+                    // the primary action, and duplicating it spent the largest
+                    // area on screen on a repeat.
+                    <PipelinePreview busy={busy} />
                   )}
                 </div>
               </div>
@@ -318,14 +384,14 @@ export default function App() {
                               border-t border-c3 bg-c0/95 backdrop-blur-md">
                 <div className="sticky top-0 flex items-center gap-[8px] border-b border-c3
                                 bg-c0 px-[13px] py-[8px]">
-                  <span className="text-[11.5px] font-semibold">Generated CadQuery</span>
-                  <span className="text-[11px] text-c6">
+                  <span className="text-[12.5px] font-semibold">Generated CadQuery</span>
+                  <span className="text-[12px] text-c6">
                     emitted for review — nothing executes it
                   </span>
                   <Button intent="ghost" size="sm" className="ml-auto"
                           onClick={() => setScriptOpen(false)}>Close</Button>
                 </div>
-                <pre className="num p-[13px] text-[11px] leading-relaxed text-c8">{rev.script}</pre>
+                <pre className="num p-[13px] text-[12px] leading-relaxed text-c8">{rev.script}</pre>
               </div>
             )}
           </div>
@@ -350,7 +416,7 @@ export default function App() {
       <StatusBar
         rev={rev}
         backendLabel={health?.sketch_backend_label ?? ''}
-        onGoRelease={() => setStage('release')}
+        onGoRelease={() => setStage('validate')}
       />
     </div>
   )

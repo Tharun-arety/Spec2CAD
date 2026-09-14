@@ -32,7 +32,7 @@ const buttonVariants = cva(
           'border-danger-line bg-danger-wash text-danger hover:border-danger',
       },
       size: {
-        sm: 'h-[29px] px-[13px] text-[11px]',
+        sm: 'h-[29px] px-[13px] text-[12px]',
         md: 'h-[34px] px-[21px] text-[14px]',
       },
     },
@@ -53,7 +53,7 @@ export const GLYPH: Record<string, string> = {
 }
 
 const markVariants = cva(
-  'inline-flex items-center gap-1 whitespace-nowrap text-[11px] leading-[1.4]',
+  'inline-flex items-center gap-1 whitespace-nowrap text-[12px] leading-[1.4]',
   {
     variants: {
       state: {
@@ -84,7 +84,7 @@ export function Mark({
   const key = (state ?? 'pass') as string
   return (
     <span className={cn(markVariants({ state, box }), className)}>
-      {glyph && <span aria-hidden className="num text-[10px] leading-none">{GLYPH[key]}</span>}
+      {glyph && <span aria-hidden className="num text-[11px] leading-none">{GLYPH[key]}</span>}
       {children}
     </span>
   )
@@ -96,9 +96,9 @@ export function Num({
   value, unit, strong, className,
 }: { value: ReactNode; unit?: string | null; strong?: boolean; className?: string }) {
   return (
-    <span className={cn('num text-[12.5px]', strong && 'font-semibold', className)}>
+    <span className={cn('num text-[13.5px]', strong && 'font-semibold', className)}>
       {value}
-      {unit && <span className="ml-[3px] text-[10.5px] font-normal text-c6">{unit}</span>}
+      {unit && <span className="ml-[3px] text-[11.5px] font-normal text-c6">{unit}</span>}
     </span>
   )
 }
@@ -119,7 +119,7 @@ export function Tip({ label, children, side = 'top' }: {
             side={side}
             sideOffset={8}
             className="z-50 max-w-[300px] rounded-[--radius-sm] bg-c9 px-[10px] py-[6px]
-                       text-[11px] leading-snug text-c1 shadow-[var(--shadow-float)]"
+                       text-[12px] leading-snug text-c1 shadow-[var(--shadow-float)]"
           >
             {label}
           </TooltipPrimitive.Content>
@@ -140,7 +140,7 @@ export function PanelHead({ title, note, aside }: {
     <div className="sticky top-0 z-10 flex items-center gap-[8px] border-b border-c3
                     bg-c0/90 px-[13px] py-[10px] backdrop-blur-md">
       <h2 className="text-[14px] font-semibold tracking-[-0.011em]">{title}</h2>
-      {note && <span className="truncate text-[11px] text-c6">{note}</span>}
+      {note && <span className="truncate text-[12px] text-c6">{note}</span>}
       {aside && <div className="ml-auto flex items-center gap-[5px]">{aside}</div>}
     </div>
   )
@@ -157,15 +157,15 @@ export function Field({ label, children, dense }: {
       'flex items-baseline gap-[13px] border-b border-c3 px-[13px]',
       dense ? 'py-[5px]' : 'py-[8px]',
     )}>
-      <span className="w-[123px] shrink-0 truncate text-[11px] text-c7">{label}</span>
-      <span className="min-w-0 flex-1 text-[12.5px]">{children}</span>
+      <span className="w-[123px] shrink-0 truncate text-[12px] text-c7">{label}</span>
+      <span className="min-w-0 flex-1 text-[13.5px]">{children}</span>
     </div>
   )
 }
 
 export function Empty({ children }: { children: ReactNode }) {
   return (
-    <p className="px-[21px] py-[34px] text-center text-[12.5px] leading-relaxed text-c6">
+    <p className="px-[21px] py-[34px] text-center text-[13.5px] leading-relaxed text-c6">
       {children}
     </p>
   )

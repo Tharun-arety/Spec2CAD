@@ -76,10 +76,28 @@ export interface OpField {
   parameter: string | null
 }
 
+/**
+ * What the kernel reported after building one operation.
+ *
+ * Null when the operation never got as far as being built. The UI must show
+ * that as "not built" rather than implying a zero measurement.
+ */
+export interface OpMeasurement {
+  volume: number
+  volume_delta: number
+  is_valid: boolean
+  solid_count: number
+  seconds: number
+  no_op: boolean
+}
+
 export interface Operation {
   id: string
   type: string
+  /** What we asked the kernel to do. */
   fields: OpField[]
+  /** What the solid looked like afterwards. */
+  measured: OpMeasurement | null
 }
 
 export interface EditableParam {

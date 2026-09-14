@@ -76,29 +76,29 @@ export function VersionGraph({
 
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline gap-[8px]">
-                    <span className={cn('num text-[12px]',
+                    <span className={cn('num text-[13px]',
                                         on ? 'font-semibold text-accent' : 'text-c8')}>
                       v{r.revision}
                     </span>
-                    <span className={cn('text-[10px]', released ? 'text-success' : 'text-danger')}>
+                    <span className={cn('text-[11px]', released ? 'text-success' : 'text-danger')}>
                       {released ? 'released' : 'refused'}
                     </span>
                   </span>
 
                   {change ? (
-                    <span className="mt-[3px] block text-[11px] leading-snug text-c7">
+                    <span className="mt-[3px] block text-[12px] leading-snug text-c7">
                       <span className="text-c8">{change.parameter.replace(/_/g, ' ')}</span>{' '}
                       <Num value={String(change.before)} />
                       <span className="px-[3px] text-c6">→</span>
                       <Num value={String(change.after)} strong />
                     </span>
                   ) : (
-                    <span className="mt-[3px] block text-[11px] leading-snug text-c7">
+                    <span className="mt-[3px] block text-[12px] leading-snug text-c7">
                       as extracted from the sources
                     </span>
                   )}
 
-                  <span className="mt-[2px] block text-[10px] leading-snug text-c6">
+                  <span className="mt-[2px] block text-[11px] leading-snug text-c6">
                     {r.approved_by
                       ? <>{r.applied_proposal} · approved by {r.approved_by}</>
                       : 'no approval required'}
@@ -110,7 +110,7 @@ export function VersionGraph({
         })}
       </ol>
 
-      <p className="border-t border-c3 px-[13px] py-[10px] text-[10.5px] leading-relaxed text-c6">
+      <p className="border-t border-c3 px-[13px] py-[10px] text-[11.5px] leading-relaxed text-c6">
         Revisions are immutable. A repair derives the next one and records what changed,
         which proposal caused it and who approved it — earlier revisions stay openable.
       </p>

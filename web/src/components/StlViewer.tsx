@@ -1,14 +1,17 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 interface Props {
   url: string
+  /** Called when the viewer cannot run, so the caller can show a fallback. */
+  onFailure?: (reason: string) => void
 }
 
-export function StlViewer({ url }: Props) {
+export function StlViewer({ url, onFailure }: Props) {
   const host = useRef<HTMLDivElement>(null)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     const el = host.current
@@ -20,10 +23,29 @@ export function StlViewer({ url }: Props) {
     const camera = new THREE.PerspectiveCamera(
       42, el.clientWidth / el.clientHeight, 0.1, 5000,
     )
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+    // WebGLRenderer throws when no context can be created. Letting that escape
+    // the effect unmounts the entire React tree, so the failure is caught here
+    // and reported to the caller as a degraded panel instead.
+    let renderer: THREE.WebGLRenderer
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+    } catch (err) {
+      setFailed(true)
+      onFailure?.(err instanceof Error ? err.message : 'WebGL context unavailable')
+      return
+    }
     renderer.setPixelRatio(window.devicePixelRatio)
     renderer.setSize(el.clientWidth, el.clientHeight)
     el.appendChild(renderer.domElement)
+
+    // The context can also be lost after a successful start -- a GPU reset, or
+    // the browser reclaiming contexts from a background tab.
+    const onContextLost = (e: Event) => {
+      e.preventDefault()
+      setFailed(true)
+      onFailure?.('The WebGL context was lost.')
+    }
+    renderer.domElement.addEventListener('webglcontextlost', onContextLost)
 
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enableDamping = true
@@ -71,13 +93,24 @@ export function StlViewer({ url }: Props) {
         controls.update()
       },
       undefined,
-      (err) => console.error('STL load failed', err),
+      (err) => {
+        console.error('STL load failed', err)
+        setFailed(true)
+        onFailure?.('The mesh could not be downloaded from the backend.')
+      },
     )
 
     const animate = () => {
       frame = requestAnimationFrame(animate)
       controls.update()
-      renderer.render(scene, camera)
+      try {
+        renderer.render(scene, camera)
+      } catch (err) {
+        // A render that starts throwing every frame would otherwise spin.
+        cancelAnimationFrame(frame)
+        setFailed(true)
+        onFailure?.(err instanceof Error ? err.message : 'WebGL rendering failed')
+      }
     }
     animate()
 
@@ -93,12 +126,15 @@ export function StlViewer({ url }: Props) {
       disposed = true
       cancelAnimationFrame(frame)
       window.removeEventListener('resize', onResize)
+      renderer.domElement.removeEventListener('webglcontextlost', onContextLost)
       controls.dispose()
       renderer.dispose()
       mesh?.geometry.dispose()
       if (renderer.domElement.parentNode === el) el.removeChild(renderer.domElement)
     }
-  }, [url])
+  }, [url, onFailure])
 
-  return <div ref={host} className="h-full w-full" />
+  // Hidden rather than unmounted: the effect's cleanup owns the canvas, and
+  // the caller is the one that decides what to show in its place.
+  return <div ref={host} className="h-full w-full" hidden={failed} />
 }

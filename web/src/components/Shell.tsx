@@ -31,7 +31,7 @@ import { cn } from '../lib/cn'
 import type { Revision, RunState } from '../types'
 import { Button, Mark, Num, Tip } from './ui'
 
-export type StageId = 'sources' | 'evidence' | 'intent' | 'inspect' | 'release'
+export type StageId = 'sources' | 'evidence' | 'intent' | 'cad' | 'validate'
 
 export const STAGES: {
   id: StageId; label: string; icon: typeof Box; hint: string
@@ -39,8 +39,8 @@ export const STAGES: {
   { id: 'sources', label: 'Sources', icon: FileStack, hint: 'The three input documents' },
   { id: 'evidence', label: 'Evidence', icon: Ruler, hint: 'Every fact, and where it was read' },
   { id: 'intent', label: 'Intent', icon: Box, hint: 'Consolidated parameters and constraints' },
-  { id: 'inspect', label: 'Inspect', icon: CheckSquare, hint: 'Measured on the finished solid' },
-  { id: 'release', label: 'Release', icon: ShieldCheck, hint: 'The gate, and how to clear it' },
+  { id: 'cad', label: 'CAD', icon: CheckSquare, hint: 'The features built, and what each one did' },
+  { id: 'validate', label: 'Validate', icon: ShieldCheck, hint: 'Measured on the solid, and the gate' },
 ]
 
 /* ------------------------------------------------------------ command bar */
@@ -60,7 +60,7 @@ export function CommandBar({
       <div className="flex items-center gap-[8px]">
         <div className="grid h-[26px] w-[26px] place-items-center rounded-[5px]
                         bg-c9 shadow-[var(--shadow-raised)]">
-          <span className="num text-[11px] font-semibold leading-none text-c0">S2</span>
+          <span className="num text-[12px] font-semibold leading-none text-c0">S2</span>
         </div>
         <span className="text-[14px] font-semibold tracking-[-0.014em]">Spec2CAD</span>
       </div>
@@ -72,7 +72,7 @@ export function CommandBar({
             <span className="truncate text-[14px] font-medium tracking-[-0.008em]">
               {rev.part.name.replace(/_/g, ' ')}
             </span>
-            <span className="text-[11px] text-c6">
+            <span className="text-[12px] text-c6">
               {rev.part.material}
               {rev.part.manufacturing_process && ` · ${rev.part.manufacturing_process}`}
             </span>
@@ -87,7 +87,7 @@ export function CommandBar({
               : 'As extracted from the sources'
           }>
             <span className="num ml-[3px] rounded-[5px] border border-accent-line
-                             bg-accent-wash px-[8px] py-[2px] text-[11px] font-semibold
+                             bg-accent-wash px-[8px] py-[2px] text-[12px] font-semibold
                              text-accent">
               v{rev.revision}
             </span>
@@ -100,14 +100,14 @@ export function CommandBar({
           <a href={REPO_URL} target="_blank" rel="noreferrer noopener"
              aria-label="Source on GitHub"
              className="flex h-[29px] items-center gap-[6px] rounded-[5px] border border-c4
-                        bg-c0 px-[10px] text-[11px] text-c7 shadow-[var(--shadow-raised)]
+                        bg-c0 px-[10px] text-[12px] text-c7 shadow-[var(--shadow-raised)]
                         transition-colors duration-150 hover:border-c6 hover:text-c9">
             <GithubMark />
             <span className="hidden sm:inline">GitHub</span>
           </a>
         </Tip>
         {busy && (
-          <span className="num flex items-center gap-[6px] text-[11px] text-c6">
+          <span className="num flex items-center gap-[6px] text-[12px] text-c6">
             <span aria-hidden className="h-[6px] w-[6px] animate-pulse rounded-full bg-accent" />
             working…
           </span>
@@ -205,15 +205,15 @@ export function Timeline({
           resolved values, and the parameter each one came from. */}
       {op && (
         <div className="flex items-start gap-[13px] border-b border-c3 bg-c0 px-[13px] py-[10px]">
-          <span className="text-[11.5px] font-semibold">
+          <span className="text-[12.5px] font-semibold">
             {op.id.replace(/_/g, ' ')}
           </span>
-          <span className="num rounded-[5px] border border-c3 bg-c1 px-[6px] py-px text-[10px] text-c7">
+          <span className="num rounded-[5px] border border-c3 bg-c1 px-[6px] py-px text-[11px] text-c7">
             {op.type.replace(/_/g, ' ')}
           </span>
           <div className="flex flex-wrap items-center gap-x-[13px] gap-y-[5px]">
             {op.fields.map((f) => (
-              <span key={f.name} className="flex items-baseline gap-[5px] text-[11px]">
+              <span key={f.name} className="flex items-baseline gap-[5px] text-[12px]">
                 <span className="text-c7">{f.name.replace(/_/g, ' ')}</span>
                 <Num value={typeof f.value === 'boolean'
                              ? String(f.value)
@@ -231,14 +231,14 @@ export function Timeline({
             ))}
           </div>
           <button onClick={() => onSelect(null)}
-                  className="ml-auto shrink-0 cursor-pointer text-[11px] text-c6 hover:text-c9">
+                  className="ml-auto shrink-0 cursor-pointer text-[12px] text-c6 hover:text-c9">
             Close
           </button>
         </div>
       )}
 
       <div className="flex h-[var(--spacing-timeline)] items-center gap-[13px] px-[13px]">
-        <span className="shrink-0 text-[11px] font-medium text-c7">History</span>
+        <span className="shrink-0 text-[12px] font-medium text-c7">History</span>
         <div className="flex min-w-0 flex-1 items-center gap-0 overflow-x-auto py-[8px]">
           {rev?.operations.length ? (
             rev.operations.map((o, i) => {
@@ -254,7 +254,7 @@ export function Timeline({
                                     ? 'border-accent bg-accent-wash text-accent'
                                     : 'hover:border-c5')}
                   >
-                    <span className={cn('num text-[10px]', on ? 'text-accent' : 'text-c6')}>
+                    <span className={cn('num text-[11px]', on ? 'text-accent' : 'text-c6')}>
                       {i + 1}
                     </span>
                     <span>{o.id.replace(/_/g, ' ')}</span>
@@ -263,7 +263,7 @@ export function Timeline({
               )
             })
           ) : (
-            <span className="text-[11px] text-c6">No features built yet</span>
+            <span className="text-[12px] text-c6">No features built yet</span>
           )}
         </div>
       </div>
@@ -287,7 +287,7 @@ export function StatusBar({
   return (
     <footer className={cn(
       'flex h-[var(--spacing-status)] shrink-0 items-center gap-[13px]',
-      'border-t px-[13px] text-[11px]',
+      'border-t px-[13px] text-[12px]',
       blocked
         ? 'border-danger-line bg-danger-wash text-danger'
         : rev ? 'border-success-line bg-success-wash text-success'
@@ -338,7 +338,7 @@ export function ViewportOverlay({
       {/* corner readout, as a CAD viewport shows units and orientation */}
       <div className="pointer-events-none absolute left-[13px] top-[13px] flex flex-col gap-[5px]">
         <span className="num flex items-center gap-[6px] rounded-[5px] border border-c3
-                         bg-c0/80 px-[8px] py-[3px] text-[10.5px] text-c7 backdrop-blur-md">
+                         bg-c0/80 px-[8px] py-[3px] text-[11.5px] text-c7 backdrop-blur-md">
           mm · v{rev.revision}
           <span aria-hidden className="h-[9px] w-px bg-c4" />
           <Mark state={rev.release.step_export_allowed ? 'pass' : 'fail'} glyph>
@@ -367,7 +367,7 @@ export function ViewportOverlay({
       {/* hidden on narrow viewports, where it would sit on top of the buttons */}
       <span className="pointer-events-none absolute bottom-[13px] right-[13px] hidden num
                        rounded-[5px] border border-c3 bg-c0/80 px-[8px] py-[3px]
-                       text-[10.5px] text-c6 backdrop-blur-md lg:block">
+                       text-[11.5px] text-c6 backdrop-blur-md lg:block">
         drag to orbit · scroll to zoom
       </span>
     </>

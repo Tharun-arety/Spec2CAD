@@ -113,6 +113,34 @@ def _check_json(c) -> dict:
     }
 
 
+def _operations_json(rev: RevisionResult) -> list[dict]:
+    """Program operations joined to what the kernel measured for each one.
+
+    The two halves are deliberately kept distinct in the payload. `fields` is
+    what we asked the kernel to do; `measured` is what the solid looked like
+    afterwards. A feature with no `measured` block did not get as far as being
+    built, and the UI must not imply otherwise.
+    """
+    if rev.program is None:
+        return []
+    described = rev.program.describe(parameter_table(rev.intent))
+    by_id = {
+        m.operation_id: m
+        for m in (rev.execution.measurements if rev.execution else [])
+    }
+    for entry in described:
+        m = by_id.get(entry["id"])
+        entry["measured"] = None if m is None else {
+            "volume": round(m.volume, 4),
+            "volume_delta": round(m.volume_delta, 4),
+            "is_valid": m.is_valid,
+            "solid_count": m.solid_count,
+            "seconds": round(m.seconds, 4),
+            "no_op": m.no_op,
+        }
+    return described
+
+
 def _revision_json(rev: RevisionResult) -> dict:
     intent = rev.intent
     return {
@@ -146,11 +174,10 @@ def _revision_json(rev: RevisionResult) -> dict:
             for c in intent.constraints
         ],
         "feature_sequence": rev.program.feature_sequence() if rev.program else [],
-        # each feature with its numeric fields resolved, so the timeline can say
-        # what an operation actually is rather than only naming it
-        "operations": (
-            rev.program.describe(parameter_table(rev.intent)) if rev.program else []
-        ),
+        # Each feature with its numeric fields resolved AND what the kernel
+        # measured after building it. The resolved fields alone are only the
+        # program restated; the measurement is the evidence that it happened.
+        "operations": _operations_json(rev),
         "editable_parameters": [
             {
                 "name": name,

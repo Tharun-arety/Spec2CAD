@@ -26,15 +26,26 @@ class Recommendation:
     increment_mm: float
 
     @property
-    def margin_mm(self) -> float:
-        return self.recommended_mm - self.minimum_mm
+    def extra_width_mm(self) -> float:
+        """Total width added over the minimum feasible value."""
+        return round(self.recommended_mm - self.minimum_mm, 6)
+
+    @property
+    def extra_clearance_per_side_mm(self) -> float:
+        """How much edge clearance that extra width actually buys.
+
+        Width is shared between two edges, so rounding 42.4 mm up to 45 mm adds
+        2.6 mm of width but only 1.3 mm of clearance at each hole. Reporting the
+        2.6 mm figure next to a clearance requirement reads as clearance margin
+        and overstates the gain by a factor of two.
+        """
+        return round(self.extra_width_mm / 2.0, 6)
 
     def describe(self) -> str:
         return (
             f"minimum feasible {self.minimum_mm:g} mm; "
-            f"recommended {self.recommended_mm:g} mm "
-            f"(rounded up to the next {self.increment_mm:g} mm increment, "
-            f"leaving {self.margin_mm:g} mm margin)"
+            f"rounded to {self.recommended_mm:g} mm, providing "
+            f"{self.extra_clearance_per_side_mm:g} mm additional clearance per side"
         )
 
 
