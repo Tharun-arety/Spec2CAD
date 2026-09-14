@@ -22,6 +22,7 @@ export default function App() {
   const [stage, setStage] = useState<StageId>('sources')
   const [picked, setPicked] = useState<Evidence | null>(null)
   const [scriptOpen, setScriptOpen] = useState(false)
+  const [inspectorOpen, setInspectorOpen] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [replay, setReplay] = useState<ReplayManifest | null>(null)
@@ -43,6 +44,7 @@ export default function App() {
       // released one wants its report. Neither is the upload form.
       const latest = next.revisions[next.revisions.length - 1]
       setStage(latest.release.step_export_allowed ? 'inspect' : 'release')
+      setInspectorOpen(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -75,8 +77,6 @@ export default function App() {
       />
 
       <div className="flex min-h-0 flex-1 overflow-x-auto">
-        <StageRail active={stage} onSelect={setStage} flags={flags} enabled={!!state} />
-
         {/* viewport column */}
         <main className="flex min-w-[380px] flex-1 flex-col">
           <div className="viewport-ground grid-dots relative min-h-0 flex-1">
@@ -137,8 +137,18 @@ export default function App() {
           <Timeline rev={rev} />
         </main>
 
-        {/* inspector */}
-        <aside className="pane flex w-[233px] shrink-0 flex-col border-l border-c3
+        {/* Stage rail sits against the inspector it drives, not across the
+            window from it, so choosing a stage and reading it are one glance. */}
+        <StageRail
+          active={stage} flags={flags} enabled={!!state} open={inspectorOpen}
+          onSelect={(s) => {
+            if (s === stage) setInspectorOpen((o) => !o)
+            else { setStage(s); setInspectorOpen(true) }
+          }}
+        />
+
+        {inspectorOpen && (
+        <aside className="pane flex w-[233px] shrink-0 flex-col
                           bg-c0 xl:w-[var(--spacing-inspector)]">
           {error && (
             <div className="border-b border-danger-line bg-danger-wash px-[13px] py-[10px]">
@@ -177,6 +187,7 @@ export default function App() {
             />
           )}
         </aside>
+        )}
       </div>
 
       <StatusBar

@@ -104,33 +104,40 @@ export function CommandBar({
 /* ------------------------------------------------------------- stage rail */
 
 export function StageRail({
-  active, onSelect, flags, enabled,
+  active, onSelect, flags, enabled, open,
 }: {
   active: StageId
   onSelect: (s: StageId) => void
   flags: Partial<Record<StageId, number>>
   enabled: boolean
+  open: boolean
 }) {
   return (
-    <nav className="flex w-[var(--spacing-rail)] shrink-0 flex-col items-center gap-[3px]
-                    border-r border-c3 bg-c1 py-[8px]"
+    <nav className="flex w-[var(--spacing-rail)] shrink-0 flex-col items-stretch gap-[2px]
+                    border-l border-c3 bg-c1 py-[8px] pl-[5px]"
          aria-label="Pipeline stages">
       {STAGES.map(({ id, label, icon: Icon, hint }, i) => {
         const on = id === active
         const flag = flags[id]
         return (
-          <Tip key={id} side="right" label={<><strong>{label}</strong> — {hint}</>}>
+          <Tip key={id} side="left" label={
+            <><strong>{label}</strong> — {hint}
+              {on && open && <><br />Click again to collapse the panel.</>}</>
+          }>
             <button
               onClick={() => onSelect(id)}
               disabled={!enabled && id !== 'sources'}
-              aria-current={on ? 'step' : undefined}
+              aria-current={on && open ? 'step' : undefined}
+              aria-expanded={on ? open : undefined}
               className={cn(
-                'relative grid h-[47px] w-[45px] cursor-pointer place-items-center gap-[3px]',
-                'rounded-[8px] border transition-all duration-150',
+                'relative grid h-[47px] cursor-pointer place-items-center gap-[3px]',
+                'rounded-l-[8px] pl-[3px] transition-colors duration-150',
                 'disabled:cursor-not-allowed disabled:opacity-30',
-                on
-                  ? 'border-accent bg-accent text-accent-fg shadow-[var(--shadow-raised)]'
-                  : 'border-transparent text-c7 hover:bg-c2 hover:text-c9',
+                on && open
+                  // the active tab takes the panel's own surface so the two
+                  // read as one object rather than a control and a distant pane
+                  ? 'bg-c0 font-medium text-accent shadow-[inset_3px_0_0_0_var(--color-accent)]'
+                  : 'text-c7 hover:bg-c2 hover:text-c9',
               )}
             >
               <Icon size={16} strokeWidth={1.7} aria-hidden />
@@ -139,16 +146,17 @@ export function StageRail({
               </span>
               {!!flag && (
                 <span className={cn(
-                  'num absolute right-[3px] top-[3px] grid h-[14px] min-w-[14px] place-items-center',
+                  'num absolute right-[4px] top-[4px] grid h-[14px] min-w-[14px] place-items-center',
                   'rounded-full px-[3px] text-[9px] font-semibold leading-none',
-                  on ? 'bg-accent-fg text-accent' : 'bg-danger text-c0',
+                  'bg-danger text-c0',
                 )}>
                   {flag}
                 </span>
               )}
               {/* flow connector between steps */}
-              {i < STAGES.length - 1 && (
-                <span aria-hidden className="absolute -bottom-[3px] h-[3px] w-px bg-c4" />
+              {i < STAGES.length - 1 && !(on && open) && (
+                <span aria-hidden
+                      className="absolute -bottom-[1px] left-1/2 h-px w-[21px] -translate-x-1/2 bg-c3" />
               )}
             </button>
           </Tip>
