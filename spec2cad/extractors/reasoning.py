@@ -11,7 +11,6 @@ from __future__ import annotations
 import json
 import base64
 import mimetypes
-import os
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -19,6 +18,7 @@ from typing import Any
 
 from spec2cad.extractors.base import (
     load_env,
+    openai_api_key,
     reasoning_available,
     reasoning_model,
     model_max_output_tokens,
@@ -679,7 +679,7 @@ def _model_facts(
     load_env()
     model = reasoning_model()
     client = OpenAI(
-        api_key=os.environ["OPENAI_API_KEY"],
+        api_key=openai_api_key(),
         timeout=model_timeout_seconds(), max_retries=1,
     )
     response = client.responses.create(

@@ -47,6 +47,23 @@ def test_env_local_is_loaded_before_env_without_overriding_process_env(
     monkeypatch.delenv("SPEC2CAD_TEST_SETTING", raising=False)
 
 
+def test_render_secret_file_enables_openai_without_environment_key(tmp_path, monkeypatch):
+    secret_file = tmp_path / "OPENAI_API_KEY"
+    secret_file.write_text("secret-file-key\n", encoding="utf-8")
+    monkeypatch.setattr(base, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(base, "_ENV_LOADED", False)
+    monkeypatch.setattr(base, "_FILE_MANAGED_VALUES", {})
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("SPEC2CAD_OPENAI_API_KEY_FILE", str(secret_file))
+
+    assert base.openai_api_key() == "secret-file-key"
+    assert base.reasoning_available() is True
+    assert base.select_backend() is base.VisionBackend.OPENAI
+
+    monkeypatch.setenv("OPENAI_API_KEY", "environment-key")
+    assert base.openai_api_key() == "environment-key"
+
+
 def test_public_backend_errors_do_not_echo_provider_message():
     class AuthenticationError(Exception):
         status_code = 401

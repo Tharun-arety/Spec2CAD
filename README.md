@@ -167,12 +167,14 @@ The difference is never hidden. Every evidence row carries its
 than scoring fixture data as extraction accuracy — replaying a recording
 measures the recording.
 
-Set `OPENAI_API_KEY` in the root `.env.local` (see `.env.example`). The same
-server-side key enables both structured requirement reasoning and sketch
-vision; it is never sent to the browser. `.env.local` edits are picked up on
-the next request. `SPEC2CAD_REASONING_MODEL` and `SPEC2CAD_OPENAI_MODEL` may
-override the text and vision models independently. Anthropic remains supported
-for sketch vision only.
+Set `OPENAI_API_KEY` in the root `.env.local` (see `.env.example`) for local
+development. On Render, the key can instead be stored as a Secret File named
+`OPENAI_API_KEY`; the service reads it from `/etc/secrets/OPENAI_API_KEY`. The
+same server-side key enables both structured requirement reasoning and sketch
+vision and is never sent to the browser. `.env.local` edits are picked up on the
+next request. `SPEC2CAD_REASONING_MODEL` and `SPEC2CAD_OPENAI_MODEL` may override
+the text and vision models independently. Anthropic remains supported for
+sketch vision only.
 
 Because the datasheet path is genuinely parsed, clicking a value in the UI
 highlights the actual rectangle it came from:

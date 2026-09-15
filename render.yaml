@@ -51,9 +51,10 @@ services:
       - key: SPEC2CAD_ADMIN_TOKEN
         sync: false
       # OPENAI_API_KEY enables the constrained natural-language planner and the
-      # unified text + sketch + PDF semantic path. ANTHROPIC_API_KEY remains a
-      # sketch-only alternative. Without either, uploaded sketches are refused
-      # and the deterministic text parser remains intentionally narrow.
+      # unified text + sketch + PDF semantic path. The backend also supports a
+      # Render Secret File named OPENAI_API_KEY at /etc/secrets/OPENAI_API_KEY.
+      # ANTHROPIC_API_KEY remains a sketch-only alternative. Without either,
+      # uploaded sketches are refused and the deterministic parser stays narrow.
       - key: OPENAI_API_KEY
         sync: false
       - key: ANTHROPIC_API_KEY

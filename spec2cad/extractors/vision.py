@@ -28,6 +28,7 @@ from spec2cad.extractors.base import (
     VisionBackend,
     anthropic_model,
     load_env,
+    openai_api_key,
     openai_model,
     model_max_output_tokens,
     model_timeout_seconds,
@@ -119,7 +120,7 @@ def _extract_openai(image_path: Path) -> list[Evidence]:
 
     load_env()
     client = OpenAI(
-        api_key=os.environ["OPENAI_API_KEY"],
+        api_key=openai_api_key(),
         timeout=model_timeout_seconds(), max_retries=1,
     )
     b64, mime = _encode_image(image_path)

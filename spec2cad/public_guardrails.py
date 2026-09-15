@@ -21,6 +21,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from spec2cad.extractors.base import openai_api_key
 from spec2cad.store import Store
 
 
@@ -87,7 +88,7 @@ def client_hash(request: Request) -> str:
             address = forwarded
     salt = (
         os.environ.get("SPEC2CAD_USAGE_SALT")
-        or os.environ.get("OPENAI_API_KEY")
+        or openai_api_key()
         or "local-development-only"
     )
     return hashlib.sha256(f"{salt}:{address}".encode("utf-8")).hexdigest()
