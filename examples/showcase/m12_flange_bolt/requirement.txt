@@ -1,0 +1,4 @@
+Create a metric M12 x 1.75 flange bolt with a 45 mm under-head length. Model
+30 mm of external helical V-thread followed by a 15 mm unthreaded shank. Use an
+18 mm across-flats hex head, 7.5 mm head height, 22 mm flange diameter, and
+3 mm flange thickness.

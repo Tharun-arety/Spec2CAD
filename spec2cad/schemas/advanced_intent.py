@@ -112,11 +112,28 @@ class CurvedStripFeatureIntent(BaseModel):
     plane: Literal["XY"] = "XY"
 
 
+class ThreadedFastenerFeatureIntent(BaseModel):
+    """A metric external-thread fastener with an integrated hex flange head."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    type: Literal["threaded_fastener"] = "threaded_fastener"
+    id: str
+    major_diameter: float = Field(gt=0)
+    pitch: float = Field(gt=0)
+    thread_length: float = Field(gt=0)
+    shank_length: float = Field(ge=0)
+    head_across_flats: float = Field(gt=0)
+    head_height: float = Field(gt=0)
+    flange_diameter: float = Field(gt=0)
+    flange_thickness: float = Field(gt=0)
+
+
 FeatureIntent = Annotated[
     Union[
         ProfileFeatureIntent, SheetMetalFeatureIntent, CurvedRodFeatureIntent,
         RectangularLoftFeatureIntent,
-        CurvedStripFeatureIntent,
+        CurvedStripFeatureIntent, ThreadedFastenerFeatureIntent,
     ],
     Field(discriminator="type")
 ]

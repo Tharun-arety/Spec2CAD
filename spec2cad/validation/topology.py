@@ -64,6 +64,19 @@ def run_topology(shape, intent: DesignIntent, *, skip_analytic_volume: bool = Fa
         message="the solid encloses material",
     ))
 
+    # The opening comparison is intentionally plate-specific: it matches loops
+    # on parallel top and bottom faces. A revolved profile, loft, or sweep has
+    # neither that face contract nor an implied through-hole requirement, so
+    # applying the plate heuristic can turn a valid advanced solid into a false
+    # release failure. Advanced operations have their own operation-level
+    # validity and analytic-volume checks.
+    if skip_analytic_volume:
+        return Report(
+            stage=CheckStage.TOPOLOGY,
+            design_revision=intent.revision,
+            checks=checks,
+        )
+
     try:
         through, features = M.through_holes(shape)
         checks.append(CheckResult(
@@ -84,9 +97,6 @@ def run_topology(shape, intent: DesignIntent, *, skip_analytic_volume: bool = Fa
             name="All openings pass through", status=CheckStatus.SKIPPED,
             message=f"could not measure: {exc}",
         ))
-
-    if skip_analytic_volume:
-        return Report(stage=CheckStage.TOPOLOGY, design_revision=intent.revision, checks=checks)
 
     # Material integrity: compare against the analytically expected volume.
     # This replaces face-type counting -- it is tolerance-aware and actually

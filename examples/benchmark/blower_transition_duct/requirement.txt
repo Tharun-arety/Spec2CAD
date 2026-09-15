@@ -1,0 +1,3 @@
+Create a lightweight moulded transition duct and keep the requested transition
+length at 55 mm. Keep the internal flow transition smooth, use 2.5 mm walls,
+and add two external stiffening ribs.

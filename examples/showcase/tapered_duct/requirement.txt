@@ -1,0 +1,2 @@
+Create a self-centering fixture locator that guides a workpiece from a 60 x 40
+mm entry face onto a 30 x 20 mm locating seat over an 80 mm-long tapered body.

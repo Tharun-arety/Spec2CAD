@@ -1,7 +1,7 @@
 # Spec2CAD — a multimodal design-intent compiler
 
-**Live demo: https://spec2cad.vercel.app** — a recorded replay of a real run, and
-labelled as such. Vercel cannot host the pipeline itself (the CadQuery bundle
+**Live demo: https://spec2cad.vercel.app** — five recorded evidence conditions, each labelled
+as such. Vercel cannot host the pipeline itself (the CadQuery bundle
 measures 1165 MB against a 500 MB function limit), so the deployment replays
 genuine frozen output rather than simulating it. Uploading documents and
 applying an unrecorded resolution both refuse, with the reason. For live
@@ -24,8 +24,14 @@ evidence  ≠  design intent  ≠  CAD program  ≠  measured B-Rep  ≠  releas
 
 ## The demonstration
 
-The primary demonstration remains a NEMA-17 stepper **motor adapter plate**, with
-a contradiction that is real rather than staged.
+The public benchmark is organized by evidence condition rather than by CAD
+operation: a text-only flanged coupling, sketch-only sheet-metal enclosure,
+text-plus-sketch motor bracket, sketch-plus-datasheet hydraulic manifold, and a
+fully multimodal blower transition duct. Their uncertainty behaviors are also
+different: underspecification, missing information, source disagreement,
+cross-document dependency, and geometric infeasibility. The coupling and
+enclosure carry recorded clarification approvals; the motor bracket and duct
+carry measured engineering repairs. The manifold needs neither.
 
 | Source | States | |
 |---|---|---|
@@ -317,9 +323,9 @@ intent that supposedly produced it.
 **Built and working:** the motor-adapter slice end to end — genuine datasheet
 extraction with real traceability, rule-cited fastener lookup, two-class conflict
 detection, diagnostic generation, measured validation, the release gate,
-immutable repair revisions, STEP round-trip verification, a five-panel UI, 118
+immutable repair revisions, STEP round-trip verification, a five-panel UI, 126
 tests, 39 deterministic evaluation checks, a container deployment path and a
-398 KB static replay bundle.
+5.0 MB static showcase bundle.
 
 Also working: an Engineering Intent Graph with parity-tested projection, a
 graph-driven feature compiler, a typed minimum-distance predicate IR, and a
@@ -328,7 +334,8 @@ fillets. This proves reuse across two feature sets; it does not claim open-ended
 part understanding.
 
 The advanced typed layer supports closed line/arc sketch profiles for additive
-extrusion, pocketing and revolution; circular rods swept along a
+extrusion, pocketing and revolution; modeled external helical fastener threads;
+circular rods swept along a
 straight–arc–straight centerline; verified 90-degree constant-thickness
 sheet bends with bend allowance and developed length; assemblies with component
 transforms, origin/offset/concentric mate validation and B-Rep collision checks;

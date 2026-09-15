@@ -5,7 +5,7 @@
 # requirements.txt, and CadQuery/OpenCascade takes the bundle to 1165 MB
 # against a 500 MB function limit (measured, not estimated).
 #
-# The deployed build replays the frozen run in web/public/replay instead.
+# The deployed build offers the frozen showcase in web/public/replay instead.
 # For live generation, run the FastAPI backend as a container -- see
 # DEPLOYMENT.md and the Dockerfile.
 

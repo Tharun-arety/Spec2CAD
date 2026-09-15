@@ -1,0 +1,4 @@
+Reduce the motor-mount bracket width to 38 mm. Maintain the 31 mm NEMA-17 hole
+spacing and at least 4 mm of material between every mounting hole and the outer
+edge. Do not move the motor pattern; recommend the minimum feasible width if
+the requested width cannot satisfy the clearance.

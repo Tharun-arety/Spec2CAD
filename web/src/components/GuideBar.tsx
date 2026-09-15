@@ -24,6 +24,7 @@ const LABEL: Record<StageId, string> = {
   intent: 'Intent',
   cad: 'CAD',
   validate: 'Validate',
+  revisions: 'Revisions',
 }
 
 function summary(stage: StageId, state: RunState, rev: Revision): string | null {

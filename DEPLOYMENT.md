@@ -78,26 +78,32 @@ If the container path is unavailable (no budget for an always-on host, or a
 deployment target that only serves static files), the demo still ships. It does
 **not** degrade into a mock.
 
-`scripts/freeze_demo.py` runs the real pipeline once and writes everything a
-frontend needs to replay it:
+`scripts/freeze_demo.py` runs the real pipeline for five evidence conditions and writes a
+catalog plus everything the frontend needs to replay each one:
 
 ```
 build/frozen/
-  run.json                     49,926 B   evidence, BOTH revisions, all reports, proposals
-  artifacts/v1.stl            128,484 B   the blocked candidate (provisional)
-  artifacts/v2.stl            128,484 B   the released geometry
-  artifacts/v2.step            53,177 B   the STEP the gate authorised
-  artifacts/v{1,2}.script.py    1,102 B   the generated CadQuery for each revision
-  sources/                                the three input documents
-  previews/*.png (9 files)             9 source highlights, pre-rendered
-  TOTAL                       ~529,000 B
+  catalog.json                           five benchmark summaries
+  scenarios/
+    flanged-shaft-coupling/              text only; underspecified → clarified
+    sheet-metal-enclosure/               sketch only; ambiguous → clarified
+    motor-mount-bracket/                 text + sketch; conflict → repair
+    hydraulic-manifold/                  sketch + document; entity linking
+    blower-transition-duct/              all sources; infeasible → repair
+      run.json                           evidence, reports, and revision state
+      artifacts/                         STL, authorised STEP, generated script
+      sources/                           the original recorded inputs
+      previews/                          source highlights where available
+  TOTAL                                  ~5.0 MB
 ```
 
-529 KB. The entire v1 → conflict → approval → v2 → release flow, including both
-meshes and the authorised STEP, served as static files with no CAD kernel
-running.
+The catalog includes nine CAD revisions in total. The coupling and enclosure
+preserve blocked v1 geometry plus approved clarification-driven v2 models. The
+motor bracket and duct preserve blocked v1 geometry plus approved engineering
+repairs. The manifold releases while explicitly declining to claim a pressure
+proof without material allowables and FEA.
 
-**It is labelled as what it is.** `run.json` carries:
+**It is labelled as what it is.** Every scenario's `run.json` carries:
 
 ```json
 "mode": "recorded_replay",
@@ -114,9 +120,9 @@ the frozen bundle preserves that rather than quietly including one.
 
 ## What the fallback cannot do
 
-- No uploads. Only the recorded run replays.
-- No new repairs. Only the proposal frozen at record time (`widen_to_recommended`)
-  has a resulting revision.
+- No uploads. Only the five recorded runs replay.
+- No new repairs. Only the motor-bracket width and duct-length approvals frozen
+  at record time have resulting revisions.
 
 Both limits follow from there being no kernel. Say so in the UI rather than
 disabling the buttons without explanation.
@@ -189,8 +195,9 @@ gated on actually being in replay mode.
 
 `web/public/replay` stays in the repo. It is the fallback when the backend is
 asleep, out of hours, or not deployed at all, and it is what a `VITE_REPLAY=1`
-build serves. Regenerate it with `python scripts/freeze_demo.py --out
-web/public/replay` whenever the pipeline output changes.
+build serves. Regenerate and publish the complete catalog with
+`python scripts/freeze_demo.py` whenever the pipeline output changes. Use
+`--scenario <id> --no-publish` for an isolated local recording.
 # Public launch guardrails
 
 The API enforces per-client request bursts, per-client and global daily model-call

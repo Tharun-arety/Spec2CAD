@@ -1,0 +1,3 @@
+Create a 12 mm diameter actuator pushrod with a total centerline length of 200
+mm. Keep 55 mm straight before a 90 degree bend with a 35 mm centerline radius
+to route around an obstruction, then continue straight for the remaining length.

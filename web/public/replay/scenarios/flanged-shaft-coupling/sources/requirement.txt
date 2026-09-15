@@ -1,0 +1,4 @@
+Create one half of a rigid flange coupling for a 20 mm shaft. Use an 80 mm
+flange, a 40 mm hub extending 35 mm, four 6.6 mm bolt holes on a 60 mm bolt
+circle, a 6 mm keyway, and a 1 mm shaft-entry chamfer. Add a radial M5 set-screw
+hole, but the required tapping depth has not yet been specified.

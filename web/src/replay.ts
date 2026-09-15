@@ -18,25 +18,76 @@ import type { Health, RunState } from './types'
 
 const BASE = '/replay'
 
-export interface ReplayManifest {
+export interface ReplayScenario {
+  id: string
+  step: string
+  title: string
+  focus: string
+  proof: string
+  uncertainty: string
+  description: string
+  capabilities: string[]
+  operation: string
+  inputs: Array<'text' | 'sketch' | 'document'>
+}
+
+export interface ReplayCatalog {
   mode: string
   disclaimer: string
   frozen_at: string
+  default_scenario: string
+  scenarios: ReplayScenario[]
+}
+
+export interface ReplayManifest {
+  mode: string
+  scenario: ReplayScenario
+  disclaimer: string
+  frozen_at: string
   sketch_backend: string
-  applied_proposal: string
+  applied_proposal: string | null
   limits: string[]
   state: RunState
 }
 
-let cached: ReplayManifest | null = null
+let cachedCatalog: ReplayCatalog | null = null
+let catalogPromise: Promise<ReplayCatalog> | null = null
+const cachedManifests = new Map<string, ReplayManifest>()
+const manifestPromises = new Map<string, Promise<ReplayManifest>>()
 
-async function manifest(): Promise<ReplayManifest> {
-  if (!cached) {
-    const res = await fetch(`${BASE}/run.json`)
-    if (!res.ok) throw new Error(`replay bundle missing (${res.status})`)
-    cached = (await res.json()) as ReplayManifest
+function catalog(): Promise<ReplayCatalog> {
+  if (cachedCatalog) return Promise.resolve(cachedCatalog)
+  if (!catalogPromise) {
+    catalogPromise = fetch(`${BASE}/catalog.json`, { cache: 'no-cache' }).then(async (res) => {
+      if (!res.ok) throw new Error(`replay catalog missing (${res.status})`)
+      cachedCatalog = (await res.json()) as ReplayCatalog
+      return cachedCatalog
+    })
   }
-  return cached
+  return catalogPromise
+}
+
+async function manifest(scenarioId?: string): Promise<ReplayManifest> {
+  const showcase = await catalog()
+  const id = scenarioId ?? showcase.default_scenario
+  const known = showcase.scenarios.some((scenario) => scenario.id === id)
+  if (!known) throw new Error(`recorded scenario not found: ${id}`)
+  const cached = cachedManifests.get(id)
+  if (cached) return cached
+  let pending = manifestPromises.get(id)
+  if (!pending) {
+    pending = fetch(`${BASE}/scenarios/${encodeURIComponent(id)}/run.json`, {
+      cache: 'no-cache',
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`replay bundle missing for ${id} (${res.status})`)
+        const next = (await res.json()) as ReplayManifest
+        cachedManifests.set(id, next)
+        return next
+      })
+    manifestPromises.set(id, pending)
+  }
+  return pending
 }
 
 /** Deep-ish clone so slicing revisions cannot mutate the cached manifest. */
@@ -44,12 +95,21 @@ const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T
 
 export class ReplayUnavailable extends Error {}
 
+const scenarioFromRun = (runId: string) =>
+  runId.startsWith('recorded-') ? runId.slice('recorded-'.length) : undefined
+
+const bundleBase = (runId: string) => {
+  const scenarioId = scenarioFromRun(runId)
+  return scenarioId
+    ? `${BASE}/scenarios/${encodeURIComponent(scenarioId)}`
+    : `${BASE}/scenarios/flanged-shaft-coupling`
+}
+
 export const replayApi = {
   isReplay: true,
 
-  async manifest() {
-    return manifest()
-  },
+  catalog,
+  manifest,
 
   async health(): Promise<Health> {
     const m = await manifest()
@@ -62,8 +122,8 @@ export const replayApi = {
   },
 
   /** The recorded run, rewound to before the repair was approved. */
-  async runDemo(): Promise<RunState> {
-    const m = await manifest()
+  async runDemo(scenarioId?: string): Promise<RunState> {
+    const m = await manifest(scenarioId)
     const state = clone(m.state)
     state.revisions = state.revisions.filter((r) => r.revision === 1)
     state.latest_revision = 1
@@ -88,21 +148,24 @@ export const replayApi = {
 
   /** Only the resolution that was recorded has a rebuilt revision. */
   async repair(_runId: string, proposalId: string): Promise<RunState> {
-    const m = await manifest()
-    if (proposalId !== m.applied_proposal) {
+    const m = await manifest(scenarioFromRun(_runId))
+    if (!m.applied_proposal || proposalId !== m.applied_proposal) {
       throw new ReplayUnavailable(
-        `Only the "${m.applied_proposal}" resolution was recorded with rebuilt ` +
-        'geometry. Applying a different one needs a CAD kernel, which this ' +
-        'deployment does not have.',
+        m.applied_proposal
+          ? `Only the "${m.applied_proposal}" resolution was recorded with rebuilt ` +
+            'geometry. Applying a different one needs a CAD kernel, which this ' +
+            'deployment does not have.'
+          : 'This recorded scenario has no repair revision. Applying a resolution ' +
+            'needs a CAD kernel, which this deployment does not have.',
       )
     }
     return clone(m.state)
   },
 
-  stlUrl: (_runId: string, rev: number) => `${BASE}/artifacts/v${rev}.stl`,
-  stepUrl: (_runId: string, rev: number) => `${BASE}/artifacts/v${rev}.step`,
-  previewUrl: (_runId: string, evidenceId: string) =>
-    `${BASE}/previews/${evidenceId}.png`,
-  sourceUrl: (_runId: string, filename: string) =>
-    `${BASE}/sources/${encodeURIComponent(filename)}`,
+  stlUrl: (runId: string, rev: number) => `${bundleBase(runId)}/artifacts/v${rev}.stl`,
+  stepUrl: (runId: string, rev: number) => `${bundleBase(runId)}/artifacts/v${rev}.step`,
+  previewUrl: (runId: string, evidenceId: string) =>
+    `${bundleBase(runId)}/previews/${evidenceId}.png`,
+  sourceUrl: (runId: string, filename: string) =>
+    `${bundleBase(runId)}/sources/${encodeURIComponent(filename)}`,
 }

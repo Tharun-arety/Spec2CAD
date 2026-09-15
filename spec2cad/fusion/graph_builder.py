@@ -41,6 +41,7 @@ from spec2cad.schemas.advanced_intent import (
     ProfileFeatureIntent,
     RectangularLoftFeatureIntent,
     SheetMetalFeatureIntent,
+    ThreadedFastenerFeatureIntent,
 )
 from spec2cad.schemas.intent_graph import (
     AdvancedFeatureNode,
@@ -364,6 +365,18 @@ def build_intent_graph(
                 (T.STRIP_BEND_RADIUS, "bend_radius"),
                 (T.STRIP_BEND_ANGLE, "bend_angle_degrees"),
                 (T.STRIP_TAIL_LENGTH, "tail_length"),
+            ):
+                defines(target, request.id, role)
+        elif isinstance(request, ThreadedFastenerFeatureIntent):
+            for target, role in (
+                (T.FASTENER_MAJOR_DIAMETER, "major_diameter"),
+                (T.THREAD_PITCH, "pitch"),
+                (T.THREADED_LENGTH, "thread_length"),
+                (T.FASTENER_SHANK_LENGTH, "shank_length"),
+                (T.HEAD_ACROSS_FLATS, "head_across_flats"),
+                (T.HEAD_HEIGHT, "head_height"),
+                (T.FLANGE_DIAMETER, "flange_diameter"),
+                (T.FLANGE_THICKNESS, "flange_thickness"),
             ):
                 defines(target, request.id, role)
         elif isinstance(request, ProfileFeatureIntent):

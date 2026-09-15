@@ -26,17 +26,22 @@ import cadquery as cq
 from spec2cad.cad.selectors import select_edges, select_face
 from spec2cad.schemas.cad_ir import (
     ArcSegment,
+    BlowerTransitionDuctOp,
     BooleanMode,
     BoxOp,
+    ControllerEnclosureOp,
     CylinderOp,
     CurvedRodOp,
     CurvedStripOp,
     CADProgram,
     ChamferOp,
     FilletOp,
+    FlangedCouplingOp,
     HoleOp,
+    HydraulicManifoldOp,
     LinearSlotPatternOp,
     LineSegment,
+    MotorMountBracketOp,
     ProfileExtrudeOp,
     ProfilePoint,
     ProfileRevolveOp,
@@ -46,6 +51,7 @@ from spec2cad.schemas.cad_ir import (
     SketchPlane,
     SketchProfile,
     Termination,
+    ThreadedBoltOp,
     TubeOp,
     resolve,
 )
@@ -548,6 +554,364 @@ def _do_curved_strip(
     return result
 
 
+def _do_threaded_bolt(
+    wp: Optional[cq.Workplane], op: ThreadedBoltOp, ctx: BuildContext
+) -> cq.Workplane:
+    """Build a flanged hex-head bolt with a swept ISO-style V-thread cut."""
+    if wp is not None:
+        raise ExecutionError("threaded_bolt is a base feature and must be first")
+
+    major = resolve(op.major_diameter, ctx.values)
+    pitch = resolve(op.pitch, ctx.values)
+    thread_length = resolve(op.thread_length, ctx.values)
+    shank_length = resolve(op.shank_length, ctx.values)
+    across_flats = resolve(op.head_across_flats, ctx.values)
+    head_height = resolve(op.head_height, ctx.values)
+    flange_diameter = resolve(op.flange_diameter, ctx.values)
+    flange_thickness = resolve(op.flange_thickness, ctx.values)
+
+    if min(
+        major, pitch, thread_length, across_flats, head_height,
+        flange_diameter, flange_thickness,
+    ) <= 0 or shank_length < 0:
+        raise ExecutionError(
+            "thread dimensions, head dimensions and flange dimensions must be positive"
+        )
+    if across_flats <= major:
+        raise ExecutionError("hex-head across-flats size must exceed the thread diameter")
+    if flange_diameter <= across_flats:
+        raise ExecutionError("flange diameter must exceed the hex-head across-flats size")
+
+    root_diameter = major - 1.22687 * pitch
+    if root_diameter <= 0:
+        raise ExecutionError("thread pitch is too large for the specified major diameter")
+
+    under_head_length = thread_length + shank_length
+    shaft = cq.Workplane("XY").circle(major / 2.0).extrude(under_head_length)
+    helix = cq.Wire.makeHelix(pitch, thread_length, major / 2.0)
+    crest_allowance = 0.4
+    half_profile = pitch * 0.3
+    cutter_profile = (
+        cq.Workplane("XZ")
+        .moveTo(root_diameter / 2.0, 0)
+        .lineTo(major / 2.0 + crest_allowance, -half_profile)
+        .lineTo(major / 2.0 + crest_allowance, half_profile)
+        .close()
+    )
+    try:
+        thread_cutter = cutter_profile.sweep(
+            cq.Workplane(obj=helix), isFrenet=True
+        )
+        threaded_shaft = shaft.cut(thread_cutter)
+        flange = (
+            cq.Workplane("XY").workplane(offset=under_head_length)
+            .circle(flange_diameter / 2.0).extrude(flange_thickness)
+        )
+        circumscribed_head_diameter = across_flats / math.cos(math.pi / 6.0)
+        head = (
+            cq.Workplane("XY")
+            .workplane(offset=under_head_length + flange_thickness)
+            .polygon(6, circumscribed_head_diameter)
+            .extrude(head_height)
+        )
+        result = threaded_shaft.union(flange).union(head)
+    except Exception as exc:
+        raise ExecutionError(f"threaded bolt {op.id!r} failed: {exc}") from exc
+
+    overall_length = under_head_length + flange_thickness + head_height
+    ctx.derived[f"{op.id}.thread_turns"] = thread_length / pitch
+    ctx.derived[f"{op.id}.thread_root_diameter"] = root_diameter
+    ctx.derived[f"{op.id}.under_head_length"] = under_head_length
+    ctx.derived[f"{op.id}.overall_length"] = overall_length
+    ctx.width = ctx.height = flange_diameter
+    ctx.thickness = overall_length
+    return result
+
+
+def _do_flanged_coupling(
+    wp: Optional[cq.Workplane], op: FlangedCouplingOp, ctx: BuildContext
+) -> cq.Workplane:
+    if wp is not None:
+        raise ExecutionError("flanged_coupling is a base feature and must be first")
+    flange_d = resolve(op.flange_diameter, ctx.values)
+    flange_t = resolve(op.flange_thickness, ctx.values)
+    hub_d = resolve(op.hub_diameter, ctx.values)
+    hub_l = resolve(op.hub_length, ctx.values)
+    bore_d = resolve(op.bore_diameter, ctx.values)
+    bolt_circle = resolve(op.bolt_circle_diameter, ctx.values)
+    bolt_d = resolve(op.bolt_hole_diameter, ctx.values)
+    key_w = resolve(op.keyway_width, ctx.values)
+    key_d = resolve(op.keyway_depth, ctx.values)
+    chamfer = resolve(op.entry_chamfer, ctx.values)
+    set_screw_depth = resolve(op.set_screw_depth, ctx.values)
+    if min(flange_d, flange_t, hub_d, hub_l, bore_d, bolt_circle, bolt_d, key_w, key_d) <= 0:
+        raise ExecutionError("coupling dimensions must be positive")
+    if bore_d + 2 * key_d >= hub_d:
+        raise ExecutionError("bore and keyway leave no hub wall")
+    if bolt_circle + bolt_d >= flange_d:
+        raise ExecutionError("bolt holes extend beyond the flange")
+
+    total = flange_t + hub_l
+    flange = cq.Workplane("XY").circle(flange_d / 2).extrude(flange_t)
+    hub = cq.Workplane("XY").workplane(offset=flange_t).circle(hub_d / 2).extrude(hub_l)
+    result = flange.union(hub)
+    result = result.cut(cq.Workplane("XY").workplane(offset=-1).circle(bore_d / 2).extrude(total + 2))
+    keyway = (
+        cq.Workplane("XY").workplane(offset=-1)
+        .center(0, bore_d / 2 + key_d / 2)
+        .rect(key_w, key_d).extrude(total + 2)
+    )
+    result = result.cut(keyway)
+    points = [
+        (
+            bolt_circle / 2 * math.cos(2 * math.pi * index / op.bolt_count),
+            bolt_circle / 2 * math.sin(2 * math.pi * index / op.bolt_count),
+        )
+        for index in range(op.bolt_count)
+    ]
+    result = result.faces(">Z").workplane().pushPoints(points).hole(bolt_d)
+    if chamfer > 0:
+        entry = (
+            cq.Workplane("XY").workplane(offset=total - chamfer)
+            .circle(bore_d / 2 + chamfer).workplane(offset=chamfer + 0.1)
+            .circle(bore_d / 2).loft(combine=False)
+        )
+        result = result.cut(entry)
+    if set_screw_depth > 0:
+        # M5 coarse-thread tap-drill representation.  The optional radial feature
+        # is omitted from an unresolved v1 and added only after its depth is
+        # explicitly approved.
+        set_screw = cq.Solid.makeCylinder(
+            2.1,
+            set_screw_depth + 0.2,
+            cq.Vector(hub_d / 2 + 0.1, 0, flange_t + hub_l / 2),
+            cq.Vector(-1, 0, 0),
+        )
+        result = result.cut(cq.Workplane(obj=set_screw))
+    ctx.width = ctx.height = flange_d
+    ctx.thickness = total
+    ctx.derived[f"{op.id}.hub_wall_at_keyway"] = (hub_d - bore_d) / 2 - key_d
+    ctx.derived[f"{op.id}.bolt_circle_radius"] = bolt_circle / 2
+    ctx.derived[f"{op.id}.set_screw_depth"] = set_screw_depth
+    return result
+
+
+def _do_controller_enclosure(
+    wp: Optional[cq.Workplane], op: ControllerEnclosureOp, ctx: BuildContext
+) -> cq.Workplane:
+    if wp is not None:
+        raise ExecutionError("controller_enclosure is a base feature and must be first")
+    length = resolve(op.length, ctx.values)
+    width = resolve(op.width, ctx.values)
+    height = resolve(op.height, ctx.values)
+    thickness = resolve(op.thickness, ctx.values)
+    cable_gland_x = resolve(op.cable_gland_x, ctx.values)
+    cable_gland_diameter = resolve(op.cable_gland_diameter, ctx.values)
+    if min(length, width, height, thickness) <= 0 or 2 * thickness >= min(length, width):
+        raise ExecutionError("enclosure envelope and sheet thickness are invalid")
+    outer = cq.Workplane("XY").box(length, width, height, centered=(True, True, False))
+    cavity = (
+        cq.Workplane("XY").workplane(offset=thickness)
+        .box(length - 2 * thickness, width - 2 * thickness, height + 1,
+             centered=(True, True, False))
+    )
+    result = outer.cut(cavity)
+    display = cq.Workplane("XY").box(44, 2 * thickness + 2, 18).translate(
+        (0, -width / 2, height * 0.58)
+    )
+    result = result.cut(display)
+    for index in range(op.vent_count):
+        z = 12 + index * min(6.0, (height - 16) / max(op.vent_count, 1))
+        vent = cq.Workplane("YZ").circle(1.8).extrude(2 * thickness + 2, both=True).translate(
+            (length / 2, 0, z)
+        )
+        result = result.cut(vent)
+    if cable_gland_diameter > 0:
+        if abs(cable_gland_x) + cable_gland_diameter / 2 >= length / 2:
+            raise ExecutionError("cable-gland cut-out extends beyond the enclosure wall")
+        cable_gland = cq.Solid.makeCylinder(
+            cable_gland_diameter / 2,
+            2 * thickness + 2,
+            cq.Vector(cable_gland_x, -width / 2 - 1, 16),
+            cq.Vector(0, 1, 0),
+        )
+        result = result.cut(cq.Workplane(obj=cable_gland))
+    ctx.width, ctx.height, ctx.thickness = length, width, height
+    ctx.derived[f"{op.id}.developed_perimeter"] = 2 * (length + width)
+    ctx.derived[f"{op.id}.constant_wall_thickness"] = thickness
+    ctx.derived[f"{op.id}.cable_gland_x"] = cable_gland_x
+    ctx.derived[f"{op.id}.cable_gland_diameter"] = cable_gland_diameter
+    return result
+
+
+def _do_motor_mount_bracket(
+    wp: Optional[cq.Workplane], op: MotorMountBracketOp, ctx: BuildContext
+) -> cq.Workplane:
+    if wp is not None:
+        raise ExecutionError("motor_mount_bracket is a base feature and must be first")
+    width = resolve(op.bracket_width, ctx.values)
+    depth = resolve(op.base_depth, ctx.values)
+    thickness = resolve(op.base_thickness, ctx.values)
+    face_height = resolve(op.face_height, ctx.values)
+    spacing = resolve(op.motor_spacing, ctx.values)
+    hole_d = resolve(op.mounting_hole_diameter, ctx.values)
+    shaft_d = resolve(op.shaft_hole_diameter, ctx.values)
+    slot_w = resolve(op.slot_width, ctx.values)
+    slot_l = resolve(op.slot_length, ctx.values)
+    gusset_t = resolve(op.gusset_thickness, ctx.values)
+    if min(width, depth, thickness, face_height, spacing, hole_d, shaft_d, slot_w, slot_l, gusset_t) <= 0:
+        raise ExecutionError("motor-bracket dimensions must be positive")
+
+    base = cq.Workplane("XY").box(width, depth, thickness, centered=(True, True, False))
+    wall_y = depth / 2 - thickness / 2
+    wall = cq.Workplane("XY").box(
+        width, thickness, face_height + 0.5, centered=(True, True, False)
+    ).translate(
+        (0, wall_y, thickness - 0.5)
+    )
+    result = base.union(wall)
+    face_z = thickness + face_height / 2
+    y_start = depth / 2 - 2 * thickness
+    cutters = [cq.Solid.makeCylinder(shaft_d / 2, 4 * thickness, cq.Vector(0, y_start, face_z), cq.Vector(0, 1, 0))]
+    for x in (-spacing / 2, spacing / 2):
+        for z in (face_z - spacing / 2, face_z + spacing / 2):
+            cutters.append(cq.Solid.makeCylinder(hole_d / 2, 4 * thickness, cq.Vector(x, y_start, z), cq.Vector(0, 1, 0)))
+    for cutter in cutters:
+        result = result.cut(cq.Workplane(obj=cutter))
+    slot_points = [(-width * 0.28, -depth * 0.2), (width * 0.28, -depth * 0.2)]
+    result = (
+        result.faces(">Z").workplane().pushPoints(slot_points)
+        .slot2D(slot_l, slot_w, 90).cutThruAll()
+    )
+    for x in (-width / 2 + 2 * gusset_t, width / 2 - 2 * gusset_t):
+        root_y = wall_y - thickness / 2 + 0.5
+        root_z = thickness - 0.5
+        gusset = (
+            cq.Workplane("YZ").moveTo(root_y, root_z)
+            .lineTo(root_y, thickness + 25)
+            .lineTo(root_y - 25, root_z).close()
+            .extrude(gusset_t / 2, both=True).translate((x, 0, 0))
+        )
+        result = result.union(gusset)
+    edge_clearance = (width - spacing - hole_d) / 2
+    ctx.width, ctx.height, ctx.thickness = width, depth, face_height + thickness
+    ctx.derived[f"{op.id}.motor_hole_edge_clearance"] = edge_clearance
+    ctx.derived[f"{op.id}.minimum_feasible_width"] = spacing + hole_d + 8
+    return result
+
+
+def _internal_thread_cut(
+    x: float, y: float, z0: float, major: float, minor: float, pitch: float, depth: float
+) -> cq.Workplane:
+    bore = (
+        cq.Workplane("XY").workplane(offset=z0).center(x, y)
+        .circle(minor / 2).extrude(depth + 0.5)
+    )
+    helix = cq.Wire.makeHelix(pitch, depth, minor / 2).translate(cq.Vector(x, y, z0))
+    profile = (
+        cq.Workplane("XZ").transformed(offset=(x, y, z0))
+        .moveTo(minor / 2, 0)
+        .lineTo(major / 2 + 0.2, -pitch * 0.3)
+        .lineTo(major / 2 + 0.2, pitch * 0.3).close()
+    )
+    return bore.union(profile.sweep(cq.Workplane(obj=helix), isFrenet=True))
+
+
+def _do_hydraulic_manifold(
+    wp: Optional[cq.Workplane], op: HydraulicManifoldOp, ctx: BuildContext
+) -> cq.Workplane:
+    if wp is not None:
+        raise ExecutionError("hydraulic_manifold is a base feature and must be first")
+    length = resolve(op.length, ctx.values)
+    width = resolve(op.width, ctx.values)
+    height = resolve(op.height, ctx.values)
+    major = resolve(op.port_major_diameter, ctx.values)
+    minor = resolve(op.port_minor_diameter, ctx.values)
+    pitch = resolve(op.port_pitch, ctx.values)
+    tapping = resolve(op.tapping_depth, ctx.values)
+    passage_d = resolve(op.passage_diameter, ctx.values)
+    spacing = resolve(op.port_spacing, ctx.values)
+    if min(length, width, height, major, minor, pitch, tapping, passage_d, spacing) <= 0:
+        raise ExecutionError("manifold dimensions must be positive")
+    if minor >= major or tapping >= height:
+        raise ExecutionError("thread or tapping-depth geometry is invalid")
+    result = cq.Workplane("XY").box(length, width, height)
+    top = height / 2
+    for x in (-spacing / 2, spacing / 2):
+        thread = _internal_thread_cut(x, 0, top - tapping, major, minor, pitch, tapping + 0.5)
+        result = result.cut(thread)
+        down = cq.Solid.makeCylinder(
+            passage_d / 2, height / 2 + 1, cq.Vector(x, 0, -1), cq.Vector(0, 0, 1)
+        )
+        result = result.cut(cq.Workplane(obj=down))
+    cross = cq.Solid.makeCylinder(
+        passage_d / 2, spacing, cq.Vector(-spacing / 2, 0, 0), cq.Vector(1, 0, 0)
+    )
+    outlet = cq.Solid.makeCylinder(
+        passage_d / 2, width / 2 + 1, cq.Vector(0, -width / 2 - 1, 0), cq.Vector(0, 1, 0)
+    )
+    result = result.cut(cq.Workplane(obj=cross)).cut(cq.Workplane(obj=outlet))
+    mounting = [(-length * 0.4, -width * 0.35), (length * 0.4, -width * 0.35),
+                (-length * 0.4, width * 0.35), (length * 0.4, width * 0.35)]
+    result = result.faces(">Z").workplane().pushPoints(mounting).hole(5)
+    min_wall = min((length - spacing - major) / 2, (width - major) / 2)
+    ctx.width, ctx.height, ctx.thickness = length, width, height
+    ctx.derived[f"{op.id}.minimum_port_wall"] = min_wall
+    ctx.derived[f"{op.id}.thread_turns"] = tapping / pitch
+    ctx.derived[f"{op.id}.connected_ports"] = 3
+    return result
+
+
+def _do_blower_transition_duct(
+    wp: Optional[cq.Workplane], op: BlowerTransitionDuctOp, ctx: BuildContext
+) -> cq.Workplane:
+    if wp is not None:
+        raise ExecutionError("blower_transition_duct is a base feature and must be first")
+    inlet_w = resolve(op.inlet_width, ctx.values)
+    inlet_h = resolve(op.inlet_height, ctx.values)
+    outlet_d = resolve(op.outlet_diameter, ctx.values)
+    length = resolve(op.transition_length, ctx.values)
+    wall = resolve(op.wall_thickness, ctx.values)
+    flange_w = resolve(op.flange_width, ctx.values)
+    if min(inlet_w, inlet_h, outlet_d, length, wall, flange_w) <= 0:
+        raise ExecutionError("duct dimensions must be positive")
+    if 2 * wall >= min(inlet_w, inlet_h, outlet_d):
+        raise ExecutionError("wall thickness consumes the flow section")
+    outer = (
+        cq.Workplane("XY").rect(inlet_w, inlet_h)
+        .workplane(offset=length).circle(outlet_d / 2).loft(combine=False)
+    )
+    inner = (
+        cq.Workplane("XY").workplane(offset=-1)
+        .rect(inlet_w - 2 * wall, inlet_h - 2 * wall)
+        .workplane(offset=length + 2).circle(outlet_d / 2 - wall).loft(combine=False)
+    )
+    result = outer.cut(inner)
+    inlet_flange = (
+        cq.Workplane("XY").box(inlet_w + 2 * flange_w, inlet_h + 2 * flange_w, 5,
+                               centered=(True, True, False))
+        .cut(cq.Workplane("XY").workplane(offset=-1)
+             .box(inlet_w - 2 * wall, inlet_h - 2 * wall, 7, centered=(True, True, False)))
+    )
+    outlet_flange = (
+        cq.Workplane("XY").workplane(offset=length)
+        .circle(outlet_d / 2 + flange_w).extrude(5)
+        .cut(cq.Workplane("XY").workplane(offset=length - 1)
+             .circle(outlet_d / 2 - wall).extrude(7))
+    )
+    result = result.union(inlet_flange).union(outlet_flange)
+    half_diagonal = math.hypot(inlet_w / 2, inlet_h / 2)
+    transition_angle = math.degrees(math.atan2(abs(half_diagonal - outlet_d / 2), length))
+    ctx.width, ctx.height, ctx.thickness = inlet_w + 2 * flange_w, inlet_h + 2 * flange_w, length + 5
+    ctx.derived[f"{op.id}.maximum_transition_angle"] = transition_angle
+    ctx.derived[f"{op.id}.constant_wall_thickness"] = wall
+    ctx.derived[f"{op.id}.flow_area_ratio"] = (
+        math.pi * (outlet_d / 2 - wall) ** 2
+        / ((inlet_w - 2 * wall) * (inlet_h - 2 * wall))
+    )
+    return result
+
+
 HANDLERS: dict[type, Callable] = {
     BoxOp: _do_box,
     CylinderOp: _do_cylinder,
@@ -563,6 +927,12 @@ HANDLERS: dict[type, Callable] = {
     CurvedRodOp: _do_curved_rod,
     RectangularLoftOp: _do_rectangular_loft,
     CurvedStripOp: _do_curved_strip,
+    ThreadedBoltOp: _do_threaded_bolt,
+    FlangedCouplingOp: _do_flanged_coupling,
+    ControllerEnclosureOp: _do_controller_enclosure,
+    MotorMountBracketOp: _do_motor_mount_bracket,
+    HydraulicManifoldOp: _do_hydraulic_manifold,
+    BlowerTransitionDuctOp: _do_blower_transition_duct,
 }
 
 
@@ -595,6 +965,12 @@ def execute(program: CADProgram, values: dict[str, float]) -> ExecutionResult:
                 BoxOp, CylinderOp, TubeOp, SheetMetalBendOp, CurvedRodOp,
                 RectangularLoftOp,
                 CurvedStripOp,
+                ThreadedBoltOp,
+                FlangedCouplingOp,
+                ControllerEnclosureOp,
+                MotorMountBracketOp,
+                HydraulicManifoldOp,
+                BlowerTransitionDuctOp,
             ))
             or isinstance(op, (ProfileExtrudeOp, ProfileRevolveOp))
             and op.mode is BooleanMode.ADD

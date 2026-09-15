@@ -1,0 +1,1035 @@
+{
+  "mode": "recorded_replay",
+  "scenario": {
+    "id": "motor-mount-bracket",
+    "step": "03",
+    "title": "Motor-mount bracket",
+    "focus": "Text + sketch",
+    "proof": "Resolve disagreement",
+    "uncertainty": "38 mm request violates the 4 mm edge-clearance rule",
+    "description": "A gusseted NEMA-17 bracket that measures the text-versus-sketch conflict before an approved repair.",
+    "capabilities": [
+      "31 mm motor pattern",
+      "Adjustment slots",
+      "Measured repair"
+    ],
+    "operation": "Pads \u00b7 face holes \u00b7 slots \u00b7 gussets",
+    "inputs": [
+      "text",
+      "sketch"
+    ]
+  },
+  "disclaimer": "This is a recording of a real pipeline run, not live generation. No CAD kernel is running behind this page.",
+  "frozen_at": "2026-09-15T12:27:10.910009+00:00",
+  "sketch_backend": "recorded sketch interpretation",
+  "contains_fixture_evidence": true,
+  "applied_proposal": "widen_to_44",
+  "previews_rendered": 3,
+  "limits": [
+    "New documents cannot be uploaded in this recording.",
+    "Sketch readings are explicitly labelled as recorded fixtures."
+  ],
+  "revisions": [
+    {
+      "revision": 1,
+      "released": false,
+      "stl": "artifacts/v1.stl",
+      "step": null,
+      "script": "artifacts/v1.script.py"
+    },
+    {
+      "revision": 2,
+      "released": true,
+      "stl": "artifacts/v2.stl",
+      "step": "artifacts/v2.step",
+      "script": "artifacts/v2.script.py"
+    }
+  ],
+  "state": {
+    "run_id": "recorded-motor-mount-bracket",
+    "sketch_backend": "recorded sketch interpretation",
+    "sketch_fell_back": false,
+    "sketch_fallback_reason": null,
+    "reasoning_backend": "recorded text extraction",
+    "reasoning_fell_back": false,
+    "reasoning_fallback_reason": null,
+    "unsupported_features": [],
+    "clarification_questions": [],
+    "messages": [
+      {
+        "id": "400864bf5fa6",
+        "role": "user",
+        "content": "Reduce the motor-mount bracket width to 38 mm. Maintain the 31 mm NEMA-17 hole\nspacing and at least 4 mm of material between every mounting hole and the outer\nedge. Do not move the motor pattern; recommend the minimum feasible width if\nthe requested width cannot satisfy the clearance.\n",
+        "kind": "request",
+        "created_at": "2026-09-15T12:27:12.870026+00:00"
+      },
+      {
+        "id": "141d2f94509b",
+        "role": "assistant",
+        "content": "Release BLOCKED for DesignIntent v1. STEP export is withheld.\n  - measured 1.25 mm against 4 mm\nRecommended: Increase bracket width to 44 mm",
+        "kind": "result",
+        "created_at": "2026-09-15T12:27:12.871028+00:00"
+      },
+      {
+        "id": "5085b3ed48d3",
+        "role": "user",
+        "content": "Approve Increase bracket width to 44 mm.",
+        "kind": "approval",
+        "created_at": "2026-09-15T12:27:12.871028+00:00"
+      },
+      {
+        "id": "57b0c4493b99",
+        "role": "assistant",
+        "content": "Rebuilt Motor-mount bracket as v2; measured requirements now pass.",
+        "kind": "result",
+        "created_at": "2026-09-15T12:27:13.196759+00:00"
+      }
+    ],
+    "feature_requests": [],
+    "contains_fixture_evidence": true,
+    "evidence": [
+      {
+        "id": "mb_sketch_w",
+        "target": "plate_width",
+        "kind": "linear_dimension",
+        "value": 60,
+        "unit": "mm",
+        "source": {
+          "file": "sketch.png",
+          "modality": "sketch",
+          "page": null,
+          "region": [
+            350.0,
+            730.0,
+            1015.0,
+            845.0
+          ],
+          "detail": "replayed from a recorded benchmark extraction"
+        },
+        "extraction_method": "recorded_fixture",
+        "confidence": 0.98,
+        "authority": "definitive",
+        "is_explicit_annotation": true,
+        "is_fixture": true,
+        "raw_text": "SKETCH WIDTH 60",
+        "original_value": null,
+        "has_preview": true
+      },
+      {
+        "id": "mb_text_w",
+        "target": "plate_width",
+        "kind": "linear_dimension",
+        "value": 38,
+        "unit": "mm",
+        "source": {
+          "file": "requirement.txt",
+          "modality": "requirement_text",
+          "page": null,
+          "region": null,
+          "detail": "replayed from a recorded benchmark extraction"
+        },
+        "extraction_method": "recorded_fixture",
+        "confidence": 0.98,
+        "authority": "definitive",
+        "is_explicit_annotation": true,
+        "is_fixture": true,
+        "raw_text": "Reduce width to 38 mm",
+        "original_value": null,
+        "has_preview": false
+      },
+      {
+        "id": "mb_spacing",
+        "target": "hole_spacing_x",
+        "kind": "hole_pattern",
+        "value": 31,
+        "unit": "mm",
+        "source": {
+          "file": "sketch.png",
+          "modality": "sketch",
+          "page": null,
+          "region": [
+            500.0,
+            165.0,
+            850.0,
+            295.0
+          ],
+          "detail": "replayed from a recorded benchmark extraction"
+        },
+        "extraction_method": "recorded_fixture",
+        "confidence": 0.98,
+        "authority": "definitive",
+        "is_explicit_annotation": true,
+        "is_fixture": true,
+        "raw_text": "31",
+        "original_value": null,
+        "has_preview": true
+      },
+      {
+        "id": "mb_holes",
+        "target": "mounting_hole_diameter",
+        "kind": "diameter",
+        "value": 4.5,
+        "unit": "mm",
+        "source": {
+          "file": "sketch.png",
+          "modality": "sketch",
+          "page": null,
+          "region": [
+            500.0,
+            550.0,
+            735.0,
+            670.0
+          ],
+          "detail": "replayed from a recorded benchmark extraction"
+        },
+        "extraction_method": "recorded_fixture",
+        "confidence": 0.98,
+        "authority": "definitive",
+        "is_explicit_annotation": true,
+        "is_fixture": true,
+        "raw_text": "4\u00d7 \u00d84.5",
+        "original_value": null,
+        "has_preview": true
+      },
+      {
+        "id": "mb_clear",
+        "target": "min_hole_edge_clearance",
+        "kind": "constraint",
+        "value": 4,
+        "unit": "mm",
+        "source": {
+          "file": "requirement.txt",
+          "modality": "requirement_text",
+          "page": null,
+          "region": null,
+          "detail": "replayed from a recorded benchmark extraction"
+        },
+        "extraction_method": "recorded_fixture",
+        "confidence": 0.98,
+        "authority": "definitive",
+        "is_explicit_annotation": true,
+        "is_fixture": true,
+        "raw_text": "at least 4 mm",
+        "original_value": null,
+        "has_preview": false
+      }
+    ],
+    "revisions": [
+      {
+        "revision": 1,
+        "parent_revision": null,
+        "lineage": "v1 (original)",
+        "applied_proposal": null,
+        "approved_by": null,
+        "changes": [],
+        "part": {
+          "name": "motor-mount-bracket",
+          "material": "steel",
+          "manufacturing_process": "fabricated bracket"
+        },
+        "parameters": {
+          "bracket_width": {
+            "value": 38,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "base_depth": {
+            "value": 60,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "base_thickness": {
+            "value": 8,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "face_height": {
+            "value": 60,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "motor_spacing": {
+            "value": 31,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "mounting_hole_diameter": {
+            "value": 4.5,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [
+              "mb_holes"
+            ],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "shaft_hole_diameter": {
+            "value": 24,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "slot_width": {
+            "value": 8,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "slot_length": {
+            "value": 28,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "gusset_thickness": {
+            "value": 5,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "min_edge_clearance": {
+            "value": 4,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          }
+        },
+        "constraints": [],
+        "intent_graph": null,
+        "feature_sequence": [
+          "gusseted_motor_bracket (motor_mount_bracket)"
+        ],
+        "operations": [
+          {
+            "id": "gusseted_motor_bracket",
+            "type": "motor_mount_bracket",
+            "fields": [
+              {
+                "name": "bracket_width",
+                "value": 38.0,
+                "parameter": "bracket_width"
+              },
+              {
+                "name": "base_depth",
+                "value": 60.0,
+                "parameter": "base_depth"
+              },
+              {
+                "name": "base_thickness",
+                "value": 8.0,
+                "parameter": "base_thickness"
+              },
+              {
+                "name": "face_height",
+                "value": 60.0,
+                "parameter": "face_height"
+              },
+              {
+                "name": "motor_spacing",
+                "value": 31.0,
+                "parameter": "motor_spacing"
+              },
+              {
+                "name": "mounting_hole_diameter",
+                "value": 4.5,
+                "parameter": "mounting_hole_diameter"
+              },
+              {
+                "name": "shaft_hole_diameter",
+                "value": 24.0,
+                "parameter": "shaft_hole_diameter"
+              },
+              {
+                "name": "slot_width",
+                "value": 8.0,
+                "parameter": "slot_width"
+              },
+              {
+                "name": "slot_length",
+                "value": 28.0,
+                "parameter": "slot_length"
+              },
+              {
+                "name": "gusset_thickness",
+                "value": 5.0,
+                "parameter": "gusset_thickness"
+              }
+            ],
+            "measured": {
+              "volume": 31957.1992,
+              "volume_delta": 31957.1992,
+              "is_valid": true,
+              "solid_count": 1,
+              "seconds": 0.0129,
+              "no_op": false
+            }
+          }
+        ],
+        "derived_geometry": {
+          "gusseted_motor_bracket.motor_hole_edge_clearance": 1.25,
+          "gusseted_motor_bracket.minimum_feasible_width": 43.5
+        },
+        "editable_parameters": [
+          {
+            "name": "bracket_width",
+            "value": 38,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "base_depth",
+            "value": 60,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "base_thickness",
+            "value": 8,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "face_height",
+            "value": 60,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "motor_spacing",
+            "value": 31,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "mounting_hole_diameter",
+            "value": 4.5,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "shaft_hole_diameter",
+            "value": 24,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "slot_width",
+            "value": 8,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "slot_length",
+            "value": 28,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "gusset_thickness",
+            "value": 5,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "min_edge_clearance",
+            "value": 4,
+            "unit": "mm",
+            "interface_critical": false
+          }
+        ],
+        "preflight": [
+          {
+            "id": "pre_evidence_condition",
+            "stage": "preflight",
+            "name": "Evidence condition: Text + sketch",
+            "status": "pass",
+            "expected": null,
+            "actual": null,
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "Resolve disagreement"
+          }
+        ],
+        "measured": [
+          {
+            "id": "top_valid_solid",
+            "stage": "topology",
+            "name": "Valid solid",
+            "status": "pass",
+            "expected": "yes",
+            "actual": "yes",
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "the kernel reports a topologically valid shape"
+          },
+          {
+            "id": "top_body_count",
+            "stage": "topology",
+            "name": "Body count",
+            "status": "pass",
+            "expected": "1",
+            "actual": "1",
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "a single connected body"
+          },
+          {
+            "id": "top_positive_volume",
+            "stage": "topology",
+            "name": "Positive volume",
+            "status": "pass",
+            "expected": "> 0 mm3",
+            "actual": "31957.1992 mm3",
+            "required_value": null,
+            "measured_value": 31957.19920154397,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "the solid encloses material"
+          },
+          {
+            "id": "advanced_gusseted_motor_bracket_valid",
+            "stage": "dimensional",
+            "name": "gusseted_motor_bracket produced valid geometry",
+            "status": "pass",
+            "expected": "one valid solid",
+            "actual": "1 solid(s), valid=True",
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "operation produced one valid solid"
+          },
+          {
+            "id": "advanced_gusseted_motor_bracket_material_change",
+            "stage": "dimensional",
+            "name": "gusseted_motor_bracket changed material",
+            "status": "pass",
+            "expected": "non-zero volume delta",
+            "actual": "31957.2 mm3",
+            "required_value": null,
+            "measured_value": 31957.19920154397,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "B-Rep volume changed"
+          },
+          {
+            "id": "req_axis",
+            "stage": "requirement",
+            "name": "Motor axis centred",
+            "status": "pass",
+            "expected": null,
+            "actual": null,
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "shaft and pattern share the centreline"
+          },
+          {
+            "id": "req_edge_clearance",
+            "stage": "requirement",
+            "name": "Motor-hole edge clearance",
+            "status": "fail",
+            "expected": ">= 4 mm",
+            "actual": "1.25 mm",
+            "required_value": 4.0,
+            "measured_value": 1.25,
+            "conflict_class": "constraint_conflict",
+            "responsible_parameters": [
+              "bracket_width",
+              "motor_spacing",
+              "mounting_hole_diameter"
+            ],
+            "message": "measured 1.25 mm against 4 mm"
+          }
+        ],
+        "cross_checks": [],
+        "build_error": null,
+        "release": {
+          "status": "blocked",
+          "step_export_allowed": false,
+          "watermark": "PROVISIONAL - NOT FOR MANUFACTURE",
+          "reasons": [
+            "measured 1.25 mm against 4 mm"
+          ],
+          "explanation": "Release BLOCKED for DesignIntent v1. STEP export is withheld.\n  - measured 1.25 mm against 4 mm",
+          "responsible_parameters": [
+            "bracket_width",
+            "motor_spacing",
+            "mounting_hole_diameter"
+          ]
+        },
+        "proposals": [
+          {
+            "id": "widen_to_44",
+            "title": "Increase bracket width to 44 mm",
+            "safety": "safe",
+            "updates": {
+              "bracket_width": 44.0
+            },
+            "rationale": "Preserves the NEMA-17 interface while satisfying the measured edge-clearance requirement.",
+            "consequence": null,
+            "recommended": true,
+            "auto_applicable": true
+          }
+        ],
+        "script": "\"\"\"Generated by spec2cad from a typed CADProgram.\n\npart:     adjustable_motor_mount_bracket\nrevision: DesignIntent v1\n\nThis file is produced for review. The pipeline does not execute it -- the\nexecutor builds from the typed feature plan directly.\n\"\"\"\n\nimport cadquery as cq\nimport math\n\n# --- parameters, resolved from DesignIntent ---\nbase_depth = 60\nbase_thickness = 8\nbracket_width = 38\nface_height = 60\ngusset_thickness = 5\nmotor_spacing = 31\nmounting_hole_diameter = 4.5\nshaft_hole_diameter = 24\nslot_length = 28\nslot_width = 8\n\n# --- feature plan ---\n# gusseted_motor_bracket: gusseted NEMA motor bracket\nbracket_width = bracket_width\nbase_depth = base_depth\nbase_t = base_thickness\nface_height = face_height\nmotor_spacing = motor_spacing\nmount_hole_d = mounting_hole_diameter\nshaft_hole_d = shaft_hole_diameter\nbase = cq.Workplane('XY').box(bracket_width, base_depth, base_t, centered=(True, True, False))\nwall_y = base_depth/2 - base_t/2\nwall = (cq.Workplane('XY').box(bracket_width, base_t, face_height+.5, centered=(True,True,False))\n        .translate((0, wall_y, base_t-.5)))\nresult = base.union(wall)\nface_z = base_t + face_height/2\ncutters = [cq.Solid.makeCylinder(shaft_hole_d/2, 4*base_t, cq.Vector(0, base_depth/2-2*base_t, face_z), cq.Vector(0,1,0))]\nfor x in (-motor_spacing/2, motor_spacing/2):\n    for z in (face_z-motor_spacing/2, face_z+motor_spacing/2):\n        cutters.append(cq.Solid.makeCylinder(mount_hole_d/2, 4*base_t, cq.Vector(x, base_depth/2-2*base_t, z), cq.Vector(0,1,0)))\nfor cutter in cutters: result = result.cut(cq.Workplane(obj=cutter))\nresult = result.faces('>Z').workplane().pushPoints([(-bracket_width*.28, -base_depth*.2), (bracket_width*.28, -base_depth*.2)]).slot2D(slot_length, slot_width, 90).cutThruAll()\n\n# cq.exporters.export(result.val(), 'part.step')\n"
+      },
+      {
+        "revision": 2,
+        "parent_revision": 1,
+        "lineage": "v2 from v1 via widen_to_44 approved by frozen-showcase [bracket_width: 38 -> 44.0]",
+        "applied_proposal": "widen_to_44",
+        "approved_by": "frozen-showcase",
+        "changes": [
+          {
+            "parameter": "bracket_width",
+            "before": 38,
+            "after": 44.0,
+            "reason": "Preserves the NEMA-17 interface while satisfying the measured edge-clearance requirement."
+          }
+        ],
+        "part": {
+          "name": "motor-mount-bracket",
+          "material": "steel",
+          "manufacturing_process": "fabricated bracket"
+        },
+        "parameters": {
+          "bracket_width": {
+            "value": 44.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "base_depth": {
+            "value": 60,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "base_thickness": {
+            "value": 8,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "face_height": {
+            "value": 60,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "motor_spacing": {
+            "value": 31,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "mounting_hole_diameter": {
+            "value": 4.5,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [
+              "mb_holes"
+            ],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "shaft_hole_diameter": {
+            "value": 24,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "slot_width": {
+            "value": 8,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "slot_length": {
+            "value": 28,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "gusset_thickness": {
+            "value": 5,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          },
+          "min_edge_clearance": {
+            "value": 4,
+            "unit": "mm",
+            "status": "confirmed",
+            "provenance": [],
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": null,
+            "competing_values": []
+          }
+        },
+        "constraints": [],
+        "intent_graph": null,
+        "feature_sequence": [
+          "gusseted_motor_bracket (motor_mount_bracket)"
+        ],
+        "operations": [
+          {
+            "id": "gusseted_motor_bracket",
+            "type": "motor_mount_bracket",
+            "fields": [
+              {
+                "name": "bracket_width",
+                "value": 44.0,
+                "parameter": "bracket_width"
+              },
+              {
+                "name": "base_depth",
+                "value": 60.0,
+                "parameter": "base_depth"
+              },
+              {
+                "name": "base_thickness",
+                "value": 8.0,
+                "parameter": "base_thickness"
+              },
+              {
+                "name": "face_height",
+                "value": 60.0,
+                "parameter": "face_height"
+              },
+              {
+                "name": "motor_spacing",
+                "value": 31.0,
+                "parameter": "motor_spacing"
+              },
+              {
+                "name": "mounting_hole_diameter",
+                "value": 4.5,
+                "parameter": "mounting_hole_diameter"
+              },
+              {
+                "name": "shaft_hole_diameter",
+                "value": 24.0,
+                "parameter": "shaft_hole_diameter"
+              },
+              {
+                "name": "slot_width",
+                "value": 8.0,
+                "parameter": "slot_width"
+              },
+              {
+                "name": "slot_length",
+                "value": 28.0,
+                "parameter": "slot_length"
+              },
+              {
+                "name": "gusset_thickness",
+                "value": 5.0,
+                "parameter": "gusset_thickness"
+              }
+            ],
+            "measured": {
+              "volume": 37712.5499,
+              "volume_delta": 37712.5499,
+              "is_valid": true,
+              "solid_count": 1,
+              "seconds": 0.0177,
+              "no_op": false
+            }
+          }
+        ],
+        "derived_geometry": {
+          "gusseted_motor_bracket.motor_hole_edge_clearance": 4.25,
+          "gusseted_motor_bracket.minimum_feasible_width": 43.5
+        },
+        "editable_parameters": [
+          {
+            "name": "bracket_width",
+            "value": 44.0,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "base_depth",
+            "value": 60,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "base_thickness",
+            "value": 8,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "face_height",
+            "value": 60,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "motor_spacing",
+            "value": 31,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "mounting_hole_diameter",
+            "value": 4.5,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "shaft_hole_diameter",
+            "value": 24,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "slot_width",
+            "value": 8,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "slot_length",
+            "value": 28,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "gusset_thickness",
+            "value": 5,
+            "unit": "mm",
+            "interface_critical": false
+          },
+          {
+            "name": "min_edge_clearance",
+            "value": 4,
+            "unit": "mm",
+            "interface_critical": false
+          }
+        ],
+        "preflight": [
+          {
+            "id": "pre_evidence_condition",
+            "stage": "preflight",
+            "name": "Evidence condition: Text + sketch",
+            "status": "pass",
+            "expected": null,
+            "actual": null,
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "Resolve disagreement"
+          }
+        ],
+        "measured": [
+          {
+            "id": "top_valid_solid",
+            "stage": "topology",
+            "name": "Valid solid",
+            "status": "pass",
+            "expected": "yes",
+            "actual": "yes",
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "the kernel reports a topologically valid shape"
+          },
+          {
+            "id": "top_body_count",
+            "stage": "topology",
+            "name": "Body count",
+            "status": "pass",
+            "expected": "1",
+            "actual": "1",
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "a single connected body"
+          },
+          {
+            "id": "top_positive_volume",
+            "stage": "topology",
+            "name": "Positive volume",
+            "status": "pass",
+            "expected": "> 0 mm3",
+            "actual": "37712.5499 mm3",
+            "required_value": null,
+            "measured_value": 37712.54987856956,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "the solid encloses material"
+          },
+          {
+            "id": "advanced_gusseted_motor_bracket_valid",
+            "stage": "dimensional",
+            "name": "gusseted_motor_bracket produced valid geometry",
+            "status": "pass",
+            "expected": "one valid solid",
+            "actual": "1 solid(s), valid=True",
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "operation produced one valid solid"
+          },
+          {
+            "id": "advanced_gusseted_motor_bracket_material_change",
+            "stage": "dimensional",
+            "name": "gusseted_motor_bracket changed material",
+            "status": "pass",
+            "expected": "non-zero volume delta",
+            "actual": "37712.5 mm3",
+            "required_value": null,
+            "measured_value": 37712.54987856956,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "B-Rep volume changed"
+          },
+          {
+            "id": "req_axis",
+            "stage": "requirement",
+            "name": "Motor axis centred",
+            "status": "pass",
+            "expected": null,
+            "actual": null,
+            "required_value": null,
+            "measured_value": null,
+            "conflict_class": null,
+            "responsible_parameters": [],
+            "message": "shaft and pattern share the centreline"
+          },
+          {
+            "id": "req_edge_clearance",
+            "stage": "requirement",
+            "name": "Motor-hole edge clearance",
+            "status": "pass",
+            "expected": ">= 4 mm",
+            "actual": "4.25 mm",
+            "required_value": 4.0,
+            "measured_value": 4.25,
+            "conflict_class": null,
+            "responsible_parameters": [
+              "bracket_width",
+              "motor_spacing",
+              "mounting_hole_diameter"
+            ],
+            "message": "measured 4.25 mm against 4 mm"
+          }
+        ],
+        "cross_checks": [],
+        "build_error": null,
+        "release": {
+          "status": "authorised",
+          "step_export_allowed": true,
+          "watermark": null,
+          "reasons": [],
+          "explanation": "Release authorised for DesignIntent v2: every hard requirement is satisfied by the measured geometry.",
+          "responsible_parameters": []
+        },
+        "proposals": [],
+        "script": "\"\"\"Generated by spec2cad from a typed CADProgram.\n\npart:     adjustable_motor_mount_bracket\nrevision: DesignIntent v2\n\nThis file is produced for review. The pipeline does not execute it -- the\nexecutor builds from the typed feature plan directly.\n\"\"\"\n\nimport cadquery as cq\nimport math\n\n# --- parameters, resolved from DesignIntent ---\nbase_depth = 60\nbase_thickness = 8\nbracket_width = 44\nface_height = 60\ngusset_thickness = 5\nmotor_spacing = 31\nmounting_hole_diameter = 4.5\nshaft_hole_diameter = 24\nslot_length = 28\nslot_width = 8\n\n# --- feature plan ---\n# gusseted_motor_bracket: gusseted NEMA motor bracket\nbracket_width = bracket_width\nbase_depth = base_depth\nbase_t = base_thickness\nface_height = face_height\nmotor_spacing = motor_spacing\nmount_hole_d = mounting_hole_diameter\nshaft_hole_d = shaft_hole_diameter\nbase = cq.Workplane('XY').box(bracket_width, base_depth, base_t, centered=(True, True, False))\nwall_y = base_depth/2 - base_t/2\nwall = (cq.Workplane('XY').box(bracket_width, base_t, face_height+.5, centered=(True,True,False))\n        .translate((0, wall_y, base_t-.5)))\nresult = base.union(wall)\nface_z = base_t + face_height/2\ncutters = [cq.Solid.makeCylinder(shaft_hole_d/2, 4*base_t, cq.Vector(0, base_depth/2-2*base_t, face_z), cq.Vector(0,1,0))]\nfor x in (-motor_spacing/2, motor_spacing/2):\n    for z in (face_z-motor_spacing/2, face_z+motor_spacing/2):\n        cutters.append(cq.Solid.makeCylinder(mount_hole_d/2, 4*base_t, cq.Vector(x, base_depth/2-2*base_t, z), cq.Vector(0,1,0)))\nfor cutter in cutters: result = result.cut(cq.Workplane(obj=cutter))\nresult = result.faces('>Z').workplane().pushPoints([(-bracket_width*.28, -base_depth*.2), (bracket_width*.28, -base_depth*.2)]).slot2D(slot_length, slot_width, 90).cutThruAll()\n\n# cq.exporters.export(result.val(), 'part.step')\n"
+      }
+    ],
+    "latest_revision": 2
+  }
+}

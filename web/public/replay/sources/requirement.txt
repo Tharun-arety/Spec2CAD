@@ -1,1 +1,0 @@
-Manufacture the adapter from 5 mm aluminium. Use normal-clearance holes for M3 screws, maintain at least 4 mm from every hole edge to the plate boundary, and add 1 mm chamfers to the external edges.

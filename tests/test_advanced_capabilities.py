@@ -39,6 +39,7 @@ from spec2cad.schemas.cad_ir import (
     SheetMetalBendOp,
     SketchPlane,
     SketchProfile,
+    ThreadedBoltOp,
     lit,
 )
 from spec2cad.schemas.gdt_ir import (
@@ -164,6 +165,24 @@ def test_curved_strip_sweeps_rectangular_section_without_a_part_template():
     assert result.shape.Volume() == pytest.approx(
         result.context.derived["sweep.expected_volume"], rel=0.02
     )
+
+
+def test_threaded_bolt_builds_a_real_helix_cut_and_hex_flange_head():
+    op = ThreadedBoltOp(
+        id="fastener", major_diameter=lit(12), pitch=lit(1.75),
+        thread_length=lit(30), shank_length=lit(15),
+        head_across_flats=lit(18), head_height=lit(7.5),
+        flange_diameter=lit(22), flange_thickness=lit(3),
+    )
+    result = execute(CADProgram(part_name="m12_flange_bolt", operations=[op]), {})
+    assert result.shape.isValid()
+    assert len(result.shape.Solids()) == 1
+    assert len(result.shape.Faces()) > 20
+    assert result.context.derived["fastener.thread_turns"] == pytest.approx(30 / 1.75)
+    assert result.context.derived["fastener.thread_root_diameter"] == pytest.approx(
+        12 - 1.22687 * 1.75
+    )
+    assert result.context.derived["fastener.under_head_length"] == 45
 
 
 def _box_program(name: str) -> CADProgram:

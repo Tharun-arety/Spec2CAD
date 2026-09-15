@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { api } from '../api'
 import { cn } from '../lib/cn'
+import type { ReplayCatalog } from '../replay'
 import type { Evidence, RunState } from '../types'
 import { Button, Mark, Num, Tip } from './ui'
 
@@ -13,7 +14,9 @@ interface SourceWorkspaceProps {
   replayMode: boolean
   visionAvailable: boolean
   state: RunState | null
-  onDemo: () => void
+  replayCatalog: ReplayCatalog | null
+  activeScenarioId: string | null
+  onDemo: (scenarioId: string) => void
   onCompile: (sketch: File | null, datasheet: File | null, instruction: string) => void
   onContinue: (message: string) => void
   onNew: () => void
@@ -27,7 +30,8 @@ interface SourceWorkspaceProps {
  * what it knows and what is still missing.
  */
 export function SourceWorkspace({
-  busy, replayMode, visionAvailable, state, onDemo, onCompile, onContinue, onNew,
+  busy, replayMode, visionAvailable, state, replayCatalog, activeScenarioId,
+  onDemo, onCompile, onContinue, onNew,
 }: SourceWorkspaceProps) {
   const [sketch, setSketch] = useState<File | null>(null)
   const [datasheet, setDatasheet] = useState<File | null>(null)
@@ -130,6 +134,7 @@ export function SourceWorkspace({
             </div>
           )}
 
+          {!replayMode && (
           <div className="ml-[47px] mt-[21px] grid gap-[8px] sm:grid-cols-3">
             <button
               type="button"
@@ -183,6 +188,106 @@ export function SourceWorkspace({
               </span>
             </button>
           </div>
+          )}
+
+          {replayCatalog && (
+            <section className="ml-[47px] mt-[26px]" aria-labelledby="recorded-showcase-title">
+              <div className="flex items-end justify-between gap-[13px] border-b border-c3 pb-[9px]">
+                <div>
+                  <h2 id="recorded-showcase-title" className="text-[15px] font-semibold text-c9">
+                    Five evidence conditions
+                  </h2>
+                  <p className="mt-[2px] text-[12px] leading-relaxed text-c6">
+                    From language alone to full multimodal fusion—each recording tests a different kind of uncertainty.
+                  </p>
+                </div>
+                <span className="num shrink-0 text-[11px] text-c6">
+                  {replayCatalog.scenarios.length} scenarios
+                </span>
+              </div>
+
+              <div className="mt-[9px] grid gap-[8px] sm:grid-cols-2">
+                {replayCatalog.scenarios.map((scenario, index) => {
+                  const active = activeScenarioId === scenario.id && state?.run_id === `recorded-${scenario.id}`
+                  const featured = index === 0
+                  return (
+                    <article
+                      key={scenario.id}
+                      className={cn(
+                        'group relative flex min-h-[142px] flex-col overflow-hidden rounded-[7px]',
+                        'border bg-c0 px-[13px] py-[12px] shadow-[var(--shadow-raised)]',
+                        'transition-colors duration-150',
+                        featured && 'sm:col-span-2 sm:min-h-[126px]',
+                        active
+                          ? 'border-accent bg-accent-wash'
+                          : 'border-c3 hover:border-c5 hover:bg-c2',
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-[13px]">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-[5px]">
+                            <span className={cn(
+                              'num mr-[3px] text-[11px] font-semibold',
+                              active ? 'text-accent' : 'text-c6',
+                            )}>{scenario.step}</span>
+                            {scenario.inputs.map((input) => (
+                              <span key={input}
+                                    className="rounded-[3px] border border-c4 bg-c1 px-[5px] py-[1px]
+                                               text-[10px] font-medium text-c7">
+                                {input === 'document' ? 'technical document' : input}
+                              </span>
+                            ))}
+                          </div>
+                          <h3 className="mt-[2px] text-[14px] font-semibold text-c9">
+                            {scenario.title}
+                          </h3>
+                          <div className="mt-[2px] text-[11px] font-medium text-accent">
+                            {scenario.proof}
+                          </div>
+                        </div>
+                        {active && <Mark state="pass" glyph>Loaded</Mark>}
+                      </div>
+                      <p className={cn(
+                        'mt-[6px] text-[12px] leading-[1.55] text-c7',
+                        featured && 'sm:max-w-[590px]',
+                      )}>
+                        {scenario.description}
+                      </p>
+                      <div className="mt-[7px] border-l-2 border-warn-line pl-[7px]
+                                      text-[10.5px] leading-relaxed text-c6">
+                        {scenario.uncertainty}
+                      </div>
+                      <div className="mt-auto flex flex-wrap items-end gap-x-[8px] gap-y-[7px] pt-[10px]">
+                        <div className="min-w-[220px] flex-1">
+                          <div className="flex flex-wrap gap-[5px]">
+                            {scenario.capabilities.map((capability) => (
+                              <span key={capability}
+                                    className="rounded-[4px] border border-c4 bg-c1 px-[6px] py-[2px]
+                                               text-[10.5px] text-c7">
+                                {capability}
+                              </span>
+                            ))}
+                          </div>
+                          <div className="num mt-[6px] text-[10px] text-c6">
+                            CAD construction · {scenario.operation}
+                          </div>
+                        </div>
+                        <Button
+                          intent={active ? 'outline' : featured ? 'solid' : 'outline'}
+                          size="sm"
+                          onClick={() => onDemo(scenario.id)}
+                          disabled={busy}
+                        >
+                          <Play size={12} fill="currentColor" aria-hidden />
+                          {busy && active ? 'Loading…' : active ? 'Replay again' : 'Open run'}
+                        </Button>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            </section>
+          )}
 
           {state && latestRevision?.build_error && clarificationQuestions.length > 0 && (
             <div role="status" aria-live="polite"
@@ -260,23 +365,6 @@ export function SourceWorkspace({
       </div>
 
       <div className="border-t border-c3 bg-c0 px-[21px] py-[13px]">
-        <div className={cn(
-          'mx-auto mb-[8px] flex max-w-[760px] flex-wrap items-center gap-[10px]',
-          'rounded-[8px] border px-[11px] py-[9px] transition-colors',
-          hasDraft ? 'border-c3 bg-c1' : 'border-accent-line bg-accent-wash',
-        )}>
-          <div className="min-w-[180px] flex-1">
-            <div className="text-[12.5px] font-semibold text-c9">Recorded example</div>
-            <p className="mt-[1px] text-[11.5px] leading-snug text-c7">
-              Run the bundled sketch, motor datasheet and requirement.
-            </p>
-          </div>
-          <Button intent={hasDraft ? 'outline' : 'solid'} size="sm" onClick={onDemo} disabled={busy}>
-            <Play size={13} fill="currentColor" aria-hidden />
-            {busy ? 'Compiling…' : 'Compile recorded example'}
-          </Button>
-        </div>
-
         <div className="mx-auto max-w-[760px] rounded-[10px] border border-c4 bg-c0
                         shadow-[var(--shadow-float)] focus-within:border-accent">
           <label htmlFor="source-instruction" className="sr-only">
@@ -363,8 +451,8 @@ export function SourceWorkspace({
         </div>
         {replayMode && (
           <p className="mx-auto mt-[8px] max-w-[760px] text-[12px] text-warn">
-            Recorded replay cannot process new input. Use “Compile recorded example”
-            above, or run against the local backend.
+            Recorded replay cannot process new input. Choose any showcase run above,
+            or run against the local backend to compile your own sources.
           </p>
         )}
       </div>

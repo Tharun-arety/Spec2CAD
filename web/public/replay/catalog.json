@@ -1,0 +1,102 @@
+{
+  "mode": "recorded_showcase",
+  "disclaimer": "Five precomputed evidence conditions demonstrate the pipeline without pretending Vercel is running a CAD kernel.",
+  "frozen_at": "2026-09-15T12:27:10.910009+00:00",
+  "default_scenario": "flanged-shaft-coupling",
+  "scenarios": [
+    {
+      "id": "flanged-shaft-coupling",
+      "step": "01",
+      "title": "Flanged shaft coupling",
+      "focus": "Text only",
+      "proof": "Generate from language",
+      "uncertainty": "M5 tapping depth remains underspecified",
+      "description": "A keyed rigid-coupling half generated from one natural-language requirement\u2014without a drawing.",
+      "capabilities": [
+        "\u00d820 bore",
+        "\u00d860 bolt circle",
+        "4-hole circular pattern"
+      ],
+      "operation": "Revolved interface \u00b7 keyway \u00b7 patterned holes",
+      "inputs": [
+        "text"
+      ]
+    },
+    {
+      "id": "sheet-metal-enclosure",
+      "step": "02",
+      "title": "Sheet-metal enclosure",
+      "focus": "Sketch only",
+      "proof": "Interpret a hand sketch",
+      "uncertainty": "Missing material and tolerance; cut-out needs clarification",
+      "description": "A folded controller enclosure reconstructed from drawing marks while unsupported details stay explicit.",
+      "capabilities": [
+        "120 \u00d7 80 \u00d7 40",
+        "1.5 mm sheet",
+        "Bends and cut-outs"
+      ],
+      "operation": "Thin-wall body \u00b7 formed walls \u00b7 panel openings",
+      "inputs": [
+        "sketch"
+      ]
+    },
+    {
+      "id": "motor-mount-bracket",
+      "step": "03",
+      "title": "Motor-mount bracket",
+      "focus": "Text + sketch",
+      "proof": "Resolve disagreement",
+      "uncertainty": "38 mm request violates the 4 mm edge-clearance rule",
+      "description": "A gusseted NEMA-17 bracket that measures the text-versus-sketch conflict before an approved repair.",
+      "capabilities": [
+        "31 mm motor pattern",
+        "Adjustment slots",
+        "Measured repair"
+      ],
+      "operation": "Pads \u00b7 face holes \u00b7 slots \u00b7 gussets",
+      "inputs": [
+        "text",
+        "sketch"
+      ]
+    },
+    {
+      "id": "hydraulic-manifold",
+      "step": "04",
+      "title": "Hydraulic manifold",
+      "focus": "Sketch + technical document",
+      "proof": "Link annotations to component data",
+      "uncertainty": "P1/P2 obtain their thread geometry from HPI-12",
+      "description": "Sketch port labels resolve against a controlled interface sheet before hidden passages are validated.",
+      "capabilities": [
+        "Modeled M12 threads",
+        "3-port connectivity",
+        "Wall check"
+      ],
+      "operation": "Multi-face drilling \u00b7 internal threads \u00b7 passage booleans",
+      "inputs": [
+        "sketch",
+        "document"
+      ]
+    },
+    {
+      "id": "blower-transition-duct",
+      "step": "05",
+      "title": "Blower transition duct",
+      "focus": "Text + sketch + technical document",
+      "proof": "Fuse all evidence and repair geometry",
+      "uncertainty": "55 mm is too short for the controlled interface limits",
+      "description": "A thin-wall rectangle-to-round duct whose initial shell is measured, blocked, and lengthened after approval.",
+      "capabilities": [
+        "100 \u00d7 60 to \u00d880",
+        "2.5 mm shell",
+        "Infeasibility repair"
+      ],
+      "operation": "Rectangle-to-circle loft \u00b7 shell \u00b7 end flanges",
+      "inputs": [
+        "text",
+        "sketch",
+        "document"
+      ]
+    }
+  ]
+}

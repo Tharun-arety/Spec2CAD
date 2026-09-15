@@ -7,7 +7,7 @@
  * frame itself never scrolls.
  */
 import {
-  Box, CheckSquare, CircleSlash, FileStack, Ruler, ShieldCheck,
+  Box, CheckSquare, CircleSlash, FileStack, GitCommitVertical, Ruler, ShieldCheck,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 
@@ -32,7 +32,7 @@ import { formatValue } from '../lib/formatValue'
 import type { Revision, RunState } from '../types'
 import { Button, Mark, Num, Tip } from './ui'
 
-export type StageId = 'sources' | 'evidence' | 'intent' | 'cad' | 'validate'
+export type StageId = 'sources' | 'evidence' | 'intent' | 'cad' | 'validate' | 'revisions'
 
 export const STAGES: {
   id: StageId; label: string; icon: typeof Box; hint: string
@@ -42,6 +42,7 @@ export const STAGES: {
   { id: 'intent', label: 'Intent', icon: Box, hint: 'Consolidated parameters and constraints' },
   { id: 'cad', label: 'CAD', icon: CheckSquare, hint: 'The features built, and what each one did' },
   { id: 'validate', label: 'Validate', icon: ShieldCheck, hint: 'Measured on the solid, and the gate' },
+  { id: 'revisions', label: 'Revisions', icon: GitCommitVertical, hint: 'Immutable versions and approvals' },
 ]
 
 /* ------------------------------------------------------------ command bar */
@@ -123,11 +124,12 @@ export function CommandBar({
 /* ------------------------------------------------------------- stage rail */
 
 export function StageRail({
-  active, onSelect, flags, enabled, open,
+  active, onSelect, flags, counts, enabled, open,
 }: {
   active: StageId
   onSelect: (s: StageId) => void
   flags: Partial<Record<StageId, number>>
+  counts?: Partial<Record<StageId, number>>
   enabled: boolean
   open: boolean
 }) {
@@ -142,6 +144,8 @@ export function StageRail({
       {STAGES.map(({ id, label, icon: Icon, hint }, i) => {
         const on = id === active
         const flag = flags[id]
+        const count = counts?.[id]
+        const docked = id === 'revisions'
         return (
           <Tip key={id} side="right" label={
             <><strong>{label}</strong> — {hint}
@@ -155,6 +159,7 @@ export function StageRail({
               className={cn(
                 'relative grid h-[47px] cursor-pointer place-items-center gap-[3px]',
                 'rounded-l-[8px] pl-[3px] transition-colors duration-150',
+                docked && 'mt-auto border-t border-c3 pt-[3px]',
                 'disabled:cursor-not-allowed disabled:opacity-30',
                 on && open
                   // the active tab takes the panel's own surface so the two
@@ -176,8 +181,15 @@ export function StageRail({
                   {flag}
                 </span>
               )}
+              {!flag && count != null && count > 0 && (
+                <span className="num absolute right-[4px] top-[4px] grid h-[14px] min-w-[14px]
+                                 place-items-center rounded-full bg-accent px-[3px]
+                                 text-[9px] font-semibold leading-none text-accent-fg">
+                  {count}
+                </span>
+              )}
               {/* flow connector between steps */}
-              {i < STAGES.length - 1 && !(on && open) && (
+              {i < STAGES.length - 2 && !(on && open) && (
                 <span aria-hidden
                       className="absolute -bottom-[1px] left-1/2 h-px w-[21px] -translate-x-1/2 bg-c3" />
               )}

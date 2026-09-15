@@ -22,6 +22,7 @@ web/node_modules/
 # CONTRIBUTING notes if you want them.
 .agents/
 .claude/skills/
+.claude/launch.json
 
 # TypeScript incremental build cache
 *.tsbuildinfo

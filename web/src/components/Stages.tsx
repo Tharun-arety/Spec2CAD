@@ -14,6 +14,14 @@ import { Button, Empty, Field, Mark, Num, PanelHead, Tip } from './ui'
 
 const show = (v: unknown) => (v === null || v === undefined ? '—' : String(v))
 
+const derivedUnit = (name: string) => {
+  if (name.endsWith('thread_turns') || name.endsWith('ratio') || name.endsWith('connected_ports')) return null
+  if (name.endsWith('angle')) return 'deg'
+  if (name.endsWith('volume')) return 'mm³'
+  if (name.endsWith('area')) return 'mm²'
+  return 'mm'
+}
+
 /* --------------------------------------------------------------- sources */
 
 export function SourcesStage({
@@ -383,7 +391,7 @@ export function CadStage({
               <span key={name} className="flex items-baseline gap-[5px] text-[12px]">
                 <span className="text-c7">{name.replace(/[._]/g, ' ')}</span>
                 <Num strong value={formatValue(value)}
-                     unit={name.endsWith('volume') ? 'mm³' : 'mm'} />
+                     unit={derivedUnit(name)} />
               </span>
             ))}
           </div>

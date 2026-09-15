@@ -37,6 +37,7 @@ from spec2cad.schemas.cad_ir import (
     SketchPlane,
     SketchProfile,
     Termination,
+    ThreadedBoltOp,
     TubeOp,
     ref,
     lit,
@@ -58,6 +59,7 @@ from spec2cad.schemas.advanced_intent import (
     ProfileFeatureIntent,
     RectangularLoftFeatureIntent,
     SheetMetalFeatureIntent,
+    ThreadedFastenerFeatureIntent,
 )
 
 
@@ -310,6 +312,18 @@ def _compile_graph(graph: EngineeringIntentGraph) -> CADProgram:
                     tail_length=advanced_ref("tail_length"),
                     plane=SketchPlane(request.plane),
                 ))
+            elif isinstance(request, ThreadedFastenerFeatureIntent):
+                operations.append(ThreadedBoltOp(
+                    id=node.id,
+                    major_diameter=advanced_ref("major_diameter"),
+                    pitch=advanced_ref("pitch"),
+                    thread_length=advanced_ref("thread_length"),
+                    shank_length=advanced_ref("shank_length"),
+                    head_across_flats=advanced_ref("head_across_flats"),
+                    head_height=advanced_ref("head_height"),
+                    flange_diameter=advanced_ref("flange_diameter"),
+                    flange_thickness=advanced_ref("flange_thickness"),
+                ))
             continue
         if not isinstance(node, FeatureNode):
             continue
@@ -394,6 +408,7 @@ def _compile_graph(graph: EngineeringIntentGraph) -> CADProgram:
             BoxOp, CylinderOp, TubeOp, SheetMetalBendOp, CurvedRodOp,
             RectangularLoftOp,
             CurvedStripOp,
+            ThreadedBoltOp,
         ))
         or isinstance(operations[0], (ProfileExtrudeOp, ProfileRevolveOp))
         and operations[0].mode is BooleanMode.ADD

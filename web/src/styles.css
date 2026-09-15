@@ -3,9 +3,9 @@
 /* ---------------------------------------------------------------------------
    Spec2CAD — application shell.
 
-   Layout is unchanged: command bar, stage rail, permanent viewport, feature
-   timeline, contextual inspector. The frame never scrolls; panels scroll on
-   their own.
+   The command bar and stage rail frame a permanent engineering viewport.
+   Context stays on the left; the agent conversation stays on the right.
+   The frame never scrolls; panels scroll on their own.
 
    PROPORTION
    Every fixed dimension is a Fibonacci number, so the ratios between them are
@@ -173,6 +173,10 @@
     min-width: 0;
   }
 
+  .agent-panel {
+    width: clamp(300px, 26vw, var(--spacing-inspector));
+  }
+
   /* A flagged region. Tinted rather than hatched now that hue is available,
      but the tint is never the only signal -- a glyph and a rule carry it too. */
   .flagged {
@@ -220,12 +224,23 @@
     box-shadow: var(--shadow-float);
   }
 
-  .history-panel {
+  .agent-panel {
     position: absolute;
     inset-block: 0;
     right: 0;
     z-index: 35;
-    width: min(320px, calc(100% - var(--spacing-rail)));
+    width: min(360px, calc(100% - var(--spacing-rail)));
+    box-shadow: var(--shadow-float);
+  }
+}
+
+@media (min-width: 681px) and (max-width: 960px) {
+  .agent-panel {
+    position: absolute;
+    inset-block: 0;
+    right: 0;
+    z-index: 35;
+    width: min(377px, calc(100% - var(--spacing-rail)));
     box-shadow: var(--shadow-float);
   }
 }

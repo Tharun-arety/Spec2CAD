@@ -345,12 +345,120 @@ class CurvedStripOp(BaseModel):
     plane: SketchPlane = SketchPlane.XY
 
 
+class ThreadedBoltOp(BaseModel):
+    """Metric flange bolt with a swept helical external V-thread."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    type: Literal["threaded_bolt"] = "threaded_bolt"
+    id: str
+    major_diameter: Numeric
+    pitch: Numeric
+    thread_length: Numeric
+    shank_length: Numeric
+    head_across_flats: Numeric
+    head_height: Numeric
+    flange_diameter: Numeric
+    flange_thickness: Numeric
+
+
+class FlangedCouplingOp(BaseModel):
+    """One half of a keyed rigid flange coupling."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    type: Literal["flanged_coupling"] = "flanged_coupling"
+    id: str
+    flange_diameter: Numeric
+    flange_thickness: Numeric
+    hub_diameter: Numeric
+    hub_length: Numeric
+    bore_diameter: Numeric
+    bolt_circle_diameter: Numeric
+    bolt_hole_diameter: Numeric
+    bolt_count: int = Field(ge=3)
+    keyway_width: Numeric
+    keyway_depth: Numeric
+    entry_chamfer: Numeric
+    set_screw_depth: Numeric
+
+
+class ControllerEnclosureOp(BaseModel):
+    """Open-top folded controller enclosure with vents and panel cut-outs."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    type: Literal["controller_enclosure"] = "controller_enclosure"
+    id: str
+    length: Numeric
+    width: Numeric
+    height: Numeric
+    thickness: Numeric
+    vent_count: int = Field(ge=1)
+    cable_gland_x: Numeric
+    cable_gland_diameter: Numeric
+
+
+class MotorMountBracketOp(BaseModel):
+    """Gusseted right-angle motor bracket with base slots and motor pattern."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    type: Literal["motor_mount_bracket"] = "motor_mount_bracket"
+    id: str
+    bracket_width: Numeric
+    base_depth: Numeric
+    base_thickness: Numeric
+    face_height: Numeric
+    motor_spacing: Numeric
+    mounting_hole_diameter: Numeric
+    shaft_hole_diameter: Numeric
+    slot_width: Numeric
+    slot_length: Numeric
+    gusset_thickness: Numeric
+
+
+class HydraulicManifoldOp(BaseModel):
+    """Cross-drilled manifold with two modeled threaded inlets and one outlet."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    type: Literal["hydraulic_manifold"] = "hydraulic_manifold"
+    id: str
+    length: Numeric
+    width: Numeric
+    height: Numeric
+    port_major_diameter: Numeric
+    port_minor_diameter: Numeric
+    port_pitch: Numeric
+    tapping_depth: Numeric
+    passage_diameter: Numeric
+    port_spacing: Numeric
+
+
+class BlowerTransitionDuctOp(BaseModel):
+    """Thin-wall rectangle-to-round blower transition with end flanges."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    type: Literal["blower_transition_duct"] = "blower_transition_duct"
+    id: str
+    inlet_width: Numeric
+    inlet_height: Numeric
+    outlet_diameter: Numeric
+    transition_length: Numeric
+    wall_thickness: Numeric
+    flange_width: Numeric
+
+
 Operation = Annotated[
     Union[
         BoxOp, CylinderOp, TubeOp, HoleOp,
         RectangularHolePatternOp, LinearSlotPatternOp,
         ChamferOp, FilletOp, ProfileExtrudeOp, ProfileRevolveOp,
         SheetMetalBendOp, CurvedRodOp, RectangularLoftOp, CurvedStripOp,
+        ThreadedBoltOp, FlangedCouplingOp, ControllerEnclosureOp,
+        MotorMountBracketOp, HydraulicManifoldOp, BlowerTransitionDuctOp,
     ],
     Field(discriminator="type"),
 ]

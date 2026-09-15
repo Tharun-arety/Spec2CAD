@@ -42,6 +42,7 @@ from spec2cad.schemas.advanced_intent import (
     ProfileFeatureIntent,
     RectangularLoftFeatureIntent,
     SheetMetalFeatureIntent,
+    ThreadedFastenerFeatureIntent,
 )
 from spec2cad.public_guardrails import current_safety_identifier
 
@@ -107,11 +108,15 @@ REASONING_JSON_SCHEMA: dict[str, Any] = {
                     "loft_length",
                     "strip_width", "extrusion_thickness", "shank_length",
                     "strip_bend_radius", "strip_bend_angle_degrees", "tail_length",
+                    "major_diameter", "pitch", "thread_length",
+                    "fastener_shank_length", "head_across_flats", "head_height",
+                    "flange_diameter", "flange_thickness",
                 ],
                 "properties": {
                     "type": {"type": "string", "enum": [
                         "profile_extrude", "profile_revolve", "sheet_metal_bend",
                         "curved_rod", "rectangular_loft", "curved_strip",
+                        "threaded_fastener",
                     ]},
                     "id": {"type": "string"},
                     "plane": {"type": ["string", "null"], "enum": ["XY", "XZ", "YZ", None]},
@@ -181,6 +186,14 @@ REASONING_JSON_SCHEMA: dict[str, Any] = {
                     "strip_bend_radius": {"type": ["number", "null"]},
                     "strip_bend_angle_degrees": {"type": ["number", "null"]},
                     "tail_length": {"type": ["number", "null"]},
+                    "major_diameter": {"type": ["number", "null"]},
+                    "pitch": {"type": ["number", "null"]},
+                    "thread_length": {"type": ["number", "null"]},
+                    "fastener_shank_length": {"type": ["number", "null"]},
+                    "head_across_flats": {"type": ["number", "null"]},
+                    "head_height": {"type": ["number", "null"]},
+                    "flange_diameter": {"type": ["number", "null"]},
+                    "flange_thickness": {"type": ["number", "null"]},
                 },
             },
         },
@@ -259,7 +272,8 @@ ask when the user already specifies either form. Preserve any independent,
 unambiguous facts while asking the question.
 
 Supported advanced feature intents are profile_extrude, profile_revolve,
-sheet_metal_bend, curved_rod, curved_strip and rectangular_loft. Put them in feature_requests, not
+sheet_metal_bend, curved_rod, curved_strip, rectangular_loft and
+threaded_fastener. Put them in feature_requests, not
 unsupported_features. A
 profile is a closed ordered line/three-point-arc path in an explicitly named
 sketch plane. Use only coordinates and dimensions the user supplied; if the
@@ -283,6 +297,10 @@ each number to those five fields unambiguously, preserve the scalar values as a
 partial rectangular_loft request and ask the user to provide "start width ×
 height, end width × height, and distance between them". Never reinterpret a
 taper as plate_thickness.
+For threaded_fastener, require major_diameter, pitch, thread_length,
+fastener_shank_length, head_across_flats, head_height, flange_diameter and
+flange_thickness. Use it only when the user asks for an external threaded bolt
+or fastener; do not reduce the thread to a smooth cylinder or a cosmetic label.
 """
 
 
@@ -351,6 +369,17 @@ def _feature_requests(payload: dict[str, Any]) -> tuple[list[FeatureIntent], lis
                     bend_angle_degrees=item["strip_bend_angle_degrees"],
                     tail_length=item["tail_length"], plane="XY",
                 ))
+            elif item["type"] == "threaded_fastener":
+                requests.append(ThreadedFastenerFeatureIntent(
+                    type="threaded_fastener", id=item["id"],
+                    major_diameter=item["major_diameter"],
+                    pitch=item["pitch"], thread_length=item["thread_length"],
+                    shank_length=item["fastener_shank_length"],
+                    head_across_flats=item["head_across_flats"],
+                    head_height=item["head_height"],
+                    flange_diameter=item["flange_diameter"],
+                    flange_thickness=item["flange_thickness"],
+                ))
         except (KeyError, TypeError, ValueError) as exc:
             feature_type = item.get("type", f"feature {index}")
             if feature_type == "curved_rod":
@@ -416,6 +445,22 @@ def _feature_requests(payload: dict[str, Any]) -> tuple[list[FeatureIntent], lis
                     "To build this as a rectangular-section curved sweep, please provide "
                     + ", ".join(missing) + "."
                 )
+            elif feature_type == "threaded_fastener":
+                fields = (
+                    ("major_diameter", "major diameter"),
+                    ("pitch", "thread pitch"),
+                    ("thread_length", "threaded length"),
+                    ("fastener_shank_length", "unthreaded shank length"),
+                    ("head_across_flats", "hex-head across-flats size"),
+                    ("head_height", "head height"),
+                    ("flange_diameter", "flange diameter"),
+                    ("flange_thickness", "flange thickness"),
+                )
+                missing = [label for name, label in fields if item.get(name) is None]
+                questions.append(
+                    "For the threaded fastener, please provide "
+                    + ", ".join(missing) + "."
+                )
             else:
                 questions.append(f"Please clarify the incomplete {feature_type} definition.")
     return requests, questions
@@ -467,6 +512,17 @@ def _feature_evidence(
                 (f"{request.id}_angle", SemanticTarget.STRIP_BEND_ANGLE, EvidenceKind.FEATURE_CALLOUT, request.bend_angle_degrees, "deg"),
                 (f"{request.id}_tail", SemanticTarget.STRIP_TAIL_LENGTH, EvidenceKind.LINEAR_DIMENSION, request.tail_length, "mm"),
             ])
+        elif isinstance(request, ThreadedFastenerFeatureIntent):
+            specs.extend([
+                (f"{request.id}_major_diameter", SemanticTarget.FASTENER_MAJOR_DIAMETER, EvidenceKind.DIAMETER, request.major_diameter, "mm"),
+                (f"{request.id}_pitch", SemanticTarget.THREAD_PITCH, EvidenceKind.LINEAR_DIMENSION, request.pitch, "mm"),
+                (f"{request.id}_thread_length", SemanticTarget.THREADED_LENGTH, EvidenceKind.LINEAR_DIMENSION, request.thread_length, "mm"),
+                (f"{request.id}_shank_length", SemanticTarget.FASTENER_SHANK_LENGTH, EvidenceKind.LINEAR_DIMENSION, request.shank_length, "mm"),
+                (f"{request.id}_head_across_flats", SemanticTarget.HEAD_ACROSS_FLATS, EvidenceKind.LINEAR_DIMENSION, request.head_across_flats, "mm"),
+                (f"{request.id}_head_height", SemanticTarget.HEAD_HEIGHT, EvidenceKind.LINEAR_DIMENSION, request.head_height, "mm"),
+                (f"{request.id}_flange_diameter", SemanticTarget.FLANGE_DIAMETER, EvidenceKind.DIAMETER, request.flange_diameter, "mm"),
+                (f"{request.id}_flange_thickness", SemanticTarget.FLANGE_THICKNESS, EvidenceKind.LINEAR_DIMENSION, request.flange_thickness, "mm"),
+            ])
 
     return [Evidence(
         id=f"ev_feature_{suffix}", entity="generated_part", kind=kind,
@@ -510,6 +566,16 @@ def _partial_feature_evidence(
             "end_width": (SemanticTarget.LOFT_END_WIDTH, EvidenceKind.LINEAR_DIMENSION, "mm"),
             "end_height": (SemanticTarget.LOFT_END_HEIGHT, EvidenceKind.LINEAR_DIMENSION, "mm"),
             "loft_length": (SemanticTarget.LOFT_LENGTH, EvidenceKind.LINEAR_DIMENSION, "mm"),
+        },
+        "threaded_fastener": {
+            "major_diameter": (SemanticTarget.FASTENER_MAJOR_DIAMETER, EvidenceKind.DIAMETER, "mm"),
+            "pitch": (SemanticTarget.THREAD_PITCH, EvidenceKind.LINEAR_DIMENSION, "mm"),
+            "thread_length": (SemanticTarget.THREADED_LENGTH, EvidenceKind.LINEAR_DIMENSION, "mm"),
+            "fastener_shank_length": (SemanticTarget.FASTENER_SHANK_LENGTH, EvidenceKind.LINEAR_DIMENSION, "mm"),
+            "head_across_flats": (SemanticTarget.HEAD_ACROSS_FLATS, EvidenceKind.LINEAR_DIMENSION, "mm"),
+            "head_height": (SemanticTarget.HEAD_HEIGHT, EvidenceKind.LINEAR_DIMENSION, "mm"),
+            "flange_diameter": (SemanticTarget.FLANGE_DIAMETER, EvidenceKind.DIAMETER, "mm"),
+            "flange_thickness": (SemanticTarget.FLANGE_THICKNESS, EvidenceKind.LINEAR_DIMENSION, "mm"),
         },
         "curved_strip": {
             "strip_width": (SemanticTarget.STRIP_WIDTH, EvidenceKind.LINEAR_DIMENSION, "mm"),

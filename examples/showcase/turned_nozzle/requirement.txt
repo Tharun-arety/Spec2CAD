@@ -1,0 +1,4 @@
+Create a bottle-neck forming mandrel by revolving an axial profile 360 degrees.
+The profile runs from the axis at z = -30 mm out to a 12 mm radius, flares to an
+18 mm forming shoulder, continues through the body, tapers to a 10 mm radius at
+z = 30 mm, then returns to the axis.

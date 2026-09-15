@@ -1,0 +1,3 @@
+Create a sheet-metal corner guard for an electrical enclosure with 60 mm and 45
+mm outside legs, 40 mm width, 2 mm thickness, a 4 mm inside bend radius, a 90
+degree bend, and K-factor 0.42.

@@ -2,7 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import {
   FORCED_REPLAY, REMOTE_BACKEND, REPLAY_AVAILABLE, api, setApiMode, wakeBackend,
 } from './api'
-import { replayApi, type ReplayManifest } from './replay'
+import { replayApi, type ReplayCatalog, type ReplayManifest } from './replay'
 import type { Evidence, Health, Proposal, RunState } from './types'
 import {
   CommandBar, StageRail, StatusBar, Timeline, ViewportOverlay, type StageId,
@@ -10,14 +10,16 @@ import {
 import {
   CadStage, EvidenceStage, IntentStage, SourcesStage, ValidateStage,
 } from './components/Stages'
-import { Download, Lock, PanelRightClose, PanelRightOpen, Plus } from 'lucide-react'
+import { Download, Lock, MessageSquareText, Plus } from 'lucide-react'
 import { Button, Empty, Tip } from './components/ui'
 import { VersionGraph } from './components/VersionGraph'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { PlanView } from './components/PlanView'
 import { GuideBar } from './components/GuideBar'
 import { PipelinePreview } from './components/PipelinePreview'
-import { EvidenceWorkbench, SourceWorkspace } from './components/Workbenches'
+import { EvidenceWorkbench } from './components/Workbenches'
+import { AgentPanel } from './components/AgentPanel'
+import { ShowcaseWorkspace } from './components/ShowcaseWorkspace'
 import { hasWebGL } from './lib/webgl'
 import { cn } from './lib/cn'
 
@@ -51,14 +53,15 @@ export default function App() {
   const [inspectorOpen, setInspectorOpen] = useState(() =>
     typeof window === 'undefined' || window.matchMedia('(min-width: 861px)').matches,
   )
-  // Collapsed by default: the canvas was being squeezed between the inspector
-  // and the history panel. History is opened from the revision chip when wanted.
-  const [historyOpen, setHistoryOpen] = useState(false)
+  const [agentOpen, setAgentOpen] = useState(true)
   const [feature, setFeature] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [replay, setReplay] = useState<ReplayManifest | null>(null)
-  const [mode, setMode] = useState<'live' | 'replay'>(FORCED_REPLAY ? 'replay' : 'live')
+  const [replayCatalog, setReplayCatalog] = useState<ReplayCatalog | null>(null)
+  const [mode, setMode] = useState<'live' | 'replay'>(
+    FORCED_REPLAY || state?.run_id.startsWith('recorded-') ? 'replay' : 'live',
+  )
   const [waking, setWaking] = useState<number | null>(null)
   // Probed once, before three.js is imported. Environments without a GPU
   // context (VMs, remote desktops, locked-down laptops, headless browsers) get
@@ -68,7 +71,19 @@ export default function App() {
   const [backendDown, setBackendDown] = useState<string | null>(null)
 
   useEffect(() => {
-    if (REPLAY_AVAILABLE) replayApi.manifest().then(setReplay).catch(() => {})
+    setApiMode(mode)
+    if (REPLAY_AVAILABLE) {
+      replayApi.catalog()
+        .then((catalog) => {
+          setReplayCatalog(catalog)
+          const restoredScenario = state?.run_id.startsWith('recorded-')
+            ? state.run_id.slice('recorded-'.length)
+            : catalog.default_scenario
+          return replayApi.manifest(restoredScenario)
+        })
+        .then(setReplay)
+        .catch(() => {})
+    }
     if (mode === 'replay') {
       api.health().then(setHealth).catch(() => {})
       return
@@ -122,6 +137,17 @@ export default function App() {
       setBusy(false)
     }
   }, [])
+
+  const runRecordedDemo = (scenarioId: string) => {
+    setApiMode('replay')
+    setMode('replay')
+    setBackendDown(null)
+    guard(async () => {
+      const manifest = await replayApi.manifest(scenarioId)
+      setReplay(manifest)
+      return replayApi.runDemo(scenarioId)
+    })
+  }
 
   const rev = state
     ? state.revisions.find((r) => r.revision === viewing) ?? state.revisions[0]
@@ -212,22 +238,18 @@ export default function App() {
                 </button>
               </Tip>
             )}
-            {state && (
-              <Tip side="bottom" label={historyOpen ? 'Hide revision history' : 'Show revision history'}>
+            <Tip side="bottom" label={agentOpen ? 'Hide agent conversation' : 'Show agent conversation'}>
                 <button
-                  onClick={() => setHistoryOpen((o) => !o)}
-                  aria-label={historyOpen ? 'Hide revision history' : 'Show revision history'}
-                  aria-expanded={historyOpen}
+                  onClick={() => setAgentOpen((open) => !open)}
+                  aria-label={agentOpen ? 'Hide agent conversation' : 'Show agent conversation'}
+                  aria-expanded={agentOpen}
                   className="grid h-[29px] w-[29px] cursor-pointer place-items-center rounded-[5px]
                              border border-c4 bg-c0 text-c7 shadow-[var(--shadow-raised)]
                              transition-colors duration-150 hover:border-c6 hover:text-c9"
                 >
-                  {historyOpen
-                    ? <PanelRightClose size={15} strokeWidth={1.7} aria-hidden />
-                    : <PanelRightOpen size={15} strokeWidth={1.7} aria-hidden />}
+                  <MessageSquareText size={15} strokeWidth={1.7} aria-hidden />
                 </button>
               </Tip>
-            )}
           </>
         }
       />
@@ -237,7 +259,9 @@ export default function App() {
             bar and its sidebar do. The rail sits against the panel it drives, so
             choosing a stage and reading it are one glance. */}
         <StageRail
-          active={stage} flags={flags} enabled={!!state} open={inspectorOpen}
+          active={stage} flags={flags}
+          counts={{ revisions: state?.revisions.length ?? 0 }}
+          enabled={!!state} open={inspectorOpen}
           onSelect={(s) => {
             if (s === stage) setInspectorOpen((o) => !o)
             else { setStage(s); setInspectorOpen(true) }
@@ -261,7 +285,9 @@ export default function App() {
               to a real backend would be a lie about what you are looking at. */}
           {stage === 'sources' && (
             <SourcesStage
-              backendLabel={health?.sketch_backend_label ?? 'checking…'}
+              backendLabel={mode === 'replay' && replay
+                ? `${replay.sketch_backend} · recorded replay`
+                : health?.sketch_backend_label ?? 'checking…'}
               visionAvailable={health?.vision_available ?? false}
               replay={mode === 'replay' ? replay : null}
               evidence={state?.evidence}
@@ -295,6 +321,13 @@ export default function App() {
               }
             />
           )}
+          {state && rev && stage === 'revisions' && (
+            <VersionGraph
+              revisions={state.revisions}
+              current={rev.revision}
+              onSelect={(n) => { setViewing(n); setScriptOpen(false) }}
+            />
+          )}
 
           {/* One contextual next step, so the pipeline is walked in order
               instead of discovered in the sidebar. */}
@@ -307,25 +340,14 @@ export default function App() {
         <main className="workspace-main flex min-w-0 flex-1 flex-col">
           <div className="viewport-ground grid-dots relative min-h-0 flex-1">
             {stage === 'sources' ? (
-              <SourceWorkspace
+              <ShowcaseWorkspace
                 busy={busy}
-                replayMode={mode === 'replay'}
-                visionAvailable={health?.vision_available ?? false}
                 state={state}
-                onDemo={() => guard(api.runDemo)}
-                onCompile={(sketch, datasheet, instruction) =>
-                  guard(() => api.runUpload(sketch, datasheet, instruction))
-                }
-                onContinue={(message) => {
-                  if (state) guard(() => api.continueRun(state.run_id, message))
-                }}
-                onNew={() => {
-                  setState(null)
-                  setViewing(null)
-                  setPicked(null)
-                  setFeature(null)
-                  setError(null)
-                }}
+                catalog={replayCatalog}
+                activeScenarioId={state?.run_id.startsWith('recorded-')
+                  ? state.run_id.slice('recorded-'.length)
+                  : replay?.scenario.id ?? null}
+                onDemo={runRecordedDemo}
               />
             ) : stage === 'evidence' && state ? (
               <EvidenceWorkbench state={state} picked={picked} onPick={setPicked} />
@@ -403,15 +425,14 @@ export default function App() {
                         </Button>
                         {REPLAY_AVAILABLE && (
                           <Button intent="solid" size="md" onClick={useReplayInstead}>
-                            View the recorded run
+                            View recorded examples
                           </Button>
                         )}
                       </div>
                       {REPLAY_AVAILABLE && (
                         <p className="mt-[13px] text-[12px] leading-relaxed text-c6">
-                          The recording is genuine pipeline output, but it is a
-                          recording — no uploads, and only the resolution that was
-                          recorded can be applied.
+                          Five genuine pipeline recordings remain available without
+                          the backend. They do not accept uploads or invent new revisions.
                         </p>
                       )}
                     </>
@@ -447,16 +468,28 @@ export default function App() {
           )}
         </main>
 
-        {/* Revision history on the right. DesignIntent revisions are already an
-            immutable attributed chain, so they are drawn as a commit graph. */}
-        {state && rev && historyOpen && (
-          <aside className="history-panel chrome-grain pane w-[280px] shrink-0 border-l border-c3 bg-c0">
-            <VersionGraph
-              revisions={state.revisions}
-              current={rev.revision}
-              onSelect={(n) => { setViewing(n); setScriptOpen(false) }}
-            />
-          </aside>
+        {agentOpen && (
+          <AgentPanel
+            busy={busy}
+            replayMode={mode === 'replay'}
+            visionAvailable={health?.vision_available ?? false}
+            state={state}
+            onCompile={(sketch, datasheet, instruction) =>
+              guard(() => api.runUpload(sketch, datasheet, instruction))
+            }
+            onContinue={(message) => {
+              if (state) guard(() => api.continueRun(state.run_id, message))
+            }}
+            onNew={() => {
+              setState(null)
+              setViewing(null)
+              setPicked(null)
+              setFeature(null)
+              setScriptOpen(false)
+              setError(null)
+              setStage('sources')
+            }}
+          />
         )}
 
       </div>
