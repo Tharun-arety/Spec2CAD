@@ -50,9 +50,10 @@ services:
         sync: false
       - key: SPEC2CAD_ADMIN_TOKEN
         sync: false
-      # Set these in the Render dashboard to enable real sketch extraction.
-      # Without either, the sketch falls back to its recorded fixture, which is
-      # labelled as such in the UI.
+      # OPENAI_API_KEY enables the constrained natural-language planner and the
+      # unified text + sketch + PDF semantic path. ANTHROPIC_API_KEY remains a
+      # sketch-only alternative. Without either, uploaded sketches are refused
+      # and the deterministic text parser remains intentionally narrow.
       - key: OPENAI_API_KEY
         sync: false
       - key: ANTHROPIC_API_KEY

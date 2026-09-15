@@ -21,8 +21,14 @@ import uuid
 from spec2cad.cad.compiler import REQUIRED_FOR_COMPILATION, compile_design, parameter_table
 from spec2cad.cad.executor import ExecutionError, ExecutionResult, execute, import_step
 from spec2cad.cad.script_writer import write_script
-from spec2cad.extractors.datasheet import extract_datasheet
-from spec2cad.extractors.drawing import extract_sketch
+from spec2cad.extractors.base import (
+    VisionBackend,
+    reasoning_available,
+    reasoning_model,
+    select_backend,
+)
+from spec2cad.extractors.datasheet import extract_datasheet, read_document_text
+from spec2cad.extractors.drawing import SketchExtraction, extract_sketch
 from spec2cad.extractors.reasoning import extract_requirement_with_reasoning
 from spec2cad.fusion.conflict_detector import run_preflight
 from spec2cad.fusion.graph_builder import (
@@ -34,7 +40,7 @@ from spec2cad.fusion.source_policy import is_interface_critical
 from spec2cad.repair.repair_planner import RepairProposal, apply_repair, plan_repairs
 from spec2cad.schemas.cad_ir import CADProgram
 from spec2cad.schemas.design_intent import DesignIntent
-from spec2cad.schemas.evidence import EvidenceSet, SemanticTarget
+from spec2cad.schemas.evidence import EvidenceSet, SemanticTarget, SourceModality
 from spec2cad.schemas.intent_graph import AdvancedFeatureNode, EngineeringIntentGraph
 from spec2cad.schemas.report import (
     CheckResult,
@@ -170,16 +176,84 @@ def gather_evidence(
     items = []
     sketch_result = None
     reasoning_result = None
-    if sketch is not None:
+
+    # When OpenAI reasoning is available, give the sketch to the same typed
+    # semantic planner that interprets the written requirement. The legacy
+    # sketch reader is deliberately plate-specific; running it first would
+    # constrain an otherwise generic part back to the motor-adapter vocabulary.
+    selected_backend = select_backend(backend_override) if sketch is not None else None
+    multimodal_sketch = bool(
+        sketch is not None
+        and use_reasoning
+        and reasoning_available()
+        and selected_backend is VisionBackend.OPENAI
+    )
+    if sketch is not None and not multimodal_sketch:
         sketch_result = extract_sketch(sketch, backend_override)
         items.extend(sketch_result.evidence)
     if datasheet is not None:
         items.extend(extract_datasheet(datasheet))
-    if requirement is not None:
+
+    should_reason = requirement is not None or (
+        use_reasoning and (sketch is not None or datasheet is not None)
+    )
+    if should_reason:
+        seed = _requirement_text(requirement) if requirement is not None else ""
+        context_parts: list[str] = []
+        if reasoning_context:
+            context_parts.append(reasoning_context)
+        elif seed:
+            context_parts.append(f"[WRITTEN REQUIREMENT]\n{seed}")
+        if datasheet is not None:
+            document_text = read_document_text(datasheet)
+            if document_text:
+                context_parts.append(
+                    f"[TECHNICAL PDF: {datasheet.name}]\n{document_text}"
+                )
+        if sketch is not None:
+            context_parts.append(
+                f"[ENGINEERING SKETCH: {sketch.name}]\n"
+                "The attached image is engineering evidence. Use only written "
+                "dimensions and explicit geometric relationships."
+            )
+        if not context_parts:
+            context_parts.append("Interpret the supplied engineering evidence.")
+
+        source_modality = (
+            SourceModality.REQUIREMENT_TEXT if requirement is not None
+            else SourceModality.SKETCH if sketch is not None
+            else SourceModality.DATASHEET
+        )
+        source_name = (
+            Path(requirement).name if isinstance(requirement, Path)
+            else "requirement.txt" if requirement is not None
+            else sketch.name if sketch is not None
+            else datasheet.name
+        )
+        source_files = {
+            **({"requirement": source_name} if requirement is not None else {}),
+            **({"sketch": sketch.name} if sketch is not None else {}),
+            **({"technical_document": datasheet.name} if datasheet is not None else {}),
+            "combined": source_name,
+        }
         reasoning_result = extract_requirement_with_reasoning(
-            requirement, enabled=use_reasoning, reasoning_context=reasoning_context
+            seed,
+            source_name=source_name,
+            enabled=use_reasoning,
+            reasoning_context="\n\n".join(context_parts),
+            image_path=sketch if multimodal_sketch else None,
+            source_modality=source_modality,
+            source_files=source_files,
         )
         items.extend(reasoning_result.evidence)
+        if multimodal_sketch:
+            sketch_result = SketchExtraction(
+                evidence=[],
+                backend=VisionBackend.OPENAI,
+                label=f"openai multimodal intent ({reasoning_model()})",
+                fell_back=reasoning_result.fell_back,
+                fallback_reason=reasoning_result.fallback_reason,
+            )
 
     label = sketch_result.label if sketch_result else "not used (no sketch supplied)"
     return EvidenceSet(
@@ -187,7 +261,7 @@ def gather_evidence(
         backend_used=label,
         reasoning_backend=(
             reasoning_result.label
-            if reasoning_result else "not used (no requirement supplied)"
+            if reasoning_result else "not used (no semantic input supplied)"
         ),
         reasoning_fell_back=reasoning_result.fell_back if reasoning_result else False,
         reasoning_fallback_reason=(
@@ -329,10 +403,16 @@ def run(
         sketch, datasheet, requirement, backend_override, use_reasoning,
         reasoning_context,
     )
-    # A text-only request is a generic generated plate, not automatically a
-    # motor adapter. Runs with the demo sketch/datasheet retain the established
-    # motor-adapter identity.
-    part_name = "motor_adapter_plate" if sketch is not None or datasheet is not None else None
+    # The recorded fixture and narrow deterministic document parser describe a
+    # motor adapter. A multimodal request that produced an advanced feature is
+    # named from its extracted part identity instead of being forced back into
+    # the historical plate template merely because it included an attachment.
+    attached = sketch is not None or datasheet is not None
+    part_name = (
+        "motor_adapter_plate"
+        if attached and not evidence.feature_requests
+        else None
+    )
     intent_graph, _ = build_intent_graph(evidence, part_name=part_name)
     intent = project_to_design_intent(intent_graph)
     result = RunResult(
@@ -353,9 +433,18 @@ def run(
         unsupported_features=evidence.unsupported_features,
         clarification_questions=evidence.clarification_questions,
     )
-    if create_messages and requirement is not None:
+    if create_messages and (requirement is not None or sketch is not None or datasheet is not None):
+        request_text = (
+            _requirement_text(requirement) if requirement is not None
+            else "Interpret the attached " + " and ".join(
+                name for name, present in (
+                    ("engineering sketch", sketch is not None),
+                    ("technical document", datasheet is not None),
+                ) if present
+            ) + "."
+        )
         result.messages = [
-            ChatMessage.create("user", _requirement_text(requirement), "request"),
+            ChatMessage.create("user", request_text, "request"),
             _assistant_message(result),
         ]
     return result

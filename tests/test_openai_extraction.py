@@ -9,7 +9,7 @@ import openai
 
 from spec2cad.extractors import base
 from spec2cad.extractors.reasoning import extract_requirement_with_reasoning
-from spec2cad.schemas.evidence import ExtractionMethod, SemanticTarget
+from spec2cad.schemas.evidence import ExtractionMethod, SemanticTarget, SourceModality
 from spec2cad.pipeline import continue_conversation, run
 from spec2cad.schemas.cad_ir import TubeOp
 from spec2cad.schemas.cad_ir import CurvedRodOp, RectangularLoftOp, SheetMetalBendOp
@@ -64,6 +64,8 @@ def _fake_openai(monkeypatch, payload, captured):
     class Responses:
         def create(self, **kwargs):
             captured["request"] = kwargs
+            for fact in payload.get("facts", []):
+                fact.setdefault("source", "requirement")
             return SimpleNamespace(output_text=json.dumps(payload))
 
     class Client:
@@ -213,6 +215,45 @@ def test_cylindrical_tube_prompt_flows_from_reasoning_through_graph_and_cad(
     assert result.latest.intent.value_of("body_length") == 15
     assert result.latest.build_error is None
     assert result.latest.released is True
+
+
+def test_sketch_only_uses_multimodal_reasoning_for_advanced_geometry(
+    tmp_path, monkeypatch,
+):
+    captured = {}
+    _fake_openai(monkeypatch, {
+        "facts": [{
+            "target": "part_type", "kind": "feature_callout",
+            "value": "rectangular transition", "unit": None,
+            "source": "sketch",
+            "confidence": 0.98, "is_explicit_annotation": True,
+            "raw_text": "dimensioned rectangular transition sketch",
+        }],
+        "feature_requests": [{
+            "type": "rectangular_loft", "id": "sketched_transition", "plane": "XY",
+            "start_width": 30, "start_height": 20,
+            "end_width": 12, "end_height": 8, "loft_length": 40,
+        }],
+        "unsupported_features": [],
+        "clarification_questions": [],
+    }, captured)
+    monkeypatch.setenv("OPENAI_API_KEY", "test-server-key")
+    sketch = tmp_path / "transition.png"
+    sketch.write_bytes(b"\x89PNG\r\n\x1a\nmultimodal-test")
+
+    result = run(sketch=sketch, use_reasoning=True)
+
+    content = captured["request"]["input"][0]["content"]
+    assert [item["type"] for item in content] == ["input_text", "input_image"]
+    assert content[1]["image_url"].startswith("data:image/png;base64,")
+    assert isinstance(result.latest.program.operations[0], RectangularLoftOp)
+    assert result.latest.execution.shape.isValid()
+    assert result.latest.released is True
+    assert result.sketch_backend == "openai multimodal intent (gpt-4o)"
+    assert all(
+        item.source.modality is SourceModality.SKETCH
+        for item in result.evidence.items
+    )
 
 
 def test_material_geometry_ambiguity_is_asked_before_cad_planning(

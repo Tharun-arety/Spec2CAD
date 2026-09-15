@@ -401,14 +401,24 @@ def _require_admin_token(value: Optional[str]) -> None:
 @app.get("/health")
 def health() -> dict:
     backend = select_backend()
+    semantic_model_available = reasoning_available()
+    multimodal_available = (
+        semantic_model_available and backend.value == "openai"
+    )
     return {
         "status": "ok",
         "sketch_backend": backend.value,
         "sketch_backend_label": backend_label(backend),
         "vision_available": backend.value != "fixture",
         "vision_model": openai_model() if backend.value == "openai" else None,
-        "reasoning_available": reasoning_available(),
-        "reasoning_model": reasoning_model() if reasoning_available() else None,
+        "reasoning_available": semantic_model_available,
+        "reasoning_model": reasoning_model() if semantic_model_available else None,
+        "inputs": {
+            "natural_language": semantic_model_available,
+            "engineering_sketch": backend.value != "fixture",
+            "technical_pdf": True,
+            "multimodal_semantic_fusion": multimodal_available,
+        },
         "public_limits": {
             "requests_per_minute": limits.requests_per_minute,
             "ai_units_per_client_day": limits.ai_units_per_client_day,
@@ -416,8 +426,10 @@ def health() -> dict:
             "max_conversation_messages": limits.max_conversation_messages,
         },
         "capabilities": [
+            "box", "cylinder", "tube", "hole", "rectangular_hole_pattern",
+            "linear_slot_pattern", "chamfer", "fillet",
             "profile_extrude", "profile_pocket", "profile_revolve", "curved_rod_sweep",
-            "rectangular_loft", "curved_strip_sweep",
+            "rectangular_loft", "curved_strip_sweep", "threaded_fastener",
             "sheet_metal_90_bend", "assembly_transforms", "assembly_mates",
             "collision_check", "gdt_size", "gdt_position", "gdt_flatness",
             "gdt_perpendicularity", "mass_properties", "axial_stress",
@@ -488,11 +500,12 @@ def create_demo_run(request: Request, backend: Optional[str] = None) -> JSONResp
         raise HTTPException(
             503, "example inputs missing; run examples/motor_adapter/generate_inputs.py"
         )
-    _reserve_ai(
-        request,
-        int(reasoning_available())
-        + int(select_backend(backend).value != "fixture"),
-    )
+    selected = select_backend(backend)
+    semantic = reasoning_available()
+    _reserve_ai(request, int(semantic) + int(
+        selected.value != "fixture"
+        and not (semantic and selected.value == "openai")
+    ))
     result = run(
         EXAMPLE_DIR / "sketch.png",
         EXAMPLE_DIR / "motor_datasheet.pdf",
@@ -551,10 +564,16 @@ def create_run(
         requirement_path.write_text(requirement_text, encoding="utf-8")
 
     try:
+        selected = select_backend(backend) if sketch_path is not None else None
+        semantic = reasoning_available()
         _reserve_ai(
             request,
-            int(bool(requirement_text) and reasoning_available())
-            + int(sketch_path is not None and select_backend(backend).value != "fixture"),
+            int(semantic)
+            + int(
+                selected is not None
+                and selected.value != "fixture"
+                and not (semantic and selected.value == "openai")
+            ),
         )
     except HTTPException:
         shutil.rmtree(work, ignore_errors=True)

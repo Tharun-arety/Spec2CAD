@@ -41,6 +41,32 @@ VALUE_COLUMN_X = 300.0
 ROW_TOLERANCE_PT = 3.0
 
 
+def read_document_text(pdf_path: str | Path, *, max_chars: int = 16000) -> str:
+    """Return bounded, page-labelled PDF text for semantic interpretation.
+
+    The deterministic row extractor below remains the authority for the fields
+    it recognises. This broader text view lets the constrained reasoning model
+    understand other component documents without treating every number as a
+    dimension.
+    """
+    path = Path(pdf_path)
+    if not path.exists():
+        raise FileNotFoundError(f"datasheet not found: {path}")
+    pages: list[str] = []
+    remaining = max_chars
+    with fitz.open(str(path)) as document:
+        for index, page in enumerate(document):
+            if remaining <= 0:
+                break
+            text = page.get_text("text").strip()
+            if not text:
+                continue
+            block = f"[PDF page {index + 1}]\n{text}"
+            pages.append(block[:remaining])
+            remaining -= len(block)
+    return "\n\n".join(pages)
+
+
 @dataclass(frozen=True)
 class Row:
     """One reconstructed table row, split at the value column."""

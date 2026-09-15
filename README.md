@@ -158,9 +158,9 @@ three.js viewport is code-split, so the initial bundle is ~250 kB.
 
 | Source | How it is read | Real without an API key? |
 |---|---|---|
-| **Datasheet PDF** | PyMuPDF word geometry — true page number, true bounding box | **Yes, always** |
-| **Requirement text** | deterministic parser + ISO 273 lookup; OpenAI structured reasoning fills missing graph targets when configured | **Yes; model fallback is optional** |
-| **Sketch** | OpenAI or Anthropic vision when a key is set; otherwise a recorded fixture | Fixture replay |
+| **Datasheet PDF** | exact known rows via PyMuPDF; bounded PDF text also joins semantic planning when OpenAI is configured | **Known rows only** |
+| **Requirement text** | deterministic plate parser + ISO 273 lookup; OpenAI maps broader language to the typed feature vocabulary | **Plate fallback only** |
+| **Sketch** | joins the same OpenAI semantic pass as text and PDF; Anthropic remains available for the legacy plate reader | **No for arbitrary uploads** |
 
 The difference is never hidden. Every evidence row carries its
 `extraction_method`, the UI shows it, and `eval/metrics.py` **raises** rather
@@ -323,7 +323,7 @@ intent that supposedly produced it.
 **Built and working:** the motor-adapter slice end to end — genuine datasheet
 extraction with real traceability, rule-cited fastener lookup, two-class conflict
 detection, diagnostic generation, measured validation, the release gate,
-immutable repair revisions, STEP round-trip verification, a five-panel UI, 126
+immutable repair revisions, STEP round-trip verification, a five-panel UI, 129
 tests, 39 deterministic evaluation checks, a container deployment path and a
 5.0 MB static showcase bundle.
 
@@ -343,6 +343,14 @@ GD&T inspection for size, true position, flatness and perpendicularity; and
 explicit-input mass, axial/bending stress, thermal expansion and worst-case fit
 calculations. These are bounded engineering operations: arbitrary model code,
 automatic mate solving, non-90-degree sheet bends and FEA are not implied.
+
+When an OpenAI server credential is configured, the public run path feeds the
+written requirement, an attached engineering sketch, and bounded text extracted
+from an attached technical PDF into one schema-constrained semantic pass. The
+model may select only the typed operations above; it cannot emit or execute
+arbitrary CAD code. Written image dimensions are accepted as evidence, while
+pixel scaling and invented dimensions are explicitly prohibited. The narrow
+deterministic plate parser remains the no-model fallback.
 
 The adversarial suite holds the graph feature planner and CAD vocabulary fixed,
 then evaluates regressions, evidence and unit perturbations, an unseen flange

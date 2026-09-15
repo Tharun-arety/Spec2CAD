@@ -45,10 +45,19 @@ overrun, so the backend is not a serverless workload on any provider with a
 function size cap.
 
 The frontend deploys there fine. `.vercelignore` excludes the entire Python side
-so Vercel builds only the static bundle, and the deployment runs in replay mode
-(`VITE_REPLAY=1`).
+so Vercel builds only the static bundle. The current build points at the Render
+CAD service with `VITE_REPLAY_FALLBACK=1`; replay is offered only when the live
+service cannot be used.
 
 **Live: https://spec2cad.vercel.app**
+
+The Vercel frontend calls the Render CAD service first and offers the recorded
+catalog only as an explicit fallback. Set `OPENAI_API_KEY` on the Render service
+to enable schema-constrained natural-language planning and combined text,
+engineering-sketch, and technical-PDF interpretation. The key is server-side;
+never expose it through a `VITE_` variable. `/health` reports the enabled input
+modes under `inputs` so the frontend and deployment checks can distinguish full
+multimodal planning from the deterministic plate fallback.
 
 **Decision: GO, via a container** for live generation. The backend is an ordinary long-running
 FastAPI process, not a serverless function. Trimming `vtkmodules` would save a
@@ -170,9 +179,10 @@ needs; it is not headroom for concurrent geometry builds.
    Remove `VITE_REPLAY=1` from `vercel.json`'s build command when you do — that
    flag forces replay and ignores the backend entirely.
 
-5. Optionally set `OPENAI_API_KEY` in the Render dashboard to turn on real
-   sketch extraction. Without it the drawing falls back to its recorded
-   fixture, labelled as such.
+5. Set `OPENAI_API_KEY` in the Render dashboard to enable broad natural-language
+   planning and combined text, sketch and PDF interpretation. Without it the
+   public live path intentionally remains the narrow deterministic plate parser,
+   and arbitrary sketch uploads are refused rather than misrepresented.
 
 ## What was fixed to make this work
 
