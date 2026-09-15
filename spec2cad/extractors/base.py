@@ -13,7 +13,8 @@ evidence is structurally excluded from any reported extraction-accuracy number
 (see eval/metrics.py), because replaying a recording measures nothing about
 extraction.
 
-Keys are read from the environment or a .env file at the project root.
+Keys are read from the process environment, ``.env.local``, or ``.env`` at the
+project root.  They are never read by the browser application.
 """
 
 from __future__ import annotations
@@ -23,18 +24,65 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _ENV_LOADED = False
+_FILE_MANAGED_VALUES: dict[str, str] = {}
 
 
 def load_env() -> None:
-    """Load .env once, without overriding variables already in the environment."""
+    """Load local server configuration and safely notice file edits.
+
+    Real process variables have highest priority.  ``.env.local`` is loaded
+    before ``.env`` so a developer's untracked local settings win over shared
+    defaults. Values that came from the process environment are never
+    overwritten. Values previously loaded from a file may be refreshed when
+    that file changes, so updating ``.env.local`` does not require a restart.
+    """
     global _ENV_LOADED
-    if not _ENV_LOADED:
-        load_dotenv(PROJECT_ROOT / ".env", override=False)
-        _ENV_LOADED = True
+    shared = {
+        key: str(value)
+        for key, value in dotenv_values(PROJECT_ROOT / ".env").items()
+        if value is not None
+    }
+    local = {
+        key: str(value)
+        for key, value in dotenv_values(PROJECT_ROOT / ".env.local").items()
+        if value is not None
+    }
+    configured = {**shared, **local}
+
+    # Remove a file-managed setting if it disappeared from both files. A value
+    # changed independently in the process is preserved as an explicit override.
+    for key, previous in list(_FILE_MANAGED_VALUES.items()):
+        if key not in configured:
+            if os.environ.get(key) == previous:
+                os.environ.pop(key, None)
+            _FILE_MANAGED_VALUES.pop(key, None)
+
+    for key, value in configured.items():
+        previous = _FILE_MANAGED_VALUES.get(key)
+        if key not in os.environ or (previous is not None and os.environ[key] == previous):
+            os.environ[key] = value
+            _FILE_MANAGED_VALUES[key] = value
+        else:
+            # The process supplied or changed this value; it has highest priority.
+            _FILE_MANAGED_VALUES.pop(key, None)
+    _ENV_LOADED = True
+
+
+def safe_backend_error(exc: Exception) -> str:
+    """Return a useful public error without echoing credentials or payloads."""
+    name = type(exc).__name__
+    status = getattr(exc, "status_code", None)
+    if status == 401 or name == "AuthenticationError":
+        return f"{name}: authentication failed; check the server-side API key"
+    if status == 429 or name == "RateLimitError":
+        return f"{name}: provider rate limit or quota was reached"
+    if name in {"APIConnectionError", "ConnectError", "TimeoutException"}:
+        return f"{name}: could not reach the model provider"
+    return f"{name}: model backend request failed"
 
 
 class VisionBackend(str, Enum):
@@ -50,6 +98,37 @@ DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5"
 def openai_model() -> str:
     load_env()
     return os.environ.get("SPEC2CAD_OPENAI_MODEL", DEFAULT_OPENAI_MODEL)
+
+
+def reasoning_model() -> str:
+    """Text-reasoning model; defaults to the configured OpenAI vision model."""
+    load_env()
+    return os.environ.get("SPEC2CAD_REASONING_MODEL", openai_model())
+
+
+def reasoning_available() -> bool:
+    """Whether server-side OpenAI reasoning can be attempted."""
+    load_env()
+    return bool(os.environ.get("OPENAI_API_KEY"))
+
+
+def model_max_output_tokens() -> int:
+    """Hard cap every public structured extraction response."""
+    load_env()
+    try:
+        value = int(os.environ.get("SPEC2CAD_MODEL_MAX_OUTPUT_TOKENS", "3000"))
+    except ValueError as exc:
+        raise ValueError("SPEC2CAD_MODEL_MAX_OUTPUT_TOKENS must be an integer") from exc
+    return max(256, min(value, 8000))
+
+
+def model_timeout_seconds() -> float:
+    load_env()
+    try:
+        value = float(os.environ.get("SPEC2CAD_MODEL_TIMEOUT_SECONDS", "35"))
+    except ValueError as exc:
+        raise ValueError("SPEC2CAD_MODEL_TIMEOUT_SECONDS must be numeric") from exc
+    return max(5.0, min(value, 120.0))
 
 
 def anthropic_model() -> str:

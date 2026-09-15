@@ -1,0 +1,4 @@
+Create a slotted mounting bracket 80 x 50 x 4 mm aluminium bracket with four
+Ø5 mm through holes on a 60 x 30 mm mounting pattern. Cut two 8 x 20 mm slots
+on the base, spaced 50 mm apart and oriented front-to-back. Add 3 mm corner
+fillets. Maintain at least 3 mm from every hole edge.

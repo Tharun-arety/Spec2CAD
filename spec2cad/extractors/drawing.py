@@ -6,7 +6,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from spec2cad.extractors.base import VisionBackend, backend_label, select_backend
+from spec2cad.extractors.base import (
+    VisionBackend,
+    backend_label,
+    safe_backend_error,
+    select_backend,
+)
 from spec2cad.extractors.fixtures import FixtureNotFound, load_fixture_evidence
 from spec2cad.extractors.vision import VisionExtractionError, extract_sketch_with_vision
 from spec2cad.schemas.evidence import Evidence
@@ -59,11 +64,11 @@ def extract_sketch(
             evidence = load_fixture_evidence(image_path)
         except FixtureNotFound:
             raise exc from None
-        reason = f"{type(exc).__name__}: {exc}"
+        reason = safe_backend_error(exc)
         return SketchExtraction(
             evidence=evidence,
             backend=VisionBackend.FIXTURE,
             label=f"{backend_label(VisionBackend.FIXTURE)} after {backend.value} failed",
             fell_back=True,
-            fallback_reason=reason[:300],
+            fallback_reason=reason,
         )

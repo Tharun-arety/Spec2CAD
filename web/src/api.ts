@@ -55,6 +55,13 @@ const liveApi = {
     return fetch(`${API_BASE}/runs`, { method: 'POST', body }).then(json<RunState>)
   },
 
+  continueRun: (runId: string, message: string) =>
+    fetch(`${API_BASE}/runs/${runId}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
+    }).then(json<RunState>),
+
   repair: (runId: string, proposalId: string, acknowledgeUnsafe = false) =>
     fetch(`${API_BASE}/runs/${runId}/repair`, {
       method: 'POST',
@@ -90,6 +97,7 @@ const liveApi = {
 const replayAdapter = {
   ...replayApi,
   runUpload: (_s: File | null, _d: File | null, _r: string) => replayApi.runUpload(),
+  continueRun: (_id: string, _message: string) => replayApi.revise(),
   repair: (runId: string, proposalId: string, _ack?: boolean) =>
     replayApi.repair(runId, proposalId),
   revise: (_id: string, _u: Record<string, number>, _r: string, _a?: boolean) =>
@@ -111,6 +119,7 @@ export const api = {
   health: () => impl.health(),
   runDemo: () => impl.runDemo(),
   runUpload: (s: File | null, d: File | null, r: string) => impl.runUpload(s, d, r),
+  continueRun: (runId: string, message: string) => impl.continueRun(runId, message),
   repair: (runId: string, proposalId: string, ack?: boolean) =>
     impl.repair(runId, proposalId, ack),
   revise: (runId: string, updates: Record<string, number>, reason: string, ack?: boolean) =>

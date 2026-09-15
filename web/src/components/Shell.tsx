@@ -28,6 +28,7 @@ function GithubMark({ size = 15 }: { size?: number }) {
   )
 }
 import { cn } from '../lib/cn'
+import { formatValue } from '../lib/formatValue'
 import type { Revision, RunState } from '../types'
 import { Button, Mark, Num, Tip } from './ui'
 
@@ -216,11 +217,7 @@ export function Timeline({
             {op.fields.map((f) => (
               <span key={f.name} className="flex items-baseline gap-[5px] text-[12px]">
                 <span className="text-c7">{f.name.replace(/_/g, ' ')}</span>
-                <Num value={typeof f.value === 'boolean'
-                             ? String(f.value)
-                             : typeof f.value === 'number'
-                               ? +f.value.toFixed(4)
-                               : String(f.value ?? '—')} strong />
+                <Num value={formatValue(f.value)} strong />
                 {f.parameter && (
                   <Tip label={`from the ${f.parameter.replace(/_/g, ' ')} parameter`}>
                     <span className="num text-[9.5px] text-c6">
@@ -276,11 +273,12 @@ export function Timeline({
 /* ------------------------------------------------------------- status bar */
 
 export function StatusBar({
-  rev, backendLabel, onGoRelease,
+  rev, backendLabel, onGoRelease, awaitingDetails = false,
 }: {
   rev: Revision | null
   backendLabel: string
   onGoRelease: () => void
+  awaitingDetails?: boolean
 }) {
   const blocked = rev ? !rev.release.step_export_allowed : false
   const clearance = rev?.measured.find((c) => c.id === 'req_edge_clearance')
@@ -289,7 +287,9 @@ export function StatusBar({
     <footer className={cn(
       'flex h-[var(--spacing-status)] shrink-0 items-center gap-[13px]',
       'chrome-grain border-t px-[13px] text-[12px]',
-      blocked
+      awaitingDetails
+        ? 'border-warn-line bg-warn-wash text-warn'
+        : blocked
         ? 'border-danger-line bg-danger-wash text-danger'
         : rev ? 'border-success-line bg-success-wash text-success'
               : 'border-c3 bg-c1 text-c7',
@@ -299,7 +299,7 @@ export function StatusBar({
           <button onClick={onGoRelease}
             className={cn('cursor-pointer font-semibold uppercase tracking-[0.07em]',
                           blocked ? 'underline underline-offset-[3px]' : '')}>
-            {blocked ? '✕ Blocked' : '✓ Released'}
+            {awaitingDetails ? '… Waiting for details' : blocked ? '✕ Blocked' : '✓ Released'}
           </button>
           {clearance?.measured_value != null && (
             <span className="text-c7">

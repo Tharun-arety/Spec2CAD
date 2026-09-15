@@ -15,6 +15,8 @@ interface SourceWorkspaceProps {
   state: RunState | null
   onDemo: () => void
   onCompile: (sketch: File | null, datasheet: File | null, instruction: string) => void
+  onContinue: (message: string) => void
+  onNew: () => void
 }
 
 /**
@@ -25,7 +27,7 @@ interface SourceWorkspaceProps {
  * what it knows and what is still missing.
  */
 export function SourceWorkspace({
-  busy, replayMode, visionAvailable, state, onDemo, onCompile,
+  busy, replayMode, visionAvailable, state, onDemo, onCompile, onContinue, onNew,
 }: SourceWorkspaceProps) {
   const [sketch, setSketch] = useState<File | null>(null)
   const [datasheet, setDatasheet] = useState<File | null>(null)
@@ -41,9 +43,25 @@ export function SourceWorkspace({
         (name) => latestRevision.parameters[name]?.value == null,
       )
     : []
+  const clarificationQuestions = state?.clarification_questions ?? []
+  const messages = state?.messages ?? []
+  const continuing = messages.length > 0 && !sketch && !datasheet
   const canCompile = !replayMode && !busy && Boolean(
     sketch || datasheet || instruction.trim(),
   )
+
+  const submit = () => {
+    if (!canCompile) return
+    if (continuing) onContinue(instruction.trim())
+    else onCompile(sketch, datasheet, instruction)
+    setInstruction('')
+  }
+
+  useEffect(() => {
+    if (clarificationQuestions.length > 0) {
+      requestAnimationFrame(() => instructionInput.current?.focus())
+    }
+  }, [clarificationQuestions.length])
 
   const clear = () => {
     setSketch(null)
@@ -77,6 +95,40 @@ export function SourceWorkspace({
               </p>
             </div>
           </div>
+
+          {messages.length > 0 && (
+            <div className="ml-[47px] mt-[24px] space-y-[12px]" aria-live="polite"
+                 aria-label="Engineering conversation">
+              <div className="flex items-center justify-between">
+                <span className="text-[12px] font-semibold text-c7">Conversation</span>
+                <Button intent="ghost" size="sm" onClick={onNew} disabled={busy}>
+                  Start new design
+                </Button>
+              </div>
+              {messages.map((message) => (
+                <article key={message.id} className={cn(
+                  'max-w-[88%] rounded-[10px] border px-[13px] py-[10px]',
+                  message.role === 'user'
+                    ? 'ml-auto border-accent-line bg-accent-wash'
+                    : message.kind === 'clarification'
+                      ? 'border-warn-line bg-warn-wash'
+                      : 'border-c3 bg-c0',
+                )}>
+                  <div className="mb-[4px] text-[11px] font-semibold uppercase tracking-[0.08em] text-c6">
+                    {message.role === 'user' ? 'You' : 'Spec2CAD'}
+                  </div>
+                  <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-c9">
+                    {message.content}
+                  </p>
+                </article>
+              ))}
+              {busy && (
+                <div role="status" className="text-[12.5px] text-c6">
+                  Spec2CAD is interpreting your answer…
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="ml-[47px] mt-[21px] grid gap-[8px] sm:grid-cols-3">
             <button
@@ -132,7 +184,38 @@ export function SourceWorkspace({
             </button>
           </div>
 
-          {state && latestRevision?.build_error && (
+          {state && latestRevision?.build_error && clarificationQuestions.length > 0 && (
+            <div role="status" aria-live="polite"
+                 className="ml-[47px] mt-[21px] border border-warn-line bg-warn-wash
+                            px-[13px] py-[11px]">
+              <div className="flex items-start gap-[9px]">
+                <Bot size={16} strokeWidth={1.8} className="mt-[2px] shrink-0 text-warn" aria-hidden />
+                <div className="min-w-0">
+                  <div className="text-[13px] font-semibold text-c9">
+                    I need your engineering decision before I plan the CAD.
+                  </div>
+                  <ul className="mt-[5px] space-y-[4px] text-[12.5px] leading-relaxed text-c8">
+                    {clarificationQuestions.map((question) => (
+                      <li key={question}>{question}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-[6px] text-[12px] leading-relaxed text-c7">
+                    Answer below. The conversation and extracted facts stay attached to this run.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => instructionInput.current?.focus()}
+                    className="mt-[7px] cursor-pointer text-[12.5px] font-medium text-warn
+                               underline decoration-warn/50 underline-offset-[3px]"
+                  >
+                    Answer in the prompt
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {state && latestRevision?.build_error && clarificationQuestions.length === 0 && (
             <div role="status" className="ml-[47px] mt-[21px] border border-warn-line bg-warn-wash
                                       px-[13px] py-[11px]">
               <div className="flex items-start gap-[9px]">
@@ -206,11 +289,13 @@ export function SourceWorkspace({
             onChange={(event) => setInstruction(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && canCompile) {
-                onCompile(sketch, datasheet, instruction)
+                submit()
               }
             }}
             disabled={replayMode || busy}
-            placeholder="Describe the part or paste a requirement…"
+            placeholder={clarificationQuestions.length > 0
+              ? 'Answer the clarification…'
+              : continuing ? 'Refine this design…' : 'Describe the part or paste a requirement…'}
             className="min-h-[76px] w-full resize-y bg-transparent px-[13px] py-[10px]
                        text-[13.5px] leading-relaxed text-c9 outline-none
                        placeholder:text-c6 disabled:cursor-not-allowed"
@@ -269,10 +354,10 @@ export function SourceWorkspace({
               intent="solid"
               size="sm"
               disabled={!canCompile}
-              onClick={() => onCompile(sketch, datasheet, instruction)}
+              onClick={submit}
             >
               <Play size={13} fill="currentColor" aria-hidden />
-              {busy ? 'Compiling…' : 'Compile'}
+              {busy ? 'Interpreting…' : continuing ? 'Send' : 'Compile'}
             </Button>
           </div>
         </div>

@@ -18,6 +18,7 @@ import base64
 import json
 import mimetypes
 import os
+import uuid
 from pathlib import Path
 from typing import Any, Optional
 
@@ -28,7 +29,10 @@ from spec2cad.extractors.base import (
     anthropic_model,
     load_env,
     openai_model,
+    model_max_output_tokens,
+    model_timeout_seconds,
 )
+from spec2cad.public_guardrails import current_safety_identifier
 from spec2cad.fusion.source_policy import authority_for
 from spec2cad.schemas.evidence import (
     Evidence,
@@ -114,7 +118,10 @@ def _extract_openai(image_path: Path) -> list[Evidence]:
     from openai import OpenAI
 
     load_env()
-    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+    client = OpenAI(
+        api_key=os.environ["OPENAI_API_KEY"],
+        timeout=model_timeout_seconds(), max_retries=1,
+    )
     b64, mime = _encode_image(image_path)
     model = openai_model()
 
@@ -138,6 +145,9 @@ def _extract_openai(image_path: Path) -> list[Evidence]:
                 "schema": SKETCH_JSON_SCHEMA,
             },
         },
+        max_tokens=model_max_output_tokens(),
+        user=current_safety_identifier(),
+        extra_headers={"X-Client-Request-Id": str(uuid.uuid4())},
     )
     content = response.choices[0].message.content or ""
     return _to_evidence(_parse_payload(content), image_path, model)
@@ -147,7 +157,10 @@ def _extract_anthropic(image_path: Path) -> list[Evidence]:
     import anthropic
 
     load_env()
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    client = anthropic.Anthropic(
+        api_key=os.environ["ANTHROPIC_API_KEY"],
+        timeout=model_timeout_seconds(), max_retries=1,
+    )
     b64, mime = _encode_image(image_path)
     model = anthropic_model()
 
@@ -155,7 +168,7 @@ def _extract_anthropic(image_path: Path) -> list[Evidence]:
     # out of the Anthropic API.
     response = client.messages.create(
         model=model,
-        max_tokens=2000,
+        max_tokens=min(2000, model_max_output_tokens()),
         tools=[{
             "name": "report_sketch_facts",
             "description": "Report the engineering facts visible on the sketch.",

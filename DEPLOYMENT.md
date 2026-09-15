@@ -191,3 +191,15 @@ gated on actually being in replay mode.
 asleep, out of hours, or not deployed at all, and it is what a `VITE_REPLAY=1`
 build serves. Regenerate it with `python scripts/freeze_demo.py --out
 web/public/replay` whenever the pipeline output changes.
+# Public launch guardrails
+
+The API enforces per-client request bursts, per-client and global daily model-call
+budgets, one concurrent CAD job, bounded uploads/prompts/conversations, and a
+bounded in-memory B-Rep cache. Configure the `SPEC2CAD_*` values in `render.yaml`
+for the desired public-demo budget. Keep `SPEC2CAD_USAGE_SALT` and
+`SPEC2CAD_ADMIN_TOKEN` secret. The run-list endpoint is disabled when no admin
+token is configured.
+
+Also set a project-level monthly budget and alert in the OpenAI dashboard. The
+application limits reduce abuse; the provider project budget is the final spend
+ceiling if instances restart or application controls fail.

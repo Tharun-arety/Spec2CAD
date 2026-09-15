@@ -13,14 +13,25 @@ from __future__ import annotations
 
 from spec2cad.cad.selectors import EDGE_SELECTOR_SOURCE, FACE_SELECTOR_SOURCE
 from spec2cad.schemas.cad_ir import (
+    ArcSegment,
+    BooleanMode,
     BoxOp,
     CADProgram,
     ChamferOp,
+    CylinderOp,
+    CurvedRodOp,
+    FilletOp,
     HoleOp,
+    LinearSlotPatternOp,
+    LineSegment,
     NumberLiteral,
     ParamRef,
+    ProfileExtrudeOp,
+    ProfileRevolveOp,
     RectangularHolePatternOp,
+    SheetMetalBendOp,
     Termination,
+    TubeOp,
 )
 
 
@@ -31,6 +42,28 @@ def _expr(numeric, values: dict[str, float]) -> str:
     if isinstance(numeric, NumberLiteral):
         return f"{numeric.value:g}"
     return str(numeric)
+
+
+def _profile_source(profile, plane, values: dict[str, float]) -> str:
+    start = profile.start
+    chain = (
+        f"cq.Workplane('{plane.value}').moveTo("
+        f"{_expr(start.x, values)}, {_expr(start.y, values)})"
+    )
+    for segment in profile.segments:
+        if isinstance(segment, LineSegment):
+            chain += (
+                f".lineTo({_expr(segment.end.x, values)}, "
+                f"{_expr(segment.end.y, values)})"
+            )
+        elif isinstance(segment, ArcSegment):
+            chain += (
+                f".threePointArc((({_expr(segment.midpoint.x, values)}), "
+                f"({_expr(segment.midpoint.y, values)})), "
+                f"(({_expr(segment.end.x, values)}), "
+                f"({_expr(segment.end.y, values)})))"
+            )
+    return chain + ".close()"
 
 
 def write_script(program: CADProgram, values: dict[str, float]) -> str:
@@ -45,6 +78,7 @@ def write_script(program: CADProgram, values: dict[str, float]) -> str:
         '"""',
         "",
         "import cadquery as cq",
+        "import math",
         "",
         "# --- parameters, resolved from DesignIntent ---",
     ]
@@ -62,6 +96,22 @@ def write_script(program: CADProgram, values: dict[str, float]) -> str:
                 f"result = (cq.Workplane('XY')"
                 f".box({_expr(op.width, values)}, {_expr(op.height, values)}, "
                 f"{_expr(op.depth, values)}, centered={op.centered}))"
+            )
+            first = False
+        elif isinstance(op, CylinderOp):
+            amount = f"{_expr(op.length, values)} / 2"
+            lines.append(
+                f"result = (cq.Workplane('XY').circle({_expr(op.diameter, values)} / 2)"
+                f".extrude({amount}, both={op.centered}))"
+            )
+            first = False
+        elif isinstance(op, TubeOp):
+            amount = f"{_expr(op.length, values)} / 2"
+            lines.append(
+                f"result = (cq.Workplane('XY')"
+                f".circle({_expr(op.outer_diameter, values)} / 2)"
+                f".circle({_expr(op.inner_diameter, values)} / 2)"
+                f".extrude({amount}, both={op.centered}))"
             )
             first = False
         elif isinstance(op, HoleOp):
@@ -94,6 +144,94 @@ def write_script(program: CADProgram, values: dict[str, float]) -> str:
                 f"result = (result{sel}"
                 f".chamfer({_expr(op.distance, values)}))   # {op.id}"
             )
+        elif isinstance(op, FilletOp):
+            sel = EDGE_SELECTOR_SOURCE[op.edge_selector]
+            lines.append(
+                f"result = (result{sel}"
+                f".fillet({_expr(op.radius, values)}))   # {op.id}"
+            )
+        elif isinstance(op, LinearSlotPatternOp):
+            face = FACE_SELECTOR_SOURCE[op.support]
+            spacing = _expr(op.spacing, values)
+            count = op.count
+            lines.append(
+                f"slot_points = [(-{spacing} * ({count} - 1) / 2 + i * {spacing}, 0) "
+                f"for i in range({count})]"
+            )
+            lines.append(
+                f"result = (result{face}.workplane().pushPoints(slot_points)"
+                f".slot2D({_expr(op.length, values)}, {_expr(op.width, values)}, "
+                f"{_expr(op.angle_degrees, values)}).cutThruAll())   # {op.id}"
+            )
+        elif isinstance(op, ProfileExtrudeOp):
+            profile = _profile_source(op.profile, op.plane, values)
+            amount = f"{_expr(op.distance, values)} / 2" if op.centered else _expr(op.distance, values)
+            lines.append(f"feature = ({profile}.extrude({amount}, both={op.centered}, combine=False))")
+            if first:
+                lines.append("result = feature")
+                first = False
+            else:
+                verb = "union" if op.mode is BooleanMode.ADD else "cut"
+                lines.append(f"result = result.{verb}(feature)   # {op.id}")
+        elif isinstance(op, ProfileRevolveOp):
+            profile = _profile_source(op.profile, op.plane, values)
+            a0, a1 = op.axis_start, op.axis_end
+            lines.append(
+                f"feature = ({profile}.revolve({_expr(op.angle_degrees, values)}, "
+                f"axisStart=({_expr(a0.x, values)}, {_expr(a0.y, values)}), "
+                f"axisEnd=({_expr(a1.x, values)}, {_expr(a1.y, values)}), combine=False))"
+            )
+            if first:
+                lines.append("result = feature")
+                first = False
+            else:
+                verb = "union" if op.mode is BooleanMode.ADD else "cut"
+                lines.append(f"result = result.{verb}(feature)   # {op.id}")
+        elif isinstance(op, SheetMetalBendOp):
+            lines.extend([
+                f"# {op.id}: constant-thickness 90-degree bend",
+                f"leg_a = {_expr(op.leg_a, values)}",
+                f"leg_b = {_expr(op.leg_b, values)}",
+                f"sheet_width = {_expr(op.width, values)}",
+                f"sheet_thickness = {_expr(op.thickness, values)}",
+                f"inside_radius = {_expr(op.inside_radius, values)}",
+                f"k_factor = {_expr(op.k_factor, values)}",
+                "outside_radius = inside_radius + sheet_thickness",
+                "inner_mid = (outside_radius - inside_radius / 2**0.5, outside_radius - inside_radius / 2**0.5)",
+                "outer_mid = (outside_radius - outside_radius / 2**0.5, outside_radius - outside_radius / 2**0.5)",
+                "result = (cq.Workplane('XZ').moveTo(outside_radius, 0).lineTo(leg_a, 0)",
+                "          .lineTo(leg_a, sheet_thickness).lineTo(outside_radius, sheet_thickness)",
+                "          .threePointArc(inner_mid, (sheet_thickness, outside_radius))",
+                "          .lineTo(sheet_thickness, leg_b).lineTo(0, leg_b).lineTo(0, outside_radius)",
+                "          .threePointArc(outer_mid, (outside_radius, 0)).close()",
+                "          .extrude(sheet_width / 2, both=True))",
+            ])
+            first = False
+        elif isinstance(op, CurvedRodOp):
+            lines.extend([
+                f"# {op.id}: circular section swept along straight–arc–straight centerline",
+                f"rod_diameter = {_expr(op.diameter, values)}",
+                f"total_length = {_expr(op.total_length, values)}",
+                f"bend_start = {_expr(op.bend_start, values)}",
+                f"bend_radius = {_expr(op.bend_radius, values)}",
+                f"bend_angle = {_expr(op.bend_angle_degrees, values)}",
+                "arc_length = bend_radius * math.radians(bend_angle)",
+                "tail_length = total_length - bend_start - arc_length",
+                "edges = []",
+                "if bend_start > 0:",
+                "    edges.append(cq.Edge.makeLine(cq.Vector(0, 0, 0), cq.Vector(bend_start, 0, 0)))",
+                "arc = cq.Edge.makeCircle(bend_radius, cq.Vector(bend_start, bend_radius, 0),",
+                "                         cq.Vector(0, 0, 1), -90, -90 + bend_angle)",
+                "edges.append(arc)",
+                "if tail_length > 0:",
+                "    p = arc.endPoint()",
+                "    a = math.radians(bend_angle)",
+                "    edges.append(cq.Edge.makeLine(p, cq.Vector(p.x + tail_length * math.cos(a),",
+                "                                                    p.y + tail_length * math.sin(a), 0)))",
+                "path = cq.Wire.assembleEdges(edges)",
+                "result = cq.Workplane('YZ').circle(rod_diameter / 2).sweep(cq.Workplane(obj=path), isFrenet=True)",
+            ])
+            first = False
         else:  # pragma: no cover - schema prevents this
             lines.append(f"# unsupported operation: {op!r}")
 

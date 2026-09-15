@@ -1,0 +1,85 @@
+{
+  "all_passed": true,
+  "passed": 10,
+  "total": 10,
+  "outcomes": [
+    {
+      "category": "rate_limit",
+      "assertion": "burst is capped",
+      "passed": true,
+      "actual": [
+        true,
+        true,
+        false
+      ],
+      "expected": [
+        true,
+        true,
+        false
+      ]
+    },
+    {
+      "category": "rate_limit",
+      "assertion": "window resets",
+      "passed": true,
+      "actual": true,
+      "expected": true
+    },
+    {
+      "category": "ai_budget",
+      "assertion": "per-client daily cap",
+      "passed": true,
+      "actual": true,
+      "expected": true
+    },
+    {
+      "category": "ai_budget",
+      "assertion": "global daily cap",
+      "passed": true,
+      "actual": true,
+      "expected": true
+    },
+    {
+      "category": "access",
+      "assertion": "run id has 128 bits",
+      "passed": true,
+      "actual": 32,
+      "expected": 32
+    },
+    {
+      "category": "resource_caps",
+      "assertion": "B-Rep cache is bounded",
+      "passed": true,
+      "actual": true,
+      "expected": true
+    },
+    {
+      "category": "resource_caps",
+      "assertion": "nonfinite CAD value refused",
+      "passed": true,
+      "actual": true,
+      "expected": true
+    },
+    {
+      "category": "resource_caps",
+      "assertion": "operation flood refused",
+      "passed": true,
+      "actual": true,
+      "expected": true
+    },
+    {
+      "category": "model_controls",
+      "assertion": "output tokens capped",
+      "passed": true,
+      "actual": 3000,
+      "expected": "<= 8000"
+    },
+    {
+      "category": "model_controls",
+      "assertion": "provider timeout capped",
+      "passed": true,
+      "actual": 35.0,
+      "expected": "<= 120"
+    }
+  ]
+}

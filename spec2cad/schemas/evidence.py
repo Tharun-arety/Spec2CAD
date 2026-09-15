@@ -24,6 +24,8 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from spec2cad.schemas.advanced_intent import FeatureIntent
+
 
 class EvidenceKind(str, Enum):
     """What sort of observation was made -- a property of the source mark."""
@@ -62,6 +64,41 @@ class SemanticTarget(str, Enum):
     MANUFACTURING_PROCESS = "manufacturing_process"
     MIN_HOLE_EDGE_CLEARANCE = "min_hole_edge_clearance"
     EXTERNAL_CHAMFER = "external_chamfer"
+    EXTERNAL_FILLET = "external_fillet"
+    SLOT_COUNT = "slot_count"
+    SLOT_WIDTH = "slot_width"
+    SLOT_LENGTH = "slot_length"
+    SLOT_SPACING_X = "slot_spacing_x"
+    SLOT_ANGLE = "slot_angle"
+    PART_TYPE = "part_type"
+    OUTER_DIAMETER = "outer_diameter"
+    INNER_DIAMETER = "inner_diameter"
+    BODY_LENGTH = "body_length"
+    WALL_THICKNESS = "wall_thickness"
+    SHEET_LEG_A = "sheet_leg_a"
+    SHEET_LEG_B = "sheet_leg_b"
+    SHEET_WIDTH = "sheet_width"
+    SHEET_THICKNESS = "sheet_thickness"
+    INSIDE_BEND_RADIUS = "inside_bend_radius"
+    BEND_ANGLE = "bend_angle"
+    K_FACTOR = "k_factor"
+    ROD_DIAMETER = "rod_diameter"
+    ROD_TOTAL_LENGTH = "rod_total_length"
+    ROD_BEND_START = "rod_bend_start"
+    ROD_BEND_RADIUS = "rod_bend_radius"
+    ROD_BEND_ANGLE = "rod_bend_angle"
+    PROFILE_DEFINITION = "profile_definition"
+    LOFT_START_WIDTH = "loft_start_width"
+    LOFT_START_HEIGHT = "loft_start_height"
+    LOFT_END_WIDTH = "loft_end_width"
+    LOFT_END_HEIGHT = "loft_end_height"
+    LOFT_LENGTH = "loft_length"
+    STRIP_WIDTH = "strip_width"
+    STRIP_THICKNESS = "strip_thickness"
+    STRIP_SHANK_LENGTH = "strip_shank_length"
+    STRIP_BEND_RADIUS = "strip_bend_radius"
+    STRIP_BEND_ANGLE = "strip_bend_angle"
+    STRIP_TAIL_LENGTH = "strip_tail_length"
     ORIENTATION_NOTE = "orientation_note"
 
 
@@ -78,6 +115,7 @@ class ExtractionMethod(str, Enum):
 
     PDF_TEXT_LAYOUT = "pdf_text_layout"      # real PyMuPDF parse, real bbox
     RULE_PARSER = "rule_parser"              # deterministic regex/grammar
+    REASONING_MODEL = "reasoning_model"      # structured semantic extraction
     KNOWLEDGE_TABLE = "knowledge_table"      # derived via a cited standard
     VISION_MODEL = "vision_model"            # genuine multimodal extraction
     RECORDED_FIXTURE = "recorded_fixture"    # replayed; never counts as extraction
@@ -180,6 +218,15 @@ class EvidenceSet(BaseModel):
     backend_used: str = Field(
         default="unknown",
         description="which extractor backend ran, recorded whether or not a key was present",
+    )
+    reasoning_backend: str = "not used (no requirement supplied)"
+    reasoning_fell_back: bool = False
+    reasoning_fallback_reason: Optional[str] = None
+    unsupported_features: list[str] = Field(default_factory=list)
+    clarification_questions: list[str] = Field(default_factory=list)
+    feature_requests: list[FeatureIntent] = Field(
+        default_factory=list,
+        description="schema-validated advanced feature intents carried into the EIG",
     )
 
     def by_target(self, target: SemanticTarget) -> list[Evidence]:

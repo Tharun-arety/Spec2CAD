@@ -41,6 +41,23 @@ REQUIREMENT_TARGETS: frozenset[SemanticTarget] = frozenset({
     T.MIN_HOLE_EDGE_CLEARANCE,
     T.EXTERNAL_CHAMFER,
     T.MANUFACTURING_PROCESS,
+    T.OUTER_DIAMETER,
+    T.INNER_DIAMETER,
+    T.BODY_LENGTH,
+    T.WALL_THICKNESS,
+    T.SHEET_LEG_A,
+    T.SHEET_LEG_B,
+    T.SHEET_WIDTH,
+    T.SHEET_THICKNESS,
+    T.INSIDE_BEND_RADIUS,
+    T.BEND_ANGLE,
+    T.K_FACTOR,
+    T.ROD_DIAMETER,
+    T.ROD_TOTAL_LENGTH,
+    T.ROD_BEND_START,
+    T.ROD_BEND_RADIUS,
+    T.ROD_BEND_ANGLE,
+    T.PROFILE_DEFINITION,
 })
 
 # Facts only the drawing describes: the envelope of the part being designed.

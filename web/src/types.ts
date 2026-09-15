@@ -72,7 +72,7 @@ export interface Release {
 
 export interface OpField {
   name: string
-  value: number | boolean | string | null
+  value: unknown
   parameter: string | null
 }
 
@@ -119,6 +119,7 @@ export interface Revision {
   constraints: { id: string; type: string; value: number; unit: string; severity: string }[]
   feature_sequence: string[]
   operations: Operation[]
+  derived_geometry?: Record<string, number>
   editable_parameters: EditableParam[]
   preflight: Check[]
   measured: Check[]
@@ -134,6 +135,13 @@ export interface RunState {
   sketch_backend: string
   sketch_fell_back: boolean
   sketch_fallback_reason: string | null
+  reasoning_backend?: string
+  reasoning_fell_back?: boolean
+  reasoning_fallback_reason?: string | null
+  unsupported_features?: string[]
+  clarification_questions?: string[]
+  messages?: ChatMessage[]
+  feature_requests?: Record<string, unknown>[]
   contains_fixture_evidence: boolean
   evidence: Evidence[]
   revisions: Revision[]
@@ -145,4 +153,16 @@ export interface Health {
   sketch_backend: string
   sketch_backend_label: string
   vision_available: boolean
+  vision_model?: string | null
+  reasoning_available?: boolean
+  reasoning_model?: string | null
+  capabilities?: string[]
+}
+
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  kind: 'request' | 'answer' | 'clarification' | 'result' | 'error' | 'message'
+  created_at: string
 }

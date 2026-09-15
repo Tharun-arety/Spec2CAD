@@ -1,6 +1,6 @@
 # Spec2CAD evaluation report
 
-Generated 2026-09-13 21:18 UTC
+Generated 2026-09-15 08:09 UTC
 
 Two suites are reported separately and never averaged together. One measures
 the pipeline; the other measures an extractor. Combining them would produce a
@@ -10,7 +10,7 @@ number that describes neither.
 
 Fixed evidence in, no API calls, fully reproducible. This is what runs in CI.
 
-**32/32 deterministic checks passed**
+**39/39 deterministic checks passed**
 
 | Check | Expected | Actual | Result |
 |---|---|---|---|
@@ -46,6 +46,13 @@ Fixed evidence in, no API calls, fully reproducible. This is what runs in CI.
 | release authorised at v2 | `True` | `True` | pass |
 | no measured failures at v2 | `0` | `0` | pass |
 | re-imported STEP re-validates | `True` | `True` | pass |
+| second part family identified | `mounting_bracket` | `mounting_bracket` | pass |
+| second part feature plan | `['base_plate', 'mounting_holes', 'base_slots', 'external_fillets']` | `['base_plate', 'mounting_holes', 'base_slots', 'external_fillets']` | pass |
+| second part released | `True` | `True` | pass |
+| slot width measured on B-Rep | `8.0` | `8.0` | pass |
+| slot length measured on B-Rep | `20.0` | `20.0` | pass |
+| fillets measured on B-Rep | `4` | `4` | pass |
+| requirement executed from predicate IR | `True` | `True` | pass |
 
 ## 2. Real extractor suite
 
@@ -55,7 +62,7 @@ figure. Fixture-replayed evidence is structurally barred from this suite:
 `score_extraction` raises `FixtureEvidenceInMetrics` rather than scoring a
 recording, because replaying a recording measures the recording.
 
-_skipped: no vision API key configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in .env to measure real extraction accuracy._
+__
 
 
 ## 3. Failure analysis
@@ -83,19 +90,21 @@ smaller one with known ones.
   version of it scraped `3` out of the sentence "listed in section 3" on page 4;
   that is now fixed by anchoring labels to the row start, and regression-tested,
   but the class of error is inherent to rule-based extraction.
-- The geometry vocabulary is four operations (box, hole, rectangular hole pattern,
-  chamfer) and the hole pattern supports exactly four corner holes. Anything else
-  raises rather than approximating.
-- Only one part family is supported. No GD&T, tolerancing, assemblies, or
-  alternate motor frames.
+- The geometry vocabulary is six operations (box, hole, rectangular hole pattern,
+  slot pattern, chamfer, and fillet); the rectangular pattern still supports exactly
+  four corner holes. Anything else raises rather than approximating.
+- Two feature distributions are supported: the motor adapter and a flat slotted
+  bracket. This demonstrates graph/compiler reuse, not open-ended part synthesis.
+  There is still no GD&T, tolerancing, assembly reasoning, or bent-sheet-metal model.
 - Preflight and measured validation are cross-checked against each other, but both
   encode the same clearance formula. A conceptual error in that formula would not
   be caught by their agreement.
 
 **Deliberately deferred**
 
-The 15-case matrix and the perturbation battery (inch inputs, relocated and
-removed dimensions, rotated sketches, contradictory text, altered hole patterns)
-were cut from v1 in favour of one slice that works end to end and is honestly
-reported. Unit normalisation and the source-adjudication path are implemented and
-unit-tested, so those perturbations are the natural next increment.
+The deterministic adversarial suite now covers changed and missing dimensions,
+inch/mm normalization, contradictory sources, feature removal/reordering, an
+unsatisfiable requirement, unseen feature composition, and injected pipeline
+faults. Drawing-layout perturbations such as rotated sketches and relocated
+annotations remain deferred because the offline fixture cannot measure vision
+generalization honestly.

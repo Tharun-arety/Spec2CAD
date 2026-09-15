@@ -30,6 +30,26 @@ services:
         value: https://spec2cad.vercel.app
       - key: PYTHONUNBUFFERED
         value: "1"
+      - key: SPEC2CAD_TRUST_PROXY
+        value: "1"
+      - key: SPEC2CAD_REQUESTS_PER_MINUTE
+        value: "8"
+      - key: SPEC2CAD_AI_UNITS_PER_CLIENT_DAY
+        value: "12"
+      - key: SPEC2CAD_AI_UNITS_GLOBAL_DAY
+        value: "120"
+      - key: SPEC2CAD_MAX_CONCURRENT_JOBS
+        value: "1"
+      - key: SPEC2CAD_MAX_CACHED_RUNS
+        value: "8"
+      - key: SPEC2CAD_MODEL_MAX_OUTPUT_TOKENS
+        value: "3000"
+      - key: SPEC2CAD_MODEL_TIMEOUT_SECONDS
+        value: "35"
+      - key: SPEC2CAD_USAGE_SALT
+        sync: false
+      - key: SPEC2CAD_ADMIN_TOKEN
+        sync: false
       # Set these in the Render dashboard to enable real sketch extraction.
       # Without either, the sketch falls back to its recorded fixture, which is
       # labelled as such in the UI.

@@ -9,23 +9,44 @@ is returned in the body rather than as a bare error.
 from __future__ import annotations
 
 import os
+import hmac
 import shutil
 import tempfile
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+import fitz
+from PIL import Image, UnidentifiedImageError
+from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from spec2cad.cad.executor import export_step, export_stl
-from spec2cad.extractors.base import backend_label, select_backend
+from spec2cad.cad.executor import execute
+from spec2cad.cad.assembly import execute_assembly
+from spec2cad.analysis import run_analyses
+from spec2cad.extractors.base import (
+    backend_label,
+    load_env,
+    openai_model,
+    reasoning_available,
+    reasoning_model,
+    safe_backend_error,
+    select_backend,
+)
 from spec2cad.cad.compiler import parameter_table
+from spec2cad.schemas.cad_ir import CADProgram
+from spec2cad.schemas.assembly_ir import AssemblyProgram
+from spec2cad.schemas.gdt_ir import InspectionProgram
+from spec2cad.schemas.analysis_ir import AnalysisProgram
+from spec2cad.validation.gdt import inspect_gdt
 from spec2cad.pipeline import (
     InterfaceChangeRequiresAcknowledgement,
     RevisionResult,
     interface_critical,
+    continue_conversation,
     repair,
     revise,
     run,
@@ -33,6 +54,12 @@ from spec2cad.pipeline import (
 from spec2cad.preview import NoRegion, render_evidence_preview
 from spec2cad.repair.repair_planner import UnsafeRepairRequiresAcknowledgement
 from spec2cad.store import Store
+from spec2cad.public_guardrails import (
+    BoundedRunCache,
+    DailyAIBudget,
+    PublicGuardrailMiddleware,
+    PublicLimits,
+)
 
 BUILD_DIR = Path("build")
 UPLOAD_DIR = BUILD_DIR / "uploads"
@@ -40,6 +67,8 @@ ARTIFACT_DIR = BUILD_DIR / "artifacts"
 EXAMPLE_DIR = Path("examples/motor_adapter")
 
 app = FastAPI(title="Spec2CAD", version="1.0.0")
+load_env()
+limits = PublicLimits.from_env()
 
 # The deployed frontend lives on a different origin from this API, so the
 # allowed list is configuration rather than a constant. SPEC2CAD_ALLOWED_ORIGINS
@@ -56,17 +85,37 @@ _configured = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_DEFAULT_ORIGINS + _configured,
-    # every *.vercel.app preview deployment of this project
-    allow_origin_regex=r"https://spec2cad[\w-]*\.vercel\.app",
+    # Preview origins are opt-in because wildcard browser access broadens abuse.
+    allow_origin_regex=(
+        r"https://spec2cad[\w-]*\.vercel\.app"
+        if os.environ.get("SPEC2CAD_ALLOW_VERCEL_PREVIEWS", "0") == "1"
+        else None
+    ),
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(PublicGuardrailMiddleware, limits=limits)
 
 store = Store()
+ai_budget = DailyAIBudget(
+    store, limits.ai_units_per_client_day, limits.ai_units_global_day
+)
 
 # Live pipeline results, keyed by run id. The store holds the durable audit
 # trail; this cache holds the built geometry so a download does not rebuild.
-_runs: dict[str, object] = {}
+_runs = BoundedRunCache(limits.max_cached_runs)
+
+
+class InspectionRequest(BaseModel):
+    program: CADProgram
+    parameters: dict[str, float] = Field(default_factory=dict, max_length=128)
+    inspection: InspectionProgram
+
+
+class AnalysisRequest(BaseModel):
+    program: CADProgram
+    parameters: dict[str, float] = Field(default_factory=dict, max_length=128)
+    analysis: AnalysisProgram
 
 
 # --------------------------------------------------------------------------
@@ -173,11 +222,17 @@ def _revision_json(rev: RevisionResult) -> dict:
              "severity": c.severity.value, "description": c.description}
             for c in intent.constraints
         ],
+        "intent_graph": (
+            rev.intent_graph.model_dump(mode="json") if rev.intent_graph else None
+        ),
         "feature_sequence": rev.program.feature_sequence() if rev.program else [],
         # Each feature with its numeric fields resolved AND what the kernel
         # measured after building it. The resolved fields alone are only the
         # program restated; the measurement is the evidence that it happened.
         "operations": _operations_json(rev),
+        "derived_geometry": (
+            rev.execution.context.derived if rev.execution else {}
+        ),
         "editable_parameters": [
             {
                 "name": name,
@@ -219,6 +274,25 @@ def _run_json(run_id: str, run_result) -> dict:
         "sketch_backend": run_result.sketch_backend,
         "sketch_fell_back": run_result.sketch_fell_back,
         "sketch_fallback_reason": run_result.sketch_fallback_reason,
+        "reasoning_backend": run_result.reasoning_backend,
+        "reasoning_fell_back": run_result.reasoning_fell_back,
+        "reasoning_fallback_reason": run_result.reasoning_fallback_reason,
+        "unsupported_features": run_result.unsupported_features,
+        "clarification_questions": run_result.clarification_questions,
+        "messages": [
+            {
+                "id": message.id,
+                "role": message.role,
+                "content": message.content,
+                "kind": message.kind,
+                "created_at": message.created_at,
+            }
+            for message in run_result.messages
+        ],
+        "feature_requests": [
+            request.model_dump(mode="json")
+            for request in run_result.evidence.feature_requests
+        ],
         "contains_fixture_evidence": run_result.evidence.contains_fixture_data,
         "evidence": _evidence_json(run_result),
         "revisions": [_revision_json(r) for r in run_result.revisions],
@@ -238,6 +312,87 @@ def _require(run_id: str):
     return result
 
 
+def _retry_after_midnight() -> str:
+    now = datetime.now(timezone.utc)
+    tomorrow = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+    return str(max(1, int((tomorrow - now).total_seconds())))
+
+
+def _reserve_ai(request: Request, units: int) -> None:
+    if units <= 0:
+        return
+    key = getattr(request.state, "client_hash", "unknown")
+    try:
+        ai_budget.reserve(key, units)
+    except ValueError as exc:
+        scope = str(exc)
+        detail = (
+            "your daily AI generation limit has been reached"
+            if scope == "client_daily_limit"
+            else "the public demo's daily AI budget has been reached"
+        )
+        raise HTTPException(
+            429, detail, headers={"Retry-After": _retry_after_midnight()}
+        ) from exc
+
+
+def _validate_text(value: str, *, name: str = "instruction") -> str:
+    text = value.strip()
+    if len(text) > limits.max_requirement_chars:
+        raise HTTPException(
+            413,
+            f"{name} exceeds the {limits.max_requirement_chars}-character public limit",
+        )
+    if any(ord(char) < 32 and char not in "\n\r\t" for char in text):
+        raise HTTPException(422, f"{name} contains unsupported control characters")
+    return text
+
+
+def _save_upload(upload: UploadFile, path: Path, max_bytes: int) -> None:
+    written = 0
+    with path.open("wb") as fh:
+        while chunk := upload.file.read(1024 * 1024):
+            written += len(chunk)
+            if written > max_bytes:
+                path.unlink(missing_ok=True)
+                raise HTTPException(413, f"{upload.filename or 'upload'} is too large")
+            fh.write(chunk)
+
+
+def _validate_image(path: Path) -> None:
+    try:
+        with Image.open(path) as image:
+            width, height = image.size
+            image.verify()
+        if width * height > limits.max_image_pixels:
+            raise HTTPException(413, "image pixel count exceeds the public limit")
+    except (UnidentifiedImageError, OSError) as exc:
+        raise HTTPException(422, "uploaded sketch is not a valid image") from exc
+
+
+def _validate_pdf(path: Path) -> None:
+    try:
+        with fitz.open(path) as document:
+            if document.needs_pass:
+                raise HTTPException(422, "encrypted PDFs are not accepted")
+            if document.page_count > limits.max_pdf_pages:
+                raise HTTPException(
+                    413, f"PDF exceeds the {limits.max_pdf_pages}-page public limit"
+                )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(422, "uploaded datasheet is not a valid PDF") from exc
+
+
+def _require_admin_token(value: Optional[str]) -> None:
+    expected = os.environ.get("SPEC2CAD_ADMIN_TOKEN")
+    if not expected:
+        raise HTTPException(404, "administrative API is disabled")
+    if not value or not hmac.compare_digest(value, expected):
+        raise HTTPException(401, "admin token required")
+
+
 # --------------------------------------------------------------------------
 # Endpoints
 # --------------------------------------------------------------------------
@@ -251,21 +406,99 @@ def health() -> dict:
         "sketch_backend": backend.value,
         "sketch_backend_label": backend_label(backend),
         "vision_available": backend.value != "fixture",
+        "vision_model": openai_model() if backend.value == "openai" else None,
+        "reasoning_available": reasoning_available(),
+        "reasoning_model": reasoning_model() if reasoning_available() else None,
+        "public_limits": {
+            "requests_per_minute": limits.requests_per_minute,
+            "ai_units_per_client_day": limits.ai_units_per_client_day,
+            "max_requirement_chars": limits.max_requirement_chars,
+            "max_conversation_messages": limits.max_conversation_messages,
+        },
+        "capabilities": [
+            "profile_extrude", "profile_pocket", "profile_revolve", "curved_rod_sweep",
+            "rectangular_loft", "curved_strip_sweep",
+            "sheet_metal_90_bend", "assembly_transforms", "assembly_mates",
+            "collision_check", "gdt_size", "gdt_position", "gdt_flatness",
+            "gdt_perpendicularity", "mass_properties", "axial_stress",
+            "bending_stress", "thermal_expansion", "worst_case_fit",
+        ],
+    }
+
+
+@app.post("/assemblies/evaluate")
+def evaluate_assembly_endpoint(
+    program: AssemblyProgram,
+    x_spec2cad_admin_token: Optional[str] = Header(None),
+) -> dict:
+    """Execute every component, apply transforms, then validate mates/collisions."""
+    _require_admin_token(x_spec2cad_admin_token)
+    try:
+        result = execute_assembly(program)
+    except (ValueError, ExecutionError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return {
+        "name": program.name,
+        "passed": result.passed,
+        "component_count": len(result.components),
+        "checks": [check.__dict__ for check in result.checks],
+    }
+
+
+@app.post("/inspection/evaluate")
+def evaluate_inspection_endpoint(
+    body: InspectionRequest,
+    x_spec2cad_admin_token: Optional[str] = Header(None),
+) -> dict:
+    """Build one typed CAD program and independently evaluate its GD&T controls."""
+    _require_admin_token(x_spec2cad_admin_token)
+    try:
+        execution = execute(body.program, body.parameters)
+        results = inspect_gdt(execution.shape, body.inspection)
+    except (ValueError, ExecutionError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return {
+        "passed": all(result.passed for result in results),
+        "results": [result.__dict__ for result in results],
+    }
+
+
+@app.post("/analyses/evaluate")
+def evaluate_analysis_endpoint(
+    body: AnalysisRequest,
+    x_spec2cad_admin_token: Optional[str] = Header(None),
+) -> dict:
+    """Build one typed CAD program and run explicit-assumption analyses."""
+    _require_admin_token(x_spec2cad_admin_token)
+    try:
+        execution = execute(body.program, body.parameters)
+        results = run_analyses(execution.shape, body.analysis)
+    except (ValueError, ExecutionError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return {
+        "passed": all(result.passed is not False for result in results),
+        "results": [result.__dict__ for result in results],
     }
 
 
 @app.post("/runs/demo")
-def create_demo_run(backend: Optional[str] = None) -> JSONResponse:
+def create_demo_run(request: Request, backend: Optional[str] = None) -> JSONResponse:
     """Run the bundled motor-adapter example."""
     if not (EXAMPLE_DIR / "sketch.png").exists():
         raise HTTPException(
             503, "example inputs missing; run examples/motor_adapter/generate_inputs.py"
         )
+    _reserve_ai(
+        request,
+        int(reasoning_available())
+        + int(select_backend(backend).value != "fixture"),
+    )
     result = run(
         EXAMPLE_DIR / "sketch.png",
         EXAMPLE_DIR / "motor_datasheet.pdf",
         EXAMPLE_DIR / "requirement.txt",
         backend,
+        use_reasoning=True,
     )
     run_id = store.create_run(
         EXAMPLE_DIR, result.evidence, result.sketch_backend,
@@ -277,13 +510,14 @@ def create_demo_run(backend: Optional[str] = None) -> JSONResponse:
 
 
 @app.post("/runs")
-async def create_run(
+def create_run(
+    request: Request,
     sketch: Optional[UploadFile] = File(None),
     datasheet: Optional[UploadFile] = File(None),
     requirement: Optional[str] = Form(None),
     backend: Optional[str] = Form(None),
 ) -> JSONResponse:
-    requirement_text = (requirement or "").strip()
+    requirement_text = _validate_text(requirement or "")
     if sketch is None and datasheet is None and not requirement_text:
         raise HTTPException(
             400,
@@ -297,20 +531,34 @@ async def create_run(
     datasheet_path: Optional[Path] = None
     requirement_path: Optional[Path] = None
 
-    if sketch is not None:
-        suffix = Path(sketch.filename or "").suffix.lower()
-        if suffix not in {".png", ".jpg", ".jpeg", ".webp"}:
-            suffix = ".png"
-        sketch_path = work / f"sketch{suffix}"
-        with sketch_path.open("wb") as fh:
-            shutil.copyfileobj(sketch.file, fh)
-    if datasheet is not None:
-        datasheet_path = work / "motor_datasheet.pdf"
-        with datasheet_path.open("wb") as fh:
-            shutil.copyfileobj(datasheet.file, fh)
+    try:
+        if sketch is not None:
+            suffix = Path(sketch.filename or "").suffix.lower()
+            if suffix not in {".png", ".jpg", ".jpeg", ".webp"}:
+                suffix = ".png"
+            sketch_path = work / f"sketch{suffix}"
+            _save_upload(sketch, sketch_path, limits.max_image_bytes)
+            _validate_image(sketch_path)
+        if datasheet is not None:
+            datasheet_path = work / "motor_datasheet.pdf"
+            _save_upload(datasheet, datasheet_path, limits.max_pdf_bytes)
+            _validate_pdf(datasheet_path)
+    except HTTPException:
+        shutil.rmtree(work, ignore_errors=True)
+        raise
     if requirement_text:
         requirement_path = work / "requirement.txt"
         requirement_path.write_text(requirement_text, encoding="utf-8")
+
+    try:
+        _reserve_ai(
+            request,
+            int(bool(requirement_text) and reasoning_available())
+            + int(sketch_path is not None and select_backend(backend).value != "fixture"),
+        )
+    except HTTPException:
+        shutil.rmtree(work, ignore_errors=True)
+        raise
 
     # An uploaded sketch has no recorded fixture, so with no API key configured
     # there is nothing to fall back to. Say so plainly.
@@ -324,10 +572,22 @@ async def create_run(
         )
 
     try:
-        result = run(sketch_path, datasheet_path, requirement_path, backend)
+        result = run(
+            sketch_path,
+            datasheet_path,
+            requirement_path,
+            backend,
+            use_reasoning=True,
+        )
     except Exception as exc:
         shutil.rmtree(work, ignore_errors=True)
-        raise HTTPException(422, f"pipeline failed: {type(exc).__name__}: {exc}") from exc
+        provider_modules = ("openai", "anthropic", "httpx")
+        detail = (
+            safe_backend_error(exc)
+            if type(exc).__module__.startswith(provider_modules)
+            else f"{type(exc).__name__}: {exc}"
+        )
+        raise HTTPException(422, f"pipeline failed: {detail}") from exc
 
     run_id = store.create_run(
         work, result.evidence, result.sketch_backend,
@@ -339,7 +599,8 @@ async def create_run(
 
 
 @app.get("/runs")
-def list_runs() -> dict:
+def list_runs(x_spec2cad_admin_token: Optional[str] = Header(None)) -> dict:
+    _require_admin_token(x_spec2cad_admin_token)
     return {"runs": store.list_runs()}
 
 
@@ -377,6 +638,32 @@ class RepairRequest(BaseModel):
     proposal_id: str
     approved_by: str = "ui-user"
     acknowledge_unsafe: bool = False
+
+
+class ChatTurnRequest(BaseModel):
+    message: str = Field(min_length=1)
+
+
+@app.post("/runs/{run_id}/messages")
+def continue_run_endpoint(
+    run_id: str, body: ChatTurnRequest, request: Request
+) -> JSONResponse:
+    """Continue the same engineering conversation as a new audited revision."""
+    result = _require(run_id)
+    message = _validate_text(body.message, name="message")
+    if len(result.messages) >= limits.max_conversation_messages:
+        raise HTTPException(
+            409,
+            "this public conversation reached its turn limit; start a new design",
+        )
+    _reserve_ai(request, int(reasoning_available()))
+    try:
+        updated = continue_conversation(result, message)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    _runs[run_id] = updated
+    _persist(run_id, updated)
+    return JSONResponse(_run_json(run_id, updated))
 
 
 @app.post("/runs/{run_id}/repair")

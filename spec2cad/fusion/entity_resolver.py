@@ -162,9 +162,25 @@ REQUIRED_TARGETS = [
     T.MOTOR_BOSS_DIAMETER, T.EXTERNAL_CHAMFER,
 ]
 
+# Optional geometry is carried only when a source actually asks for it. This
+# keeps the established motor-adapter projection byte-for-byte stable while
+# allowing a second feature vocabulary through the same DesignIntent bridge.
+OPTIONAL_PARAMETER_TARGETS = [
+    T.EXTERNAL_FILLET,
+    T.SLOT_COUNT,
+    T.SLOT_WIDTH,
+    T.SLOT_LENGTH,
+    T.SLOT_SPACING_X,
+    T.SLOT_ANGLE,
+    T.OUTER_DIAMETER,
+    T.INNER_DIAMETER,
+    T.BODY_LENGTH,
+    T.WALL_THICKNESS,
+]
+
 
 def build_design_intent(
-    evidence: EvidenceSet, part_name: str = "motor_adapter_plate"
+    evidence: EvidenceSet, part_name: Optional[str] = "motor_adapter_plate"
 ) -> tuple[DesignIntent, list[Resolution]]:
     """Fuse evidence into DesignIntent v1, returning the resolutions too."""
     resolutions: dict[SemanticTarget, Resolution] = {}
@@ -174,6 +190,9 @@ def build_design_intent(
     parameters: dict[str, Parameter] = {}
     for target in REQUIRED_TARGETS:
         parameters[target.value] = _parameter(resolutions[target])
+    for target in OPTIONAL_PARAMETER_TARGETS:
+        if resolutions[target].value is not None:
+            parameters[target.value] = _parameter(resolutions[target])
 
     # Prefer a directly stated shaft/centre opening. If none was supplied, the
     # motor-adapter workflow derives it from the pilot boss plus fit allowance.
@@ -203,11 +222,15 @@ def build_design_intent(
 
     material = resolutions[T.MATERIAL]
     process = resolutions[T.MANUFACTURING_PROCESS]
+    inferred_part_name = resolutions[T.PART_TYPE].value
     part = PartInfo(
-        name=part_name,
+        name=(
+            part_name
+            or (str(inferred_part_name) if inferred_part_name else "mounting_plate")
+        ),
         material=material.value if isinstance(material.value, str) else None,
         manufacturing_process=process.value if isinstance(process.value, str) else None,
-        provenance=material.provenance + process.provenance,
+        provenance=material.provenance + process.provenance + resolutions[T.PART_TYPE].provenance,
     )
 
     interfaces: list[Interface] = []

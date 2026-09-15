@@ -116,6 +116,15 @@ def extract_requirement(
 
     out: list[Evidence] = []
 
+    number_words = {
+        "one": 1, "two": 2, "three": 3, "four": 4,
+        "five": 5, "six": 6, "seven": 7, "eight": 8,
+    }
+
+    def count_value(token: str) -> int:
+        lowered = token.lower()
+        return number_words.get(lowered, int(lowered) if lowered.isdigit() else 0)
+
     def add_length(
         ev_id: str,
         target: SemanticTarget,
@@ -135,8 +144,58 @@ def extract_requirement(
             raw=raw, original=original,
         ))
 
-    # --- plate envelope: "60 mm wide, 40 mm high" ------------------------
-    envelope = re.search(
+    # --- part identity ----------------------------------------------------
+    # Identity is evidence too. The compiler never branches on this value;
+    # feature evidence below determines the plan. It is retained so the graph
+    # and released artifact can be named honestly.
+    bracket = re.search(r"\b(?:slotted\s+)?(?:mounting\s+)?bracket\b", text, re.IGNORECASE)
+    if bracket:
+        out.append(_mk(
+            "ev_txt_part_type", SemanticTarget.PART_TYPE, EvidenceKind.FEATURE_CALLOUT,
+            "mounting_bracket", None,
+            source_name=source_name, confidence=0.99, explicit=True,
+            raw=bracket.group(0),
+        ))
+
+    # --- plate/bracket envelope ------------------------------------------
+    # A square carries two dimensions in one statement. Treat its stated side
+    # length as equal width and height; the CAD planner remains a generic box
+    # planner and never needs to know what the word "square" means.
+    square_plate = re.search(r"\bsquare\s+(?:mounting\s+)?plate\b", text, re.IGNORECASE)
+    square_side = re.search(
+        rf"(?:of\s+)?(?:side(?:\s+length)?|length)\s*(?:of|=|:)?\s*"
+        rf"({_NUM})\s*({_UNIT})",
+        text, re.IGNORECASE,
+    ) if square_plate else None
+    if square_side:
+        raw = f"{square_plate.group(0)} {square_side.group(0)}"
+        add_length(
+            "ev_txt_plate_width", SemanticTarget.PLATE_WIDTH,
+            EvidenceKind.LINEAR_DIMENSION,
+            square_side.group(1), square_side.group(2), raw,
+        )
+        add_length(
+            "ev_txt_plate_height", SemanticTarget.PLATE_HEIGHT,
+            EvidenceKind.LINEAR_DIMENSION,
+            square_side.group(1), square_side.group(2), raw,
+        )
+
+        square_thickness = re.search(
+            rf"thickness\s*(?:of|=|:)?\s*({_NUM})\s*({_UNIT})|"
+            rf"({_NUM})\s*({_UNIT})\s+thick",
+            text, re.IGNORECASE,
+        )
+        if square_thickness:
+            value = square_thickness.group(1) or square_thickness.group(3)
+            unit = square_thickness.group(2) or square_thickness.group(4)
+            add_length(
+                "ev_txt_plate_thickness_square", SemanticTarget.PLATE_THICKNESS,
+                EvidenceKind.LINEAR_DIMENSION, value, unit,
+                square_thickness.group(0),
+            )
+
+    # Rectangular prose: "60 mm wide, 40 mm high".
+    envelope = None if square_side else re.search(
         rf"({_NUM})\s*({_UNIT})\s+(?:wide|in\s+width)\s*[,;]?\s*"
         rf"(?:and\s+)?({_NUM})\s*({_UNIT})\s+(?:high|tall|in\s+height)",
         text, re.IGNORECASE,
@@ -156,8 +215,16 @@ def extract_requirement(
         # Compact engineering shorthand: "60 x 40 x 6 mm plate". The third
         # value is thickness; the dedicated material rule below still wins if
         # the prompt states thickness again next to a material.
+        #
+        # Up to two words may sit between the unit and "plate", because the
+        # natural way to write this puts the material or a qualifier there --
+        # "6 mm aluminium plate", "6 mm thick mounting plate". Requiring the
+        # noun to follow the unit immediately silently dropped the whole
+        # envelope for those, so the run failed for want of a width the prompt
+        # had actually stated. The bound keeps the match local to the phrase.
         envelope = re.search(
-            rf"({_NUM})\s*[x×]\s*({_NUM})\s*[x×]\s*({_NUM})\s*({_UNIT})\s+(?:mounting\s+)?plate",
+            rf"({_NUM})\s*[x×]\s*({_NUM})\s*[x×]\s*({_NUM})\s*({_UNIT})"
+            rf"\s+(?:\w+\s+){{0,2}}(?:plate|bracket)",
             text, re.IGNORECASE,
         )
         if envelope:
@@ -169,6 +236,47 @@ def extract_requirement(
                        EvidenceKind.LINEAR_DIMENSION, envelope.group(2), unit, raw)
             add_length("ev_txt_plate_thickness_envelope", SemanticTarget.PLATE_THICKNESS,
                        EvidenceKind.LINEAR_DIMENSION, envelope.group(3), unit, raw)
+
+    # Individually named envelope dimensions, in either common word order:
+    # "25 mm length", "width of 10 mm", "3 mm thick". When both length and
+    # width are supplied, length is the first in-plane CAD axis and width the
+    # second. This maps language to existing graph targets only; the planner
+    # still receives the same generic envelope dimensions.
+    def named_dimension(words: str):
+        return re.search(
+            rf"(?:({_NUM})\s*({_UNIT})\s+(?:{words})\b|"
+            rf"(?:{words})\s*(?:of|=|:)?\s*({_NUM})\s*({_UNIT}))",
+            text,
+            re.IGNORECASE,
+        )
+
+    def add_named(ev_id: str, target: SemanticTarget, match) -> None:
+        if match is None or any(item.target is target for item in out):
+            return
+        value = match.group(1) or match.group(3)
+        unit = match.group(2) or match.group(4)
+        add_length(
+            ev_id, target, EvidenceKind.LINEAR_DIMENSION,
+            value, unit, match.group(0),
+        )
+
+    planar_envelope = re.search(r"\b(?:plate|bracket|flange|block)\b", text, re.IGNORECASE)
+    length_named = named_dimension("length") if planar_envelope else None
+    width_named = named_dimension("width|wide") if planar_envelope else None
+    height_named = named_dimension("height|high|tall") if planar_envelope else None
+    thickness_named = named_dimension("thick(?:ness|mess)?") if planar_envelope else None
+
+    add_named("ev_txt_plate_length_named", SemanticTarget.PLATE_WIDTH, length_named)
+    if length_named is not None:
+        add_named("ev_txt_plate_width_named", SemanticTarget.PLATE_HEIGHT, width_named)
+    else:
+        add_named("ev_txt_plate_width_named", SemanticTarget.PLATE_WIDTH, width_named)
+    add_named("ev_txt_plate_height_named", SemanticTarget.PLATE_HEIGHT, height_named)
+    add_named(
+        "ev_txt_plate_thickness_named",
+        SemanticTarget.PLATE_THICKNESS,
+        thickness_named,
+    )
 
     # --- rectangular mounting pattern: "44 mm by 24 mm ... pattern" ------
     pattern = re.search(
@@ -184,19 +292,36 @@ def extract_requirement(
         add_length("ev_txt_hole_spacing_y", SemanticTarget.HOLE_SPACING_Y,
                    EvidenceKind.HOLE_PATTERN, pattern.group(3), pattern.group(4), raw)
 
-    # --- mounting-hole count ----------------------------------------------
-    number_words = {
-        "one": 1, "two": 2, "three": 3, "four": 4,
-        "five": 5, "six": 6, "eight": 8,
-    }
+    # --- mounting-hole count and direct diameter -------------------------
+    direct_holes = re.search(
+        rf"\b(one|two|three|four|five|six|seven|eight|\d+)\s+"
+        rf"(?:mounting\s+)?(?:[Ø⌀]\s*)?({_NUM})\s*({_UNIT})?\s*"
+        rf"(?:diameter\s+)?(?:through\s+)?holes?\b",
+        text, re.IGNORECASE,
+    )
+    if direct_holes:
+        token = direct_holes.group(1)
+        out.append(_mk(
+            "ev_txt_hole_count", SemanticTarget.MOUNTING_HOLE_COUNT,
+            EvidenceKind.COUNT, count_value(token), None,
+            source_name=source_name, confidence=0.99, explicit=True,
+            raw=direct_holes.group(0),
+        ))
+        diameter_unit = direct_holes.group(3) or "mm"
+        add_length(
+            "ev_txt_hole_diameter", SemanticTarget.MOUNTING_HOLE_DIAMETER,
+            EvidenceKind.DIAMETER, direct_holes.group(2), diameter_unit,
+            direct_holes.group(0),
+        )
+
     count_match = re.search(
         r"\b(one|two|three|four|five|six|eight|\d+)\s+(?:normal-clearance\s+)?"
         r"(?:mounting\s+)?holes?\b",
         text, re.IGNORECASE,
     )
-    if count_match:
+    if count_match and not direct_holes:
         token = count_match.group(1).lower()
-        count = number_words.get(token, int(token) if token.isdigit() else 0)
+        count = count_value(token)
         out.append(_mk(
             "ev_txt_hole_count", SemanticTarget.MOUNTING_HOLE_COUNT,
             EvidenceKind.COUNT, count, None,
@@ -225,6 +350,78 @@ def extract_requirement(
             "ev_txt_shaft_opening", SemanticTarget.SHAFT_OPENING_DIAMETER,
             EvidenceKind.DIAMETER, opening.group(1), opening.group(2), opening.group(0),
         )
+    else:
+        # Natural order: "hole of 3 mm dia at center" / "a 3 mm diameter hole
+        # in the centre". This is the existing central through-opening target.
+        opening = re.search(
+            rf"(?:central|centred|centered)?\s*hole\s*(?:of|with)?\s*"
+            rf"({_NUM})\s*({_UNIT})\s*(?:dia(?:meter)?|[Ø⌀])?\s*"
+            rf"(?:at|in)\s+(?:the\s+)?cent(?:er|re)|"
+            rf"({_NUM})\s*({_UNIT})\s*(?:dia(?:meter)?\s+)?hole\s*"
+            rf"(?:at|in)\s+(?:the\s+)?cent(?:er|re)",
+            text,
+            re.IGNORECASE,
+        )
+        if opening:
+            value = opening.group(1) or opening.group(3)
+            unit = opening.group(2) or opening.group(4)
+            add_length(
+                "ev_txt_shaft_opening",
+                SemanticTarget.SHAFT_OPENING_DIAMETER,
+                EvidenceKind.DIAMETER,
+                value,
+                unit,
+                opening.group(0),
+            )
+
+    # --- slots: "two 8 x 20 mm slots, spaced 50 mm apart" ----------------
+    slots = re.search(
+        rf"\b(one|two|three|four|five|six|seven|eight|\d+)\s+"
+        rf"({_NUM})\s*[x×]\s*({_NUM})\s*({_UNIT})\s+slots?\b",
+        text, re.IGNORECASE,
+    )
+    if slots:
+        raw = slots.group(0)
+        out.append(_mk(
+            "ev_txt_slot_count", SemanticTarget.SLOT_COUNT, EvidenceKind.COUNT,
+            count_value(slots.group(1)), None,
+            source_name=source_name, confidence=0.99, explicit=True, raw=raw,
+        ))
+        add_length(
+            "ev_txt_slot_width", SemanticTarget.SLOT_WIDTH,
+            EvidenceKind.LINEAR_DIMENSION, slots.group(2), slots.group(4), raw,
+        )
+        add_length(
+            "ev_txt_slot_length", SemanticTarget.SLOT_LENGTH,
+            EvidenceKind.LINEAR_DIMENSION, slots.group(3), slots.group(4), raw,
+        )
+
+        spacing = re.search(
+            rf"slots?[\s\S]{{0,80}}?(?:spaced\s+)?({_NUM})\s*({_UNIT})\s+apart",
+            text, re.IGNORECASE,
+        )
+        if spacing:
+            add_length(
+                "ev_txt_slot_spacing_x", SemanticTarget.SLOT_SPACING_X,
+                EvidenceKind.LINEAR_DIMENSION,
+                spacing.group(1), spacing.group(2), spacing.group(0),
+            )
+
+        orientation = re.search(
+            r"slots?[\s\S]{0,120}?\b(front[- ]to[- ]back|longitudinal|left[- ]to[- ]right|transverse)\b",
+            text, re.IGNORECASE,
+        )
+        angle = 90.0 if orientation and orientation.group(1).lower() in {
+            "front-to-back", "front to back", "longitudinal"
+        } else 0.0
+        out.append(_mk(
+            "ev_txt_slot_angle", SemanticTarget.SLOT_ANGLE,
+            EvidenceKind.FEATURE_CALLOUT, angle, "deg",
+            source_name=source_name,
+            confidence=0.99 if orientation else 0.70,
+            explicit=bool(orientation),
+            raw=orientation.group(0) if orientation else "default transverse slot orientation",
+        ))
 
     # --- thickness + material: "from 5 mm aluminium" -----------------------
     m = re.search(
@@ -311,8 +508,24 @@ def extract_requirement(
             raw=m.group(0), original=original,
         ))
 
+    # --- fillet: "add 3 mm corner fillets" -------------------------------
+    m = re.search(
+        rf"({_NUM})\s*(mm|cm|in|inch|inches)\s+"
+        rf"(?:(?:external|corner)\s+)?fillets?",
+        text, re.IGNORECASE,
+    )
+    if m:
+        value_mm, unit = _to_mm(float(m.group(1)), m.group(2))
+        original = None if unit == m.group(2).lower() else f"{m.group(1)} {m.group(2)}"
+        out.append(_mk(
+            "ev_txt_fillet", SemanticTarget.EXTERNAL_FILLET,
+            EvidenceKind.FEATURE_CALLOUT, value_mm, unit,
+            source_name=source_name, confidence=0.97, explicit=True,
+            raw=m.group(0), original=original,
+        ))
+
     # --- process: inferred, and flagged as such ----------------------------
-    if re.search(r"machin|mill|chamfer", text, re.IGNORECASE):
+    if re.search(r"\bmachin\w*\b|\bmill(?:ed|ing)?\b|\bchamfers?\b", text, re.IGNORECASE):
         out.append(_mk(
             "ev_txt_process", SemanticTarget.MANUFACTURING_PROCESS,
             EvidenceKind.PROCESS_SPEC, "machining", None,

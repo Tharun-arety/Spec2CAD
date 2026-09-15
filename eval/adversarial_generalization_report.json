@@ -1,0 +1,2356 @@
+{
+  "all_passed": true,
+  "correct_refusals": 4,
+  "metrics": [
+    {
+      "metric": "graph_construction",
+      "passed": 12,
+      "total": 12,
+      "rate": 1.0
+    },
+    {
+      "metric": "feature_planning",
+      "passed": 9,
+      "total": 9,
+      "rate": 1.0
+    },
+    {
+      "metric": "cad_execution",
+      "passed": 15,
+      "total": 15,
+      "rate": 1.0
+    },
+    {
+      "metric": "geometric_validation",
+      "passed": 8,
+      "total": 8,
+      "rate": 1.0
+    },
+    {
+      "metric": "requirement_validation",
+      "passed": 4,
+      "total": 4,
+      "rate": 1.0
+    },
+    {
+      "metric": "conflict_refusal_correctness",
+      "passed": 5,
+      "total": 5,
+      "rate": 1.0
+    },
+    {
+      "metric": "step_round_trip",
+      "passed": 3,
+      "total": 3,
+      "rate": 1.0
+    }
+  ],
+  "outcomes": [
+    {
+      "case": "motor_adapter",
+      "level": "regression",
+      "metric": "graph_construction",
+      "assertion": "graph has no dangling relationships",
+      "expected": [],
+      "actual": [],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "motor_adapter",
+      "level": "regression",
+      "metric": "feature_planning",
+      "assertion": "original feature sequence is stable",
+      "expected": [
+        "base_plate",
+        "shaft_opening",
+        "mounting_holes",
+        "external_chamfers"
+      ],
+      "actual": [
+        "base_plate",
+        "shaft_opening",
+        "mounting_holes",
+        "external_chamfers"
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "motor_adapter",
+      "level": "regression",
+      "metric": "cad_execution",
+      "assertion": "kernel produced one valid solid",
+      "expected": [
+        true,
+        1
+      ],
+      "actual": [
+        true,
+        1
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "motor_adapter",
+      "level": "regression",
+      "metric": "cad_execution",
+      "assertion": "every planned operation changed geometry",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "motor_adapter",
+      "level": "regression",
+      "metric": "conflict_refusal_correctness",
+      "assertion": "known unsatisfiable v1 is correctly refused",
+      "expected": false,
+      "actual": false,
+      "passed": true,
+      "correct_refusal": true,
+      "note": ""
+    },
+    {
+      "case": "motor_adapter",
+      "level": "regression",
+      "metric": "requirement_validation",
+      "assertion": "approved repair restores measured clearance",
+      "expected": 5.3,
+      "actual": 5.3,
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "motor_adapter",
+      "level": "regression",
+      "metric": "step_round_trip",
+      "assertion": "exported STEP independently re-imports and revalidates",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "slotted_mounting_bracket",
+      "level": "regression",
+      "metric": "graph_construction",
+      "assertion": "graph has no dangling relationships",
+      "expected": [],
+      "actual": [],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "slotted_mounting_bracket",
+      "level": "regression",
+      "metric": "feature_planning",
+      "assertion": "bracket feature sequence is stable",
+      "expected": [
+        "base_plate",
+        "mounting_holes",
+        "base_slots",
+        "external_fillets"
+      ],
+      "actual": [
+        "base_plate",
+        "mounting_holes",
+        "base_slots",
+        "external_fillets"
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "slotted_mounting_bracket",
+      "level": "regression",
+      "metric": "cad_execution",
+      "assertion": "kernel produced one valid solid",
+      "expected": [
+        true,
+        1
+      ],
+      "actual": [
+        true,
+        1
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "slotted_mounting_bracket",
+      "level": "regression",
+      "metric": "cad_execution",
+      "assertion": "every planned operation changed geometry",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "slotted_mounting_bracket",
+      "level": "regression",
+      "metric": "geometric_validation",
+      "assertion": "topology and dimensional reports pass",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "slotted_mounting_bracket",
+      "level": "regression",
+      "metric": "step_round_trip",
+      "assertion": "exported STEP independently re-imports and revalidates",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "changed_dimensions",
+      "level": "perturbation",
+      "metric": "graph_construction",
+      "assertion": "graph has no dangling relationships",
+      "expected": [],
+      "actual": [],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "changed_dimensions",
+      "level": "perturbation",
+      "metric": "feature_planning",
+      "assertion": "dimension changes do not change feature composition",
+      "expected": [
+        "box",
+        "hole",
+        "rectangular_hole_pattern",
+        "fillet"
+      ],
+      "actual": [
+        "box",
+        "hole",
+        "rectangular_hole_pattern",
+        "fillet"
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "changed_dimensions",
+      "level": "perturbation",
+      "metric": "cad_execution",
+      "assertion": "kernel produced one valid solid",
+      "expected": [
+        true,
+        1
+      ],
+      "actual": [
+        true,
+        1
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "changed_dimensions",
+      "level": "perturbation",
+      "metric": "cad_execution",
+      "assertion": "every planned operation changed geometry",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "changed_dimensions",
+      "level": "perturbation",
+      "metric": "geometric_validation",
+      "assertion": "topology and dimensional reports pass",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "changed_dimensions",
+      "level": "perturbation",
+      "metric": "geometric_validation",
+      "assertion": "changed envelope is measured",
+      "expected": [
+        90.0,
+        60.0,
+        8.0
+      ],
+      "actual": [
+        90.0,
+        60.0,
+        8.0
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "missing_dimensions",
+      "level": "perturbation",
+      "metric": "graph_construction",
+      "assertion": "graph has no dangling relationships",
+      "expected": [],
+      "actual": [],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "missing_dimensions",
+      "level": "perturbation",
+      "metric": "feature_planning",
+      "assertion": "planner refuses an incomplete base solid",
+      "expected": [
+        true,
+        true,
+        false
+      ],
+      "actual": [
+        true,
+        true,
+        false
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "missing_dimensions",
+      "level": "perturbation",
+      "metric": "conflict_refusal_correctness",
+      "assertion": "missing evidence blocks release",
+      "expected": false,
+      "actual": false,
+      "passed": true,
+      "correct_refusal": true,
+      "note": ""
+    },
+    {
+      "case": "contradictory_sources",
+      "level": "perturbation",
+      "metric": "graph_construction",
+      "assertion": "graph has no dangling relationships",
+      "expected": [],
+      "actual": [],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "contradictory_sources",
+      "level": "perturbation",
+      "metric": "conflict_refusal_correctness",
+      "assertion": "explicit disagreement remains unresolved",
+      "expected": [
+        "adjudication_required",
+        2
+      ],
+      "actual": [
+        "adjudication_required",
+        2
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "contradictory_sources",
+      "level": "perturbation",
+      "metric": "conflict_refusal_correctness",
+      "assertion": "unadjudicated evidence blocks release as source conflict",
+      "expected": [
+        false,
+        "source_conflict"
+      ],
+      "actual": [
+        false,
+        "source_conflict"
+      ],
+      "passed": true,
+      "correct_refusal": true,
+      "note": ""
+    },
+    {
+      "case": "inch_mm_normalization",
+      "level": "perturbation",
+      "metric": "graph_construction",
+      "assertion": "graph has no dangling relationships",
+      "expected": [],
+      "actual": [],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "inch_mm_normalization",
+      "level": "perturbation",
+      "metric": "graph_construction",
+      "assertion": "inch evidence is normalized into millimetres",
+      "expected": [
+        70.0,
+        50.0,
+        6.0,
+        25.0,
+        5.0,
+        4.0
+      ],
+      "actual": [
+        70.0,
+        50.0,
+        6.0,
+        25.0,
+        5.0,
+        4.0
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "inch_mm_normalization",
+      "level": "perturbation",
+      "metric": "cad_execution",
+      "assertion": "kernel produced one valid solid",
+      "expected": [
+        true,
+        1
+      ],
+      "actual": [
+        true,
+        1
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "inch_mm_normalization",
+      "level": "perturbation",
+      "metric": "cad_execution",
+      "assertion": "every planned operation changed geometry",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "inch_mm_normalization",
+      "level": "perturbation",
+      "metric": "geometric_validation",
+      "assertion": "topology and dimensional reports pass",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "removed_features",
+      "level": "perturbation",
+      "metric": "graph_construction",
+      "assertion": "graph has no dangling relationships",
+      "expected": [],
+      "actual": [],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "removed_features",
+      "level": "perturbation",
+      "metric": "feature_planning",
+      "assertion": "absent optional features are not invented",
+      "expected": [
+        "base_plate",
+        "mounting_holes"
+      ],
+      "actual": [
+        "base_plate",
+        "mounting_holes"
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "removed_features",
+      "level": "perturbation",
+      "metric": "cad_execution",
+      "assertion": "kernel produced one valid solid",
+      "expected": [
+        true,
+        1
+      ],
+      "actual": [
+        true,
+        1
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "removed_features",
+      "level": "perturbation",
+      "metric": "cad_execution",
+      "assertion": "every planned operation changed geometry",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "removed_features",
+      "level": "perturbation",
+      "metric": "geometric_validation",
+      "assertion": "topology and dimensional reports pass",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "reordered_features",
+      "level": "perturbation",
+      "metric": "graph_construction",
+      "assertion": "graph has no dangling relationships",
+      "expected": [],
+      "actual": [],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "reordered_features",
+      "level": "perturbation",
+      "metric": "feature_planning",
+      "assertion": "source sentence order does not change CAD IR",
+      "expected": {
+        "part_name": "reordered_features",
+        "units": "mm",
+        "operations": [
+          {
+            "type": "box",
+            "id": "base_plate",
+            "width": {
+              "kind": "param_ref",
+              "ref": "plate_width"
+            },
+            "height": {
+              "kind": "param_ref",
+              "ref": "plate_height"
+            },
+            "depth": {
+              "kind": "param_ref",
+              "ref": "plate_thickness"
+            },
+            "centered": true
+          },
+          {
+            "type": "hole",
+            "id": "shaft_opening",
+            "support": "top_face",
+            "diameter": {
+              "kind": "param_ref",
+              "ref": "shaft_opening_diameter"
+            },
+            "x": {
+              "kind": "literal",
+              "value": 0.0
+            },
+            "y": {
+              "kind": "literal",
+              "value": 0.0
+            },
+            "termination": "through_all",
+            "depth": null
+          },
+          {
+            "type": "rectangular_hole_pattern",
+            "id": "mounting_holes",
+            "support": "top_face",
+            "diameter": {
+              "kind": "param_ref",
+              "ref": "mounting_hole_diameter"
+            },
+            "spacing_x": {
+              "kind": "param_ref",
+              "ref": "hole_spacing_x"
+            },
+            "spacing_y": {
+              "kind": "param_ref",
+              "ref": "hole_spacing_y"
+            },
+            "count": 4,
+            "termination": "through_all"
+          },
+          {
+            "type": "fillet",
+            "id": "external_fillets",
+            "edge_selector": "external_vertical_edges",
+            "radius": {
+              "kind": "param_ref",
+              "ref": "external_fillet"
+            }
+          }
+        ],
+        "design_revision": 1
+      },
+      "actual": {
+        "part_name": "reordered_features",
+        "units": "mm",
+        "operations": [
+          {
+            "type": "box",
+            "id": "base_plate",
+            "width": {
+              "kind": "param_ref",
+              "ref": "plate_width"
+            },
+            "height": {
+              "kind": "param_ref",
+              "ref": "plate_height"
+            },
+            "depth": {
+              "kind": "param_ref",
+              "ref": "plate_thickness"
+            },
+            "centered": true
+          },
+          {
+            "type": "hole",
+            "id": "shaft_opening",
+            "support": "top_face",
+            "diameter": {
+              "kind": "param_ref",
+              "ref": "shaft_opening_diameter"
+            },
+            "x": {
+              "kind": "literal",
+              "value": 0.0
+            },
+            "y": {
+              "kind": "literal",
+              "value": 0.0
+            },
+            "termination": "through_all",
+            "depth": null
+          },
+          {
+            "type": "rectangular_hole_pattern",
+            "id": "mounting_holes",
+            "support": "top_face",
+            "diameter": {
+              "kind": "param_ref",
+              "ref": "mounting_hole_diameter"
+            },
+            "spacing_x": {
+              "kind": "param_ref",
+              "ref": "hole_spacing_x"
+            },
+            "spacing_y": {
+              "kind": "param_ref",
+              "ref": "hole_spacing_y"
+            },
+            "count": 4,
+            "termination": "through_all"
+          },
+          {
+            "type": "fillet",
+            "id": "external_fillets",
+            "edge_selector": "external_vertical_edges",
+            "radius": {
+              "kind": "param_ref",
+              "ref": "external_fillet"
+            }
+          }
+        ],
+        "design_revision": 1
+      },
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "unsatisfiable_requirement",
+      "level": "perturbation",
+      "metric": "graph_construction",
+      "assertion": "graph has no dangling relationships",
+      "expected": [],
+      "actual": [],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "unsatisfiable_requirement",
+      "level": "perturbation",
+      "metric": "cad_execution",
+      "assertion": "kernel produced one valid solid",
+      "expected": [
+        true,
+        1
+      ],
+      "actual": [
+        true,
+        1
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "unsatisfiable_requirement",
+      "level": "perturbation",
+      "metric": "cad_execution",
+      "assertion": "every planned operation changed geometry",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "unsatisfiable_requirement",
+      "level": "perturbation",
+      "metric": "requirement_validation",
+      "assertion": "unsatisfiable clearance is measured rather than guessed",
+      "expected": [
+        "fail",
+        0.5,
+        "constraint_conflict"
+      ],
+      "actual": [
+        "fail",
+        0.5,
+        "constraint_conflict"
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "unsatisfiable_requirement",
+      "level": "perturbation",
+      "metric": "conflict_refusal_correctness",
+      "assertion": "measured hard-requirement failure blocks release",
+      "expected": false,
+      "actual": false,
+      "passed": true,
+      "correct_refusal": true,
+      "note": ""
+    },
+    {
+      "case": "unseen_rectangular_flange",
+      "level": "unseen_composition",
+      "metric": "graph_construction",
+      "assertion": "graph has no dangling relationships",
+      "expected": [],
+      "actual": [],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "unseen_rectangular_flange",
+      "level": "unseen_composition",
+      "metric": "feature_planning",
+      "assertion": "existing features compose the unseen flange",
+      "expected": [
+        "box",
+        "hole",
+        "rectangular_hole_pattern",
+        "fillet"
+      ],
+      "actual": [
+        "box",
+        "hole",
+        "rectangular_hole_pattern",
+        "fillet"
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "unseen_rectangular_flange",
+      "level": "unseen_composition",
+      "metric": "feature_planning",
+      "assertion": "renaming the part leaves every operation unchanged",
+      "expected": [
+        {
+          "type": "box",
+          "id": "base_plate",
+          "width": {
+            "kind": "param_ref",
+            "ref": "plate_width"
+          },
+          "height": {
+            "kind": "param_ref",
+            "ref": "plate_height"
+          },
+          "depth": {
+            "kind": "param_ref",
+            "ref": "plate_thickness"
+          },
+          "centered": true
+        },
+        {
+          "type": "hole",
+          "id": "shaft_opening",
+          "support": "top_face",
+          "diameter": {
+            "kind": "param_ref",
+            "ref": "shaft_opening_diameter"
+          },
+          "x": {
+            "kind": "literal",
+            "value": 0.0
+          },
+          "y": {
+            "kind": "literal",
+            "value": 0.0
+          },
+          "termination": "through_all",
+          "depth": null
+        },
+        {
+          "type": "rectangular_hole_pattern",
+          "id": "mounting_holes",
+          "support": "top_face",
+          "diameter": {
+            "kind": "param_ref",
+            "ref": "mounting_hole_diameter"
+          },
+          "spacing_x": {
+            "kind": "param_ref",
+            "ref": "hole_spacing_x"
+          },
+          "spacing_y": {
+            "kind": "param_ref",
+            "ref": "hole_spacing_y"
+          },
+          "count": 4,
+          "termination": "through_all"
+        },
+        {
+          "type": "fillet",
+          "id": "external_fillets",
+          "edge_selector": "external_vertical_edges",
+          "radius": {
+            "kind": "param_ref",
+            "ref": "external_fillet"
+          }
+        }
+      ],
+      "actual": [
+        {
+          "type": "box",
+          "id": "base_plate",
+          "width": {
+            "kind": "param_ref",
+            "ref": "plate_width"
+          },
+          "height": {
+            "kind": "param_ref",
+            "ref": "plate_height"
+          },
+          "depth": {
+            "kind": "param_ref",
+            "ref": "plate_thickness"
+          },
+          "centered": true
+        },
+        {
+          "type": "hole",
+          "id": "shaft_opening",
+          "support": "top_face",
+          "diameter": {
+            "kind": "param_ref",
+            "ref": "shaft_opening_diameter"
+          },
+          "x": {
+            "kind": "literal",
+            "value": 0.0
+          },
+          "y": {
+            "kind": "literal",
+            "value": 0.0
+          },
+          "termination": "through_all",
+          "depth": null
+        },
+        {
+          "type": "rectangular_hole_pattern",
+          "id": "mounting_holes",
+          "support": "top_face",
+          "diameter": {
+            "kind": "param_ref",
+            "ref": "mounting_hole_diameter"
+          },
+          "spacing_x": {
+            "kind": "param_ref",
+            "ref": "hole_spacing_x"
+          },
+          "spacing_y": {
+            "kind": "param_ref",
+            "ref": "hole_spacing_y"
+          },
+          "count": 4,
+          "termination": "through_all"
+        },
+        {
+          "type": "fillet",
+          "id": "external_fillets",
+          "edge_selector": "external_vertical_edges",
+          "radius": {
+            "kind": "param_ref",
+            "ref": "external_fillet"
+          }
+        }
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "unseen_rectangular_flange",
+      "level": "unseen_composition",
+      "metric": "cad_execution",
+      "assertion": "kernel produced one valid solid",
+      "expected": [
+        true,
+        1
+      ],
+      "actual": [
+        true,
+        1
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "unseen_rectangular_flange",
+      "level": "unseen_composition",
+      "metric": "cad_execution",
+      "assertion": "every planned operation changed geometry",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "unseen_rectangular_flange",
+      "level": "unseen_composition",
+      "metric": "geometric_validation",
+      "assertion": "topology and dimensional reports pass",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "unseen_rectangular_flange",
+      "level": "unseen_composition",
+      "metric": "geometric_validation",
+      "assertion": "central and mounting openings plus R4 fillets are measured",
+      "expected": [
+        25.0,
+        5.0,
+        50.0,
+        30.0,
+        4
+      ],
+      "actual": [
+        25.0,
+        5.0,
+        50.0,
+        30.0,
+        4
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "unseen_rectangular_flange",
+      "level": "unseen_composition",
+      "metric": "requirement_validation",
+      "assertion": "graph relation compiles and measures the >=5 mm predicate",
+      "expected": [
+        1,
+        "pass",
+        7.5
+      ],
+      "actual": [
+        1,
+        "pass",
+        7.5
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "unseen_rectangular_flange",
+      "level": "unseen_composition",
+      "metric": "step_round_trip",
+      "assertion": "exported STEP independently re-imports and revalidates",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "wrong_executor_dimension",
+      "level": "fault_injection",
+      "metric": "geometric_validation",
+      "assertion": "B-Rep validation catches executor width corruption",
+      "expected": [
+        "fail",
+        69.0,
+        "execution"
+      ],
+      "actual": [
+        "fail",
+        69.0,
+        "execution"
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "symbolic_measurement_disagreement",
+      "level": "fault_injection",
+      "metric": "requirement_validation",
+      "assertion": "symbolic disagreement is a pipeline inconsistency",
+      "expected": [
+        "fail",
+        "execution",
+        "pass"
+      ],
+      "actual": [
+        "fail",
+        "execution",
+        "pass"
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": "The measured design remains valid; only the cross-check fails."
+    },
+    {
+      "case": "persisted_graph_replay",
+      "level": "fault_injection",
+      "metric": "graph_construction",
+      "assertion": "persisted Engineering Intent Graph reloads equivalently",
+      "expected": {
+        "revision": 1,
+        "nodes": [
+          {
+            "id": "ev_txt_plate_width",
+            "label": "plate_width = 70.0 mm [requirement_text]",
+            "kind": "evidence",
+            "target": "plate_width",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_plate_height",
+            "label": "plate_height = 50.0 mm [requirement_text]",
+            "kind": "evidence",
+            "target": "plate_height",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_plate_thickness_envelope",
+            "label": "plate_thickness = 6.0 mm [requirement_text]",
+            "kind": "evidence",
+            "target": "plate_thickness",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_hole_spacing_x",
+            "label": "hole_spacing_x = 50.0 mm [requirement_text]",
+            "kind": "evidence",
+            "target": "hole_spacing_x",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_hole_spacing_y",
+            "label": "hole_spacing_y = 30.0 mm [requirement_text]",
+            "kind": "evidence",
+            "target": "hole_spacing_y",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_hole_count",
+            "label": "mounting_hole_count = 4 [requirement_text]",
+            "kind": "evidence",
+            "target": "mounting_hole_count",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_hole_diameter",
+            "label": "mounting_hole_diameter = 5.0 mm [requirement_text]",
+            "kind": "evidence",
+            "target": "mounting_hole_diameter",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_hole_count_pattern",
+            "label": "mounting_hole_count = 4 [requirement_text]",
+            "kind": "evidence",
+            "target": "mounting_hole_count",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_shaft_opening",
+            "label": "shaft_opening_diameter = 25.0 mm [requirement_text]",
+            "kind": "evidence",
+            "target": "shaft_opening_diameter",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_material",
+            "label": "material = Aluminium [requirement_text]",
+            "kind": "evidence",
+            "target": "material",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_edge_clearance",
+            "label": "min_hole_edge_clearance = 5.0 mm [requirement_text]",
+            "kind": "evidence",
+            "target": "min_hole_edge_clearance",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_fillet",
+            "label": "external_fillet = 4.0 mm [requirement_text]",
+            "kind": "evidence",
+            "target": "external_fillet",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "dim_plate_width",
+            "label": "plate_width",
+            "kind": "dimension",
+            "name": "plate_width",
+            "value": 70.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "authority": "supporting",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          {
+            "id": "dim_plate_height",
+            "label": "plate_height",
+            "kind": "dimension",
+            "name": "plate_height",
+            "value": 50.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "authority": "supporting",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          {
+            "id": "dim_plate_thickness",
+            "label": "plate_thickness",
+            "kind": "dimension",
+            "name": "plate_thickness",
+            "value": 6.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          {
+            "id": "dim_hole_spacing_x",
+            "label": "hole_spacing_x",
+            "kind": "dimension",
+            "name": "hole_spacing_x",
+            "value": 50.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "authority": "supporting",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          {
+            "id": "dim_hole_spacing_y",
+            "label": "hole_spacing_y",
+            "kind": "dimension",
+            "name": "hole_spacing_y",
+            "value": 30.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "authority": "supporting",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          {
+            "id": "dim_mounting_hole_count",
+            "label": "mounting_hole_count",
+            "kind": "dimension",
+            "name": "mounting_hole_count",
+            "value": 4,
+            "unit": null,
+            "status": "confirmed",
+            "authority": "supporting",
+            "is_explicit": true,
+            "derivation": "agreed by 2 sources; explicit annotation preferred over inferred values",
+            "competing_values": []
+          },
+          {
+            "id": "dim_mounting_hole_diameter",
+            "label": "mounting_hole_diameter",
+            "kind": "dimension",
+            "name": "mounting_hole_diameter",
+            "value": 5.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "authority": "supporting",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          {
+            "id": "dim_motor_boss_diameter",
+            "label": "motor_boss_diameter",
+            "kind": "dimension",
+            "name": "motor_boss_diameter",
+            "value": null,
+            "unit": null,
+            "status": "missing",
+            "authority": "advisory",
+            "is_explicit": false,
+            "derivation": "no source provided this value",
+            "competing_values": []
+          },
+          {
+            "id": "dim_shaft_opening_diameter",
+            "label": "shaft_opening_diameter",
+            "kind": "dimension",
+            "name": "shaft_opening_diameter",
+            "value": 25.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "authority": "supporting",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          {
+            "id": "dim_external_chamfer",
+            "label": "external_chamfer",
+            "kind": "dimension",
+            "name": "external_chamfer",
+            "value": null,
+            "unit": null,
+            "status": "missing",
+            "authority": "advisory",
+            "is_explicit": false,
+            "derivation": "no source provided this value",
+            "competing_values": []
+          },
+          {
+            "id": "dim_external_fillet",
+            "label": "external_fillet",
+            "kind": "dimension",
+            "name": "external_fillet",
+            "value": 4.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "authority": "supporting",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          {
+            "id": "part",
+            "label": "rectangular_flange",
+            "kind": "part",
+            "name": "rectangular_flange",
+            "part_type": "mounting_plate"
+          },
+          {
+            "id": "material",
+            "label": "Aluminium",
+            "kind": "material",
+            "name": "Aluminium"
+          },
+          {
+            "id": "ref_top_face",
+            "label": "top face",
+            "kind": "reference_geometry",
+            "reference_type": "face",
+            "selector": "top_face"
+          },
+          {
+            "id": "ref_external_vertical_edges",
+            "label": "external vertical edges",
+            "kind": "reference_geometry",
+            "reference_type": "edge_set",
+            "selector": "external_vertical_edges"
+          },
+          {
+            "id": "base_plate",
+            "label": "base plate",
+            "kind": "feature",
+            "feature_type": "base_solid"
+          },
+          {
+            "id": "shaft_opening",
+            "label": "shaft opening",
+            "kind": "feature",
+            "feature_type": "opening"
+          },
+          {
+            "id": "mounting_holes",
+            "label": "mounting holes",
+            "kind": "feature",
+            "feature_type": "hole_pattern"
+          },
+          {
+            "id": "external_fillets",
+            "label": "external fillets",
+            "kind": "feature",
+            "feature_type": "fillet"
+          },
+          {
+            "id": "iface_motor_mount",
+            "label": "motor_mount",
+            "kind": "interface",
+            "name": "motor_mount",
+            "placement": "symmetric_about_origin",
+            "unit": "mm"
+          },
+          {
+            "id": "c_min_hole_edge_clearance",
+            "label": "min hole edge clearance",
+            "kind": "requirement",
+            "requirement_type": "min_hole_edge_clearance",
+            "value": 5.0,
+            "unit": "mm",
+            "severity": "hard",
+            "description": "minimum material between any mounting-hole edge and the plate boundary"
+          }
+        ],
+        "edges": [
+          {
+            "source": "dim_plate_width",
+            "target": "ev_txt_plate_width",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "dim_plate_height",
+            "target": "ev_txt_plate_height",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "dim_plate_thickness",
+            "target": "ev_txt_plate_thickness_envelope",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "dim_hole_spacing_x",
+            "target": "ev_txt_hole_spacing_x",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "dim_hole_spacing_y",
+            "target": "ev_txt_hole_spacing_y",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "dim_mounting_hole_count",
+            "target": "ev_txt_hole_count",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "dim_mounting_hole_count",
+            "target": "ev_txt_hole_count_pattern",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "dim_mounting_hole_diameter",
+            "target": "ev_txt_hole_diameter",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "dim_shaft_opening_diameter",
+            "target": "ev_txt_shaft_opening",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "dim_external_fillet",
+            "target": "ev_txt_fillet",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "part",
+            "target": "ev_txt_material",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "part",
+            "target": "material",
+            "kind": "made_of",
+            "role": null
+          },
+          {
+            "source": "material",
+            "target": "ev_txt_material",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "part",
+            "target": "base_plate",
+            "kind": "has_feature",
+            "role": null
+          },
+          {
+            "source": "dim_plate_width",
+            "target": "base_plate",
+            "kind": "defines",
+            "role": "width"
+          },
+          {
+            "source": "dim_plate_height",
+            "target": "base_plate",
+            "kind": "defines",
+            "role": "height"
+          },
+          {
+            "source": "dim_plate_thickness",
+            "target": "base_plate",
+            "kind": "defines",
+            "role": "depth"
+          },
+          {
+            "source": "part",
+            "target": "shaft_opening",
+            "kind": "has_feature",
+            "role": null
+          },
+          {
+            "source": "dim_shaft_opening_diameter",
+            "target": "shaft_opening",
+            "kind": "defines",
+            "role": "diameter"
+          },
+          {
+            "source": "shaft_opening",
+            "target": "ref_top_face",
+            "kind": "located_relative_to",
+            "role": "support"
+          },
+          {
+            "source": "part",
+            "target": "mounting_holes",
+            "kind": "has_feature",
+            "role": null
+          },
+          {
+            "source": "dim_mounting_hole_diameter",
+            "target": "mounting_holes",
+            "kind": "defines",
+            "role": "diameter"
+          },
+          {
+            "source": "dim_hole_spacing_x",
+            "target": "mounting_holes",
+            "kind": "defines",
+            "role": "spacing_x"
+          },
+          {
+            "source": "dim_hole_spacing_y",
+            "target": "mounting_holes",
+            "kind": "defines",
+            "role": "spacing_y"
+          },
+          {
+            "source": "dim_mounting_hole_count",
+            "target": "mounting_holes",
+            "kind": "defines",
+            "role": "count"
+          },
+          {
+            "source": "mounting_holes",
+            "target": "ref_top_face",
+            "kind": "located_relative_to",
+            "role": "support"
+          },
+          {
+            "source": "part",
+            "target": "external_fillets",
+            "kind": "has_feature",
+            "role": null
+          },
+          {
+            "source": "dim_external_fillet",
+            "target": "external_fillets",
+            "kind": "defines",
+            "role": "radius"
+          },
+          {
+            "source": "external_fillets",
+            "target": "ref_external_vertical_edges",
+            "kind": "located_relative_to",
+            "role": "edges"
+          },
+          {
+            "source": "part",
+            "target": "iface_motor_mount",
+            "kind": "has_interface",
+            "role": null
+          },
+          {
+            "source": "dim_mounting_hole_count",
+            "target": "iface_motor_mount",
+            "kind": "defines",
+            "role": "hole_count"
+          },
+          {
+            "source": "dim_mounting_hole_diameter",
+            "target": "iface_motor_mount",
+            "kind": "defines",
+            "role": "hole_diameter"
+          },
+          {
+            "source": "dim_hole_spacing_x",
+            "target": "iface_motor_mount",
+            "kind": "defines",
+            "role": "spacing_x"
+          },
+          {
+            "source": "dim_hole_spacing_y",
+            "target": "iface_motor_mount",
+            "kind": "defines",
+            "role": "spacing_y"
+          },
+          {
+            "source": "iface_motor_mount",
+            "target": "ev_txt_hole_spacing_x",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "iface_motor_mount",
+            "target": "ev_txt_hole_spacing_y",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "iface_motor_mount",
+            "target": "ev_txt_hole_count",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "iface_motor_mount",
+            "target": "ev_txt_hole_count_pattern",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "iface_motor_mount",
+            "target": "ev_txt_hole_diameter",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "c_min_hole_edge_clearance",
+            "target": "ev_txt_edge_clearance",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "c_min_hole_edge_clearance",
+            "target": "mounting_holes",
+            "kind": "constrains",
+            "role": "edge_distance"
+          }
+        ]
+      },
+      "actual": {
+        "revision": 1,
+        "nodes": [
+          {
+            "id": "ev_txt_plate_width",
+            "label": "plate_width = 70.0 mm [requirement_text]",
+            "kind": "evidence",
+            "target": "plate_width",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_plate_height",
+            "label": "plate_height = 50.0 mm [requirement_text]",
+            "kind": "evidence",
+            "target": "plate_height",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_plate_thickness_envelope",
+            "label": "plate_thickness = 6.0 mm [requirement_text]",
+            "kind": "evidence",
+            "target": "plate_thickness",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_hole_spacing_x",
+            "label": "hole_spacing_x = 50.0 mm [requirement_text]",
+            "kind": "evidence",
+            "target": "hole_spacing_x",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_hole_spacing_y",
+            "label": "hole_spacing_y = 30.0 mm [requirement_text]",
+            "kind": "evidence",
+            "target": "hole_spacing_y",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_hole_count",
+            "label": "mounting_hole_count = 4 [requirement_text]",
+            "kind": "evidence",
+            "target": "mounting_hole_count",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_hole_diameter",
+            "label": "mounting_hole_diameter = 5.0 mm [requirement_text]",
+            "kind": "evidence",
+            "target": "mounting_hole_diameter",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_hole_count_pattern",
+            "label": "mounting_hole_count = 4 [requirement_text]",
+            "kind": "evidence",
+            "target": "mounting_hole_count",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_shaft_opening",
+            "label": "shaft_opening_diameter = 25.0 mm [requirement_text]",
+            "kind": "evidence",
+            "target": "shaft_opening_diameter",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_material",
+            "label": "material = Aluminium [requirement_text]",
+            "kind": "evidence",
+            "target": "material",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_edge_clearance",
+            "label": "min_hole_edge_clearance = 5.0 mm [requirement_text]",
+            "kind": "evidence",
+            "target": "min_hole_edge_clearance",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "ev_txt_fillet",
+            "label": "external_fillet = 4.0 mm [requirement_text]",
+            "kind": "evidence",
+            "target": "external_fillet",
+            "modality": "requirement_text"
+          },
+          {
+            "id": "dim_plate_width",
+            "label": "plate_width",
+            "kind": "dimension",
+            "name": "plate_width",
+            "value": 70.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "authority": "supporting",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          {
+            "id": "dim_plate_height",
+            "label": "plate_height",
+            "kind": "dimension",
+            "name": "plate_height",
+            "value": 50.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "authority": "supporting",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          {
+            "id": "dim_plate_thickness",
+            "label": "plate_thickness",
+            "kind": "dimension",
+            "name": "plate_thickness",
+            "value": 6.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "authority": "definitive",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          {
+            "id": "dim_hole_spacing_x",
+            "label": "hole_spacing_x",
+            "kind": "dimension",
+            "name": "hole_spacing_x",
+            "value": 50.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "authority": "supporting",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          {
+            "id": "dim_hole_spacing_y",
+            "label": "hole_spacing_y",
+            "kind": "dimension",
+            "name": "hole_spacing_y",
+            "value": 30.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "authority": "supporting",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          {
+            "id": "dim_mounting_hole_count",
+            "label": "mounting_hole_count",
+            "kind": "dimension",
+            "name": "mounting_hole_count",
+            "value": 4,
+            "unit": null,
+            "status": "confirmed",
+            "authority": "supporting",
+            "is_explicit": true,
+            "derivation": "agreed by 2 sources; explicit annotation preferred over inferred values",
+            "competing_values": []
+          },
+          {
+            "id": "dim_mounting_hole_diameter",
+            "label": "mounting_hole_diameter",
+            "kind": "dimension",
+            "name": "mounting_hole_diameter",
+            "value": 5.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "authority": "supporting",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          {
+            "id": "dim_motor_boss_diameter",
+            "label": "motor_boss_diameter",
+            "kind": "dimension",
+            "name": "motor_boss_diameter",
+            "value": null,
+            "unit": null,
+            "status": "missing",
+            "authority": "advisory",
+            "is_explicit": false,
+            "derivation": "no source provided this value",
+            "competing_values": []
+          },
+          {
+            "id": "dim_shaft_opening_diameter",
+            "label": "shaft_opening_diameter",
+            "kind": "dimension",
+            "name": "shaft_opening_diameter",
+            "value": 25.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "authority": "supporting",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          {
+            "id": "dim_external_chamfer",
+            "label": "external_chamfer",
+            "kind": "dimension",
+            "name": "external_chamfer",
+            "value": null,
+            "unit": null,
+            "status": "missing",
+            "authority": "advisory",
+            "is_explicit": false,
+            "derivation": "no source provided this value",
+            "competing_values": []
+          },
+          {
+            "id": "dim_external_fillet",
+            "label": "external_fillet",
+            "kind": "dimension",
+            "name": "external_fillet",
+            "value": 4.0,
+            "unit": "mm",
+            "status": "confirmed",
+            "authority": "supporting",
+            "is_explicit": true,
+            "derivation": "single source (requirement_text)",
+            "competing_values": []
+          },
+          {
+            "id": "part",
+            "label": "rectangular_flange",
+            "kind": "part",
+            "name": "rectangular_flange",
+            "part_type": "mounting_plate"
+          },
+          {
+            "id": "material",
+            "label": "Aluminium",
+            "kind": "material",
+            "name": "Aluminium"
+          },
+          {
+            "id": "ref_top_face",
+            "label": "top face",
+            "kind": "reference_geometry",
+            "reference_type": "face",
+            "selector": "top_face"
+          },
+          {
+            "id": "ref_external_vertical_edges",
+            "label": "external vertical edges",
+            "kind": "reference_geometry",
+            "reference_type": "edge_set",
+            "selector": "external_vertical_edges"
+          },
+          {
+            "id": "base_plate",
+            "label": "base plate",
+            "kind": "feature",
+            "feature_type": "base_solid"
+          },
+          {
+            "id": "shaft_opening",
+            "label": "shaft opening",
+            "kind": "feature",
+            "feature_type": "opening"
+          },
+          {
+            "id": "mounting_holes",
+            "label": "mounting holes",
+            "kind": "feature",
+            "feature_type": "hole_pattern"
+          },
+          {
+            "id": "external_fillets",
+            "label": "external fillets",
+            "kind": "feature",
+            "feature_type": "fillet"
+          },
+          {
+            "id": "iface_motor_mount",
+            "label": "motor_mount",
+            "kind": "interface",
+            "name": "motor_mount",
+            "placement": "symmetric_about_origin",
+            "unit": "mm"
+          },
+          {
+            "id": "c_min_hole_edge_clearance",
+            "label": "min hole edge clearance",
+            "kind": "requirement",
+            "requirement_type": "min_hole_edge_clearance",
+            "value": 5.0,
+            "unit": "mm",
+            "severity": "hard",
+            "description": "minimum material between any mounting-hole edge and the plate boundary"
+          }
+        ],
+        "edges": [
+          {
+            "source": "dim_plate_width",
+            "target": "ev_txt_plate_width",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "dim_plate_height",
+            "target": "ev_txt_plate_height",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "dim_plate_thickness",
+            "target": "ev_txt_plate_thickness_envelope",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "dim_hole_spacing_x",
+            "target": "ev_txt_hole_spacing_x",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "dim_hole_spacing_y",
+            "target": "ev_txt_hole_spacing_y",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "dim_mounting_hole_count",
+            "target": "ev_txt_hole_count",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "dim_mounting_hole_count",
+            "target": "ev_txt_hole_count_pattern",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "dim_mounting_hole_diameter",
+            "target": "ev_txt_hole_diameter",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "dim_shaft_opening_diameter",
+            "target": "ev_txt_shaft_opening",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "dim_external_fillet",
+            "target": "ev_txt_fillet",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "part",
+            "target": "ev_txt_material",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "part",
+            "target": "material",
+            "kind": "made_of",
+            "role": null
+          },
+          {
+            "source": "material",
+            "target": "ev_txt_material",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "part",
+            "target": "base_plate",
+            "kind": "has_feature",
+            "role": null
+          },
+          {
+            "source": "dim_plate_width",
+            "target": "base_plate",
+            "kind": "defines",
+            "role": "width"
+          },
+          {
+            "source": "dim_plate_height",
+            "target": "base_plate",
+            "kind": "defines",
+            "role": "height"
+          },
+          {
+            "source": "dim_plate_thickness",
+            "target": "base_plate",
+            "kind": "defines",
+            "role": "depth"
+          },
+          {
+            "source": "part",
+            "target": "shaft_opening",
+            "kind": "has_feature",
+            "role": null
+          },
+          {
+            "source": "dim_shaft_opening_diameter",
+            "target": "shaft_opening",
+            "kind": "defines",
+            "role": "diameter"
+          },
+          {
+            "source": "shaft_opening",
+            "target": "ref_top_face",
+            "kind": "located_relative_to",
+            "role": "support"
+          },
+          {
+            "source": "part",
+            "target": "mounting_holes",
+            "kind": "has_feature",
+            "role": null
+          },
+          {
+            "source": "dim_mounting_hole_diameter",
+            "target": "mounting_holes",
+            "kind": "defines",
+            "role": "diameter"
+          },
+          {
+            "source": "dim_hole_spacing_x",
+            "target": "mounting_holes",
+            "kind": "defines",
+            "role": "spacing_x"
+          },
+          {
+            "source": "dim_hole_spacing_y",
+            "target": "mounting_holes",
+            "kind": "defines",
+            "role": "spacing_y"
+          },
+          {
+            "source": "dim_mounting_hole_count",
+            "target": "mounting_holes",
+            "kind": "defines",
+            "role": "count"
+          },
+          {
+            "source": "mounting_holes",
+            "target": "ref_top_face",
+            "kind": "located_relative_to",
+            "role": "support"
+          },
+          {
+            "source": "part",
+            "target": "external_fillets",
+            "kind": "has_feature",
+            "role": null
+          },
+          {
+            "source": "dim_external_fillet",
+            "target": "external_fillets",
+            "kind": "defines",
+            "role": "radius"
+          },
+          {
+            "source": "external_fillets",
+            "target": "ref_external_vertical_edges",
+            "kind": "located_relative_to",
+            "role": "edges"
+          },
+          {
+            "source": "part",
+            "target": "iface_motor_mount",
+            "kind": "has_interface",
+            "role": null
+          },
+          {
+            "source": "dim_mounting_hole_count",
+            "target": "iface_motor_mount",
+            "kind": "defines",
+            "role": "hole_count"
+          },
+          {
+            "source": "dim_mounting_hole_diameter",
+            "target": "iface_motor_mount",
+            "kind": "defines",
+            "role": "hole_diameter"
+          },
+          {
+            "source": "dim_hole_spacing_x",
+            "target": "iface_motor_mount",
+            "kind": "defines",
+            "role": "spacing_x"
+          },
+          {
+            "source": "dim_hole_spacing_y",
+            "target": "iface_motor_mount",
+            "kind": "defines",
+            "role": "spacing_y"
+          },
+          {
+            "source": "iface_motor_mount",
+            "target": "ev_txt_hole_spacing_x",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "iface_motor_mount",
+            "target": "ev_txt_hole_spacing_y",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "iface_motor_mount",
+            "target": "ev_txt_hole_count",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "iface_motor_mount",
+            "target": "ev_txt_hole_count_pattern",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "iface_motor_mount",
+            "target": "ev_txt_hole_diameter",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "c_min_hole_edge_clearance",
+            "target": "ev_txt_edge_clearance",
+            "kind": "supported_by",
+            "role": null
+          },
+          {
+            "source": "c_min_hole_edge_clearance",
+            "target": "mounting_holes",
+            "kind": "constrains",
+            "role": "edge_distance"
+          }
+        ]
+      },
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "persisted_graph_replay",
+      "level": "fault_injection",
+      "metric": "feature_planning",
+      "assertion": "reloaded graph reproduces equivalent CAD IR",
+      "expected": {
+        "part_name": "rectangular_flange",
+        "units": "mm",
+        "operations": [
+          {
+            "type": "box",
+            "id": "base_plate",
+            "width": {
+              "kind": "param_ref",
+              "ref": "plate_width"
+            },
+            "height": {
+              "kind": "param_ref",
+              "ref": "plate_height"
+            },
+            "depth": {
+              "kind": "param_ref",
+              "ref": "plate_thickness"
+            },
+            "centered": true
+          },
+          {
+            "type": "hole",
+            "id": "shaft_opening",
+            "support": "top_face",
+            "diameter": {
+              "kind": "param_ref",
+              "ref": "shaft_opening_diameter"
+            },
+            "x": {
+              "kind": "literal",
+              "value": 0.0
+            },
+            "y": {
+              "kind": "literal",
+              "value": 0.0
+            },
+            "termination": "through_all",
+            "depth": null
+          },
+          {
+            "type": "rectangular_hole_pattern",
+            "id": "mounting_holes",
+            "support": "top_face",
+            "diameter": {
+              "kind": "param_ref",
+              "ref": "mounting_hole_diameter"
+            },
+            "spacing_x": {
+              "kind": "param_ref",
+              "ref": "hole_spacing_x"
+            },
+            "spacing_y": {
+              "kind": "param_ref",
+              "ref": "hole_spacing_y"
+            },
+            "count": 4,
+            "termination": "through_all"
+          },
+          {
+            "type": "fillet",
+            "id": "external_fillets",
+            "edge_selector": "external_vertical_edges",
+            "radius": {
+              "kind": "param_ref",
+              "ref": "external_fillet"
+            }
+          }
+        ],
+        "design_revision": 1
+      },
+      "actual": {
+        "part_name": "rectangular_flange",
+        "units": "mm",
+        "operations": [
+          {
+            "type": "box",
+            "id": "base_plate",
+            "width": {
+              "kind": "param_ref",
+              "ref": "plate_width"
+            },
+            "height": {
+              "kind": "param_ref",
+              "ref": "plate_height"
+            },
+            "depth": {
+              "kind": "param_ref",
+              "ref": "plate_thickness"
+            },
+            "centered": true
+          },
+          {
+            "type": "hole",
+            "id": "shaft_opening",
+            "support": "top_face",
+            "diameter": {
+              "kind": "param_ref",
+              "ref": "shaft_opening_diameter"
+            },
+            "x": {
+              "kind": "literal",
+              "value": 0.0
+            },
+            "y": {
+              "kind": "literal",
+              "value": 0.0
+            },
+            "termination": "through_all",
+            "depth": null
+          },
+          {
+            "type": "rectangular_hole_pattern",
+            "id": "mounting_holes",
+            "support": "top_face",
+            "diameter": {
+              "kind": "param_ref",
+              "ref": "mounting_hole_diameter"
+            },
+            "spacing_x": {
+              "kind": "param_ref",
+              "ref": "hole_spacing_x"
+            },
+            "spacing_y": {
+              "kind": "param_ref",
+              "ref": "hole_spacing_y"
+            },
+            "count": 4,
+            "termination": "through_all"
+          },
+          {
+            "type": "fillet",
+            "id": "external_fillets",
+            "edge_selector": "external_vertical_edges",
+            "radius": {
+              "kind": "param_ref",
+              "ref": "external_fillet"
+            }
+          }
+        ],
+        "design_revision": 1
+      },
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    },
+    {
+      "case": "persisted_graph_replay",
+      "level": "fault_injection",
+      "metric": "cad_execution",
+      "assertion": "reloaded graph reproduces equivalent measured geometry",
+      "expected": [
+        70.0,
+        50.0,
+        6.0,
+        17501.110884
+      ],
+      "actual": [
+        70.0,
+        50.0,
+        6.0,
+        17501.110884
+      ],
+      "passed": true,
+      "correct_refusal": false,
+      "note": ""
+    }
+  ]
+}

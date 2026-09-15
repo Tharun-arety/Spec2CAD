@@ -103,13 +103,22 @@ def main(argv: list[str] | None = None) -> int:
     sketch, datasheet, requirement = (
         d / "sketch.png", d / "motor_datasheet.pdf", d / "requirement.txt"
     )
-    for path in (sketch, datasheet, requirement):
-        if not path.exists():
-            print(f"missing input: {path}", file=sys.stderr)
-            print("run: python examples/motor_adapter/generate_inputs.py", file=sys.stderr)
-            return 2
+    supplied = [path for path in (sketch, datasheet, requirement) if path.exists()]
+    if not supplied:
+        print(
+            f"no supported inputs in {d}: expected sketch.png, "
+            "motor_datasheet.pdf, or requirement.txt",
+            file=sys.stderr,
+        )
+        return 2
 
-    result = run(sketch, datasheet, requirement, args.backend)
+    result = run(
+        sketch if sketch.exists() else None,
+        datasheet if datasheet.exists() else None,
+        requirement if requirement.exists() else None,
+        args.backend,
+        use_reasoning=True,
+    )
     print_evidence(result)
     print_revision(result.latest)
 
@@ -143,7 +152,7 @@ def main(argv: list[str] | None = None) -> int:
         if latest.released:
             step = export_step(latest.execution, args.out / f"v{latest.revision}.step")
             print(f"  STEP  {step}")
-            reports = verify_exported_step(step, latest.intent)
+            reports = verify_exported_step(step, latest.intent, latest.intent_graph)
             ok = all(r.passed for r in reports)
             print(f"  re-imported STEP re-validated: {'PASS' if ok else 'FAIL'}")
             if not ok:

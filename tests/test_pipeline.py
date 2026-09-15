@@ -24,6 +24,7 @@ from spec2cad.repair.repair_planner import (
     apply_repair,
 )
 from spec2cad.schemas.report import CheckStatus, ConflictClass
+from spec2cad.schemas.evidence import SemanticTarget
 from spec2cad.validation import measure as M
 
 EXAMPLE = Path(__file__).resolve().parents[1] / "examples" / "motor_adapter"
@@ -528,6 +529,64 @@ def test_natural_language_text_only_prompt_builds_complete_plate(tmp_path):
     assert result.latest.released is True
 
 
+def test_square_plate_side_length_expands_to_equal_width_and_height(tmp_path):
+    requirement = tmp_path / "requirement.txt"
+    requirement.write_text(
+        "create a square plate of length 30 mm and thickness 3 mm",
+        encoding="utf-8",
+    )
+
+    result = run(requirement=requirement)
+    rev = result.latest
+
+    assert rev.intent.value_of("plate_width") == pytest.approx(30.0)
+    assert rev.intent.value_of("plate_height") == pytest.approx(30.0)
+    assert rev.intent.value_of("plate_thickness") == pytest.approx(3.0)
+    assert [operation.id for operation in rev.program.operations] == ["base_plate"]
+    extents = M.plate_extents(rev.execution.shape)
+    assert (extents.width, extents.height, extents.thickness) == pytest.approx(
+        (30.0, 30.0, 3.0)
+    )
+    assert rev.released is True
+
+
+def test_named_plate_dimensions_typo_and_center_hole_are_extracted(tmp_path):
+    requirement = tmp_path / "requirement.txt"
+    requirement.write_text(
+        "create a plate with 25 mm length and 2 mm width and 3 mm thickmess "
+        "and hole of 3 mm dia at center",
+        encoding="utf-8",
+    )
+
+    result = run(requirement=requirement)
+    facts = {item.target: item.value for item in result.evidence.items}
+
+    assert facts[SemanticTarget.PLATE_WIDTH] == pytest.approx(25)
+    assert facts[SemanticTarget.PLATE_HEIGHT] == pytest.approx(2)
+    assert facts[SemanticTarget.PLATE_THICKNESS] == pytest.approx(3)
+    assert facts[SemanticTarget.SHAFT_OPENING_DIAMETER] == pytest.approx(3)
+    assert result.latest.build_error is None
+    assert result.latest.released is False
+    assert any(
+        "not one piece" in reason or "shaft diameter" in reason
+        for reason in result.latest.decision.reasons
+    )
+
+
+def test_named_plate_dimensions_and_center_hole_build_when_feasible(tmp_path):
+    requirement = tmp_path / "requirement.txt"
+    requirement.write_text(
+        "create a plate with 25 mm length and 12 mm width and 3 mm thickness "
+        "and hole of 3 mm dia at center",
+        encoding="utf-8",
+    )
+
+    result = run(requirement=requirement)
+
+    assert result.latest.build_error is None
+    assert result.latest.released is True
+
+
 def test_incomplete_text_prompt_requests_only_dimensions_needed_to_build(tmp_path):
     requirement = tmp_path / "requirement.txt"
     requirement.write_text(
@@ -540,6 +599,79 @@ def test_incomplete_text_prompt_requests_only_dimensions_needed_to_build(tmp_pat
     assert result.latest.decision.responsible_parameters == [
         "plate_width", "plate_height",
     ]
+
+
+def test_text_prompt_without_a_centre_opening_still_validates(tmp_path):
+    """A plate with mounting holes but no centre opening is a complete design.
+
+    run_dimensions used to read shaft_opening_diameter unconditionally, so this
+    prompt raised TypeError out of the pipeline instead of producing a report --
+    every existing text-only test happened to ask for a centre opening, so
+    nothing covered the feature being absent.
+    """
+    requirement = tmp_path / "requirement.txt"
+    requirement.write_text(
+        "A 60 x 40 x 6 mm plate with a 44 mm by 24 mm mounting pattern "
+        "for M4 screws, normal clearance.",
+        encoding="utf-8",
+    )
+
+    result = run(requirement=requirement)
+    rev = result.latest
+
+    assert rev.build_error is None
+    assert [op.id for op in rev.program.operations] == ["base_plate", "mounting_holes"]
+    assert rev.released is True
+
+    shaft = next(c for c in rev.all_checks() if c.id == "dim_shaft_opening")
+    assert shaft.status is CheckStatus.SKIPPED
+
+    # The volume comparison is the check that catches a feature built at the
+    # wrong size. It must still run here -- a design without a centre opening
+    # is not a design that cannot be measured.
+    volume = next(c for c in rev.all_checks() if c.id == "top_material_integrity")
+    assert volume.status is CheckStatus.PASS
+
+
+def test_text_prompt_with_no_holes_at_all_still_validates(tmp_path):
+    """The same guard, for a design that is only a plate."""
+    requirement = tmp_path / "requirement.txt"
+    requirement.write_text(
+        "A plate 60 mm wide and 40 mm high, made from 6 mm aluminium.",
+        encoding="utf-8",
+    )
+
+    result = run(requirement=requirement)
+    rev = result.latest
+
+    assert rev.build_error is None
+    assert [op.id for op in rev.program.operations] == ["base_plate"]
+
+    counted = next(c for c in rev.all_checks() if c.id == "dim_hole_count")
+    assert counted.status is CheckStatus.SKIPPED
+    assert counted.responsible_parameters == [
+        "mounting_hole_diameter", "mounting_hole_count",
+    ]
+
+    volume = next(c for c in rev.all_checks() if c.id == "top_material_integrity")
+    assert volume.status is CheckStatus.PASS
+
+
+def test_compact_shorthand_reads_the_envelope_through_a_material_word(tmp_path):
+    """"6 mm aluminium plate" states a width just as "6 mm plate" does."""
+    requirement = tmp_path / "requirement.txt"
+    requirement.write_text(
+        "A 60 x 40 x 6 mm aluminium plate with a 44 mm by 24 mm mounting "
+        "pattern for M4 screws, normal clearance.",
+        encoding="utf-8",
+    )
+
+    intent = run(requirement=requirement).latest.intent
+
+    assert intent.value_of("plate_width") == pytest.approx(60.0)
+    assert intent.value_of("plate_height") == pytest.approx(40.0)
+    assert intent.value_of("plate_thickness") == pytest.approx(6.0)
+    assert intent.part.material == "Aluminium"
 
 
 def test_run_requires_at_least_one_source():

@@ -19,10 +19,22 @@ import { GuideBar } from './components/GuideBar'
 import { PipelinePreview } from './components/PipelinePreview'
 import { EvidenceWorkbench, SourceWorkspace } from './components/Workbenches'
 import { hasWebGL } from './lib/webgl'
+import { cn } from './lib/cn'
 
 const VIEWER_FALLBACK_NOTE =
   'This browser has no WebGL context, so the 3D viewer is unavailable. ' +
   'Everything else — evidence, intent, measurement and release — is unaffected.'
+const ACTIVE_RUN_KEY = 'spec2cad.activeRun'
+
+function restoredRun(): RunState | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const saved = window.localStorage.getItem(ACTIVE_RUN_KEY)
+    return saved ? JSON.parse(saved) as RunState : null
+  } catch {
+    return null
+  }
+}
 
 // three.js is ~500 kB and is not needed until a run exists.
 const StlViewer = lazy(() =>
@@ -31,8 +43,8 @@ const StlViewer = lazy(() =>
 
 export default function App() {
   const [health, setHealth] = useState<Health | null>(null)
-  const [state, setState] = useState<RunState | null>(null)
-  const [viewing, setViewing] = useState<number | null>(null)
+  const [state, setState] = useState<RunState | null>(restoredRun)
+  const [viewing, setViewing] = useState<number | null>(state?.latest_revision ?? null)
   const [stage, setStage] = useState<StageId>('sources')
   const [picked, setPicked] = useState<Evidence | null>(null)
   const [scriptOpen, setScriptOpen] = useState(false)
@@ -73,6 +85,15 @@ export default function App() {
     }
   }, [mode])
 
+  useEffect(() => {
+    try {
+      if (state) window.localStorage.setItem(ACTIVE_RUN_KEY, JSON.stringify(state))
+      else window.localStorage.removeItem(ACTIVE_RUN_KEY)
+    } catch {
+      // Storage may be disabled; the in-memory conversation still works.
+    }
+  }, [state])
+
   const useReplayInstead = () => {
     setApiMode('replay')
     setMode('replay')
@@ -105,6 +126,7 @@ export default function App() {
   const rev = state
     ? state.revisions.find((r) => r.revision === viewing) ?? state.revisions[0]
     : null
+  const awaitingDetails = Boolean(state?.clarification_questions?.length)
 
   const flags: Partial<Record<StageId, number>> = {}
   if (rev) {
@@ -159,13 +181,15 @@ export default function App() {
               ) : (
                 <Tip side="bottom" label={rev.release.reasons.join(' ')}>
                   <button
-                    onClick={() => setStage('validate')}
-                  className="flex h-[29px] shrink-0 cursor-pointer items-center gap-[6px] rounded-[5px]
-                             border border-danger-line bg-danger-wash px-[8px] text-[12px] sm:px-[11px]
-                               font-semibold text-danger transition-colors duration-150
-                               hover:border-danger">
+                    onClick={() => setStage(awaitingDetails ? 'sources' : 'validate')}
+                    className={cn(
+                      'flex h-[29px] shrink-0 cursor-pointer items-center gap-[6px] rounded-[5px] border px-[8px] text-[12px] font-semibold transition-colors sm:px-[11px]',
+                      awaitingDetails
+                        ? 'border-warn-line bg-warn-wash text-warn hover:border-warn'
+                        : 'border-danger-line bg-danger-wash text-danger hover:border-danger',
+                    )}>
                     <Lock size={13} strokeWidth={2} aria-hidden />
-                    Export blocked
+                    {awaitingDetails ? 'Needs details' : 'Export blocked'}
                   </button>
                 </Tip>
               )
@@ -292,6 +316,16 @@ export default function App() {
                 onCompile={(sketch, datasheet, instruction) =>
                   guard(() => api.runUpload(sketch, datasheet, instruction))
                 }
+                onContinue={(message) => {
+                  if (state) guard(() => api.continueRun(state.run_id, message))
+                }}
+                onNew={() => {
+                  setState(null)
+                  setViewing(null)
+                  setPicked(null)
+                  setFeature(null)
+                  setError(null)
+                }}
               />
             ) : stage === 'evidence' && state ? (
               <EvidenceWorkbench state={state} picked={picked} onPick={setPicked} />
@@ -430,7 +464,8 @@ export default function App() {
       <StatusBar
         rev={rev}
         backendLabel={health?.sketch_backend_label ?? ''}
-        onGoRelease={() => setStage('validate')}
+        awaitingDetails={awaitingDetails}
+        onGoRelease={() => setStage(awaitingDetails ? 'sources' : 'validate')}
       />
     </div>
   )

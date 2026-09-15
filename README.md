@@ -24,8 +24,8 @@ evidence  ≠  design intent  ≠  CAD program  ≠  measured B-Rep  ≠  releas
 
 ## The demonstration
 
-One part: a NEMA-17 stepper **motor adapter plate**, with a contradiction that
-is real rather than staged.
+The primary demonstration remains a NEMA-17 stepper **motor adapter plate**, with
+a contradiction that is real rather than staged.
 
 | Source | States | |
 |---|---|---|
@@ -57,6 +57,12 @@ intact and retrievable), regenerates, measures **5.3000 mm**, and authorises the
 STEP — which is then re-imported and re-validated, so the *artifact* is proven,
 not just the in-memory result.
 
+The generalisation check is a second, text-only **slotted mounting bracket**:
+80 × 50 × 4 mm, a four-hole pattern, two 8 × 20 mm slots, and 3 mm corner
+fillets. It passes through the same evidence → graph → feature planner → typed
+CAD IR → measured validation path. Renaming the part leaves its CAD program
+unchanged; the plan is selected from graph features, not `if part == bracket`.
+
 ---
 
 ## Quickstart
@@ -68,8 +74,11 @@ has CadQuery. Elsewhere: `pip install -r requirements.txt`.
 python examples/motor_adapter/generate_inputs.py     # seeded, byte-identical
 python -m spec2cad.cli examples/motor_adapter        # v1: blocked, exit 1
 python -m spec2cad.cli examples/motor_adapter --approve widen_to_recommended
-python -m pytest                                     # 50 tests
-python -m eval.run_eval                              # 32 deterministic checks
+python -m spec2cad.cli examples/mounting_bracket     # second feature distribution
+python -m pytest                                     # public and pipeline tests
+python -m eval.run_public_guardrails                 # abuse/cost/resource eval
+python -m eval.run_eval                              # 39 deterministic checks
+python -m eval.run_adversarial_generalization       # adversarial stage metrics
 ```
 
 Web UI (two terminals):
@@ -144,7 +153,7 @@ three.js viewport is code-split, so the initial bundle is ~250 kB.
 | Source | How it is read | Real without an API key? |
 |---|---|---|
 | **Datasheet PDF** | PyMuPDF word geometry — true page number, true bounding box | **Yes, always** |
-| **Requirement text** | deterministic rule parser + ISO 273 lookup | **Yes, always** |
+| **Requirement text** | deterministic parser + ISO 273 lookup; OpenAI structured reasoning fills missing graph targets when configured | **Yes; model fallback is optional** |
 | **Sketch** | OpenAI or Anthropic vision when a key is set; otherwise a recorded fixture | Fixture replay |
 
 The difference is never hidden. Every evidence row carries its
@@ -152,8 +161,12 @@ The difference is never hidden. Every evidence row carries its
 than scoring fixture data as extraction accuracy — replaying a recording
 measures the recording.
 
-Set a key in `.env` (see `.env.example`) to extract drawings for real. An
-OpenAI key is enough; Anthropic is supported too.
+Set `OPENAI_API_KEY` in the root `.env.local` (see `.env.example`). The same
+server-side key enables both structured requirement reasoning and sketch
+vision; it is never sent to the browser. `.env.local` edits are picked up on
+the next request. `SPEC2CAD_REASONING_MODEL` and `SPEC2CAD_OPENAI_MODEL` may
+override the text and vision models independently. Anthropic remains supported
+for sketch vision only.
 
 Because the datasheet path is genuinely parsed, clicking a value in the UI
 highlights the actual rectangle it came from:
@@ -165,15 +178,15 @@ highlights the actual rectangle it came from:
 ## Architecture
 
 ```
-inputs ──► Evidence[] ──► DesignIntent v1 ──► PREFLIGHT ──► CADProgram ──► B-Rep
-           (kind +        (immutable          (symbolic,   (typed,      (diagnostic
-            target,        revision)           advisory)    no Python)   candidate —
-            confidence                             │                     always built)
-            + authority)                           │                          │
-                                                   ▼                          ▼
-                          DesignIntent v2 ◄── REPAIR ◄── RELEASE GATE ◄── MEASURED
-                          (approved, with      (human      (sole export   VALIDATION
-                           full provenance)     approval)   authority)
+inputs ──► Evidence[] ──► Engineering Intent Graph ──► Feature planner ──► CADProgram
+           (kind +        (entities + relations +      (graph-driven,       (typed,
+            confidence     provenance)                  no part switch)      no Python)
+            + authority)          │                                            │
+                                  ├──► DesignIntent compatibility view          ▼
+                                  │                                        B-Rep
+                                  └──► Requirement predicate IR                │
+                                              │                                ▼
+                          DesignIntent vN+1 ◄─┴─ REPAIR ◄─ RELEASE GATE ◄─ MEASURED
 ```
 
 **Four stages, deliberately not merged:**
@@ -194,6 +207,17 @@ is reported as a **pipeline defect**, not a design problem.
 `Evidence` only. `cad/executor.py` is the sole importer of CadQuery (enforced by
 a test). The CadQuery script shown in the UI is *emitted by the compiler* for
 review and is never executed.
+
+**The graph is now the pipeline source.** Dimensions, features, interfaces,
+requirements, source evidence, and reference geometry are typed nodes joined by
+relations such as `defines`, `supported_by`, `constrains`, and
+`located_relative_to`. `DesignIntent` remains as a parity-tested compatibility
+projection for validators and revision code while they migrate.
+
+**Requirements compile to predicates.** A stated edge-clearance requirement is
+compiled to `MinimumDistance(feature=mounting_holes, target=part_boundary,
+threshold=...)`, then measured on the B-Rep. The validator no longer discovers
+which feature a magic constraint string was meant to govern.
 
 **Authority and confidence are separate axes.** Confidence is "did I read this
 correctly"; authority is "is this source entitled to define this". A blurry
@@ -241,6 +265,8 @@ fails. Public CadQuery API only:
 | Material integrity | measured vs analytic volume | delta **0.000000** mm³ |
 | Through holes | matching circles on top and bottom | 5 openings |
 | Edge clearance | hole edges vs measured boundary | 2.8000 → 5.3000 |
+| Slots | paired semicircular B-Rep arcs | 2 × 8.0000 × 20.0000 mm |
+| Corner fillets | external quarter-circle arcs | 4 × R3.0000 mm |
 
 Three bans, each from something that actually went wrong, enforced by
 `tests/test_no_brittle_apis.py`:
@@ -263,26 +289,26 @@ valid solid. The real limit is in-plane, and that is what preflight checks.
 
 ```
 spec2cad/
-  schemas/      evidence · design_intent · cad_ir · report
+  schemas/      evidence · intent_graph · CAD/profile · assembly · GD&T · analysis IR
   extractors/   datasheet (real) · text (real) · vision · fixtures · drawing
   knowledge/    ISO 273 clearance table · rounding recommendations
-  fusion/       source_policy · entity_resolver · conflict_detector (preflight)
-  cad/          compiler · executor (sole CadQuery importer) · selectors · script_writer
-  validation/   measure · topology · dimensions · requirements · gate
+  fusion/       source_policy · entity_resolver · graph_builder · conflict_detector
+  cad/          compiler · executor (sole CadQuery importer) · assembly API · selectors
+  validation/   predicates · measure · topology · dimensions · GD&T · requirements · gate
   repair/       repair_planner
   pipeline.py · store.py (SQLite) · cli.py
 api/main.py     FastAPI
 web/            React + Vite + Tailwind v4 + three.js, five sheet zones
-examples/       seeded input generator + generated inputs
+examples/       motor adapter + slotted mounting bracket
 eval/           metrics · run_eval → report.md
 scripts/        freeze_demo.py (static replay bundle)
-tests/          49 tests
+tests/          118 tests
 ```
 
-Geometry is deliberately **not** persisted. The pipeline is deterministic, so a
-stored DesignIntent plus the compiler reproduces the exact solid; storing the
-B-Rep too would create a second source of truth that could drift from the intent
-that supposedly produced it.
+Geometry is deliberately **not** persisted. The pipeline is deterministic, so
+the stored intent graph plus the compiler reproduces the exact solid; storing
+the B-Rep too would create a second source of truth that could drift from the
+intent that supposedly produced it.
 
 ---
 
@@ -291,15 +317,38 @@ that supposedly produced it.
 **Built and working:** the motor-adapter slice end to end — genuine datasheet
 extraction with real traceability, rule-cited fastener lookup, two-class conflict
 detection, diagnostic generation, measured validation, the release gate,
-immutable repair revisions, STEP round-trip verification, a five-panel UI, 36
-tests, 32 deterministic evaluation checks, a container deployment path and a
+immutable repair revisions, STEP round-trip verification, a five-panel UI, 118
+tests, 39 deterministic evaluation checks, a container deployment path and a
 398 KB static replay bundle.
 
-**Deliberately deferred:** the 15-case matrix and perturbation battery (inch
-inputs, relocated/removed dimensions, rotated sketches, contradictory text,
-altered hole patterns), GD&T, assemblies, alternate motor frames, universal
-drawing parsing. Unit normalisation and source adjudication are implemented and
-unit-tested, so those are the natural next increment.
+Also working: an Engineering Intent Graph with parity-tested projection, a
+graph-driven feature compiler, a typed minimum-distance predicate IR, and a
+second slotted-bracket distribution with independently measured slots and
+fillets. This proves reuse across two feature sets; it does not claim open-ended
+part understanding.
+
+The advanced typed layer supports closed line/arc sketch profiles for additive
+extrusion, pocketing and revolution; circular rods swept along a
+straight–arc–straight centerline; verified 90-degree constant-thickness
+sheet bends with bend allowance and developed length; assemblies with component
+transforms, origin/offset/concentric mate validation and B-Rep collision checks;
+GD&T inspection for size, true position, flatness and perpendicularity; and
+explicit-input mass, axial/bending stress, thermal expansion and worst-case fit
+calculations. These are bounded engineering operations: arbitrary model code,
+automatic mate solving, non-90-degree sheet bends and FEA are not implied.
+
+The adversarial suite holds the graph feature planner and CAD vocabulary fixed,
+then evaluates regressions, evidence and unit perturbations, an unseen flange
+composition, executor and symbolic fault injection, graph persistence, and STEP
+revalidation. It reports graph construction, planning, execution, geometry,
+requirements, refusal correctness, and STEP round-trip separately in
+`eval/adversarial_generalization_report.md` and a machine-readable JSON peer.
+
+**Deliberately deferred:** drawing-layout perturbations such as rotated sketches
+and relocated annotations, automatic general mate solving, non-90-degree sheet
+bends, FEA, alternate motor frames, and universal drawing parsing. The offline
+fixture cannot measure vision generalization honestly, so those cases remain
+outside the deterministic suite.
 
 Known limitations are stated plainly in `eval/report.md` under **Failure
 analysis** — including that the offline demo does not exercise drawing

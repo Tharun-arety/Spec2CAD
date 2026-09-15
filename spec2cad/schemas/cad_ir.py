@@ -31,7 +31,7 @@ class NumberLiteral(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     kind: Literal["literal"] = "literal"
-    value: float
+    value: float = Field(ge=-1_000_000, le=1_000_000, allow_inf_nan=False)
 
 
 class ParamRef(BaseModel):
@@ -100,6 +100,57 @@ class Termination(str, Enum):
     BLIND = "blind"
 
 
+class SketchPlane(str, Enum):
+    XY = "XY"
+    XZ = "XZ"
+    YZ = "YZ"
+
+
+class ProfilePoint(BaseModel):
+    """A point in a sketch plane. Coordinates can reference intent dimensions."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    x: Numeric
+    y: Numeric
+
+
+class LineSegment(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    type: Literal["line"] = "line"
+    end: ProfilePoint
+
+
+class ArcSegment(BaseModel):
+    """A circular arc defined without a kernel-specific radius convention."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    type: Literal["three_point_arc"] = "three_point_arc"
+    midpoint: ProfilePoint
+    end: ProfilePoint
+
+
+ProfileSegment = Annotated[
+    Union[LineSegment, ArcSegment], Field(discriminator="type")
+]
+
+
+class SketchProfile(BaseModel):
+    """A closed, ordered line/arc wire suitable for extrusion or revolution."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    start: ProfilePoint
+    segments: list[ProfileSegment] = Field(min_length=2, max_length=256)
+
+
+class BooleanMode(str, Enum):
+    ADD = "add"
+    CUT = "cut"
+
+
 # --------------------------------------------------------------------------
 # Operations
 # --------------------------------------------------------------------------
@@ -113,6 +164,27 @@ class BoxOp(BaseModel):
     width: Numeric
     height: Numeric
     depth: Numeric
+    centered: bool = True
+
+
+class CylinderOp(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    type: Literal["cylinder"] = "cylinder"
+    id: str
+    diameter: Numeric
+    length: Numeric
+    centered: bool = True
+
+
+class TubeOp(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    type: Literal["tube"] = "tube"
+    id: str
+    outer_diameter: Numeric
+    inner_diameter: Numeric
+    length: Numeric
     centered: bool = True
 
 
@@ -151,8 +223,135 @@ class ChamferOp(BaseModel):
     distance: Numeric
 
 
+class FilletOp(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    type: Literal["fillet"] = "fillet"
+    id: str
+    edge_selector: EdgeSelector
+    radius: Numeric
+
+
+class LinearSlotPatternOp(BaseModel):
+    """One or more identical slots on a face, evenly spaced along local X."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    type: Literal["linear_slot_pattern"] = "linear_slot_pattern"
+    id: str
+    support: FaceSelector = FaceSelector.TOP_FACE
+    width: Numeric
+    length: Numeric
+    spacing: Numeric = NumberLiteral(value=0.0)
+    count: int = 1
+    angle_degrees: Numeric = NumberLiteral(value=0.0)
+    termination: Termination = Termination.THROUGH_ALL
+    depth: Optional[Numeric] = None
+
+
+class ProfileExtrudeOp(BaseModel):
+    """Extrude any closed line/arc profile, adding or removing material."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    type: Literal["profile_extrude"] = "profile_extrude"
+    id: str
+    profile: SketchProfile
+    distance: Numeric
+    plane: SketchPlane = SketchPlane.XY
+    mode: BooleanMode = BooleanMode.ADD
+    centered: bool = True
+
+
+class ProfileRevolveOp(BaseModel):
+    """Revolve a closed line/arc profile around an axis in its sketch plane."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    type: Literal["profile_revolve"] = "profile_revolve"
+    id: str
+    profile: SketchProfile
+    plane: SketchPlane = SketchPlane.XY
+    axis_start: ProfilePoint = ProfilePoint(x=NumberLiteral(value=0), y=NumberLiteral(value=0))
+    axis_end: ProfilePoint = ProfilePoint(x=NumberLiteral(value=0), y=NumberLiteral(value=1))
+    angle_degrees: Numeric = NumberLiteral(value=360)
+    mode: BooleanMode = BooleanMode.ADD
+
+
+class SheetMetalBendOp(BaseModel):
+    """A constant-thickness 90-degree bent sheet with a true radiused bend.
+
+    Leg dimensions are outside envelope dimensions. The executor also records
+    bend allowance and developed flat length from the neutral axis.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    type: Literal["sheet_metal_bend"] = "sheet_metal_bend"
+    id: str
+    leg_a: Numeric
+    leg_b: Numeric
+    width: Numeric
+    thickness: Numeric
+    inside_radius: Numeric
+    angle_degrees: Numeric = NumberLiteral(value=90)
+    k_factor: Numeric = NumberLiteral(value=0.44)
+
+
+class CurvedRodOp(BaseModel):
+    """Sweep a circular rod along a straight–arc–straight centerline."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    type: Literal["curved_rod"] = "curved_rod"
+    id: str
+    diameter: Numeric
+    total_length: Numeric
+    bend_start: Numeric
+    bend_radius: Numeric
+    bend_angle_degrees: Numeric
+    plane: SketchPlane = SketchPlane.XY
+
+
+class RectangularLoftOp(BaseModel):
+    """Loft between two centered rectangular sections."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    type: Literal["rectangular_loft"] = "rectangular_loft"
+    id: str
+    start_width: Numeric
+    start_height: Numeric
+    end_width: Numeric
+    end_height: Numeric
+    length: Numeric
+    plane: SketchPlane = SketchPlane.XY
+    ruled: bool = False
+
+
+class CurvedStripOp(BaseModel):
+    """Rectangular-section sweep along a straight–arc–straight centerline."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    type: Literal["curved_strip"] = "curved_strip"
+    id: str
+    strip_width: Numeric
+    extrusion_thickness: Numeric
+    shank_length: Numeric
+    bend_radius: Numeric
+    bend_angle_degrees: Numeric
+    tail_length: Numeric
+    plane: SketchPlane = SketchPlane.XY
+
+
 Operation = Annotated[
-    Union[BoxOp, HoleOp, RectangularHolePatternOp, ChamferOp],
+    Union[
+        BoxOp, CylinderOp, TubeOp, HoleOp,
+        RectangularHolePatternOp, LinearSlotPatternOp,
+        ChamferOp, FilletOp, ProfileExtrudeOp, ProfileRevolveOp,
+        SheetMetalBendOp, CurvedRodOp, RectangularLoftOp, CurvedStripOp,
+    ],
     Field(discriminator="type"),
 ]
 
@@ -164,7 +363,7 @@ class CADProgram(BaseModel):
 
     part_name: str
     units: Literal["mm"] = "mm"
-    operations: list[Operation] = Field(default_factory=list)
+    operations: list[Operation] = Field(default_factory=list, max_length=64)
     design_revision: int = Field(
         default=1, description="the DesignIntent revision this program was compiled from"
     )
@@ -204,6 +403,15 @@ class CADProgram(BaseModel):
         Returned so a caller can show what a feature actually is -- the value
         used, and the parameter it came from -- rather than just its name.
         """
+        def jsonish(value):
+            if isinstance(value, BaseModel):
+                return value.model_dump(mode="json")
+            if isinstance(value, (list, tuple)):
+                return [jsonish(item) for item in value]
+            if isinstance(value, dict):
+                return {key: jsonish(item) for key, item in value.items()}
+            return value.value if hasattr(value, "value") else value
+
         out: list[dict] = []
         for op in self.operations:
             fields: list[dict] = []
@@ -226,7 +434,7 @@ class CADProgram(BaseModel):
                 else:
                     fields.append({
                         "name": name,
-                        "value": value.value if hasattr(value, "value") else value,
+                        "value": jsonish(value),
                         "parameter": None,
                     })
             out.append({"id": op.id, "type": op.type, "fields": fields})

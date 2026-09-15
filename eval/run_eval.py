@@ -39,6 +39,7 @@ from spec2cad.repair.repair_planner import (
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / "examples" / "motor_adapter"
+BRACKET_EXAMPLE = ROOT / "examples" / "mounting_bracket"
 REPORT = ROOT / "eval" / "report.md"
 
 
@@ -144,6 +145,25 @@ def deterministic_suite() -> PipelineScore:
     reports = verify_exported_step(step, v2.intent)
     score.check("re-imported STEP re-validates", True,
                 all(r.passed for r in reports))
+
+    # --- unseen second feature distribution, through the same graph compiler ---
+    bracket = run(requirement=BRACKET_EXAMPLE / "requirement.txt")
+    score.check("second part family identified", "mounting_bracket",
+                bracket.latest.intent.part.name)
+    score.check("second part feature plan",
+                ["base_plate", "mounting_holes", "base_slots", "external_fillets"],
+                [op.id for op in bracket.latest.program.operations])
+    score.check("second part released", True, bracket.latest.released)
+    bracket_checks = {c.id: c for c in bracket.latest.all_checks()}
+    score.check("slot width measured on B-Rep", 8.0,
+                bracket_checks["dim_slot_width"].measured_value, tol=1e-6)
+    score.check("slot length measured on B-Rep", 20.0,
+                bracket_checks["dim_slot_length"].measured_value, tol=1e-6)
+    score.check("fillets measured on B-Rep", 4,
+                int(bracket_checks["dim_external_fillet"].measured_value))
+    score.check("requirement executed from predicate IR", True,
+                "compiled minimum_distance predicate" in
+                bracket.latest.measured[-1].get("req_edge_clearance").message)
 
     return score
 
@@ -270,22 +290,24 @@ def write_report(pipeline: PipelineScore, variance: VarianceReport, note: str) -
         "  version of it scraped `3` out of the sentence \"listed in section 3\" on page 4;",
         "  that is now fixed by anchoring labels to the row start, and regression-tested,",
         "  but the class of error is inherent to rule-based extraction.",
-        "- The geometry vocabulary is four operations (box, hole, rectangular hole pattern,",
-        "  chamfer) and the hole pattern supports exactly four corner holes. Anything else",
-        "  raises rather than approximating.",
-        "- Only one part family is supported. No GD&T, tolerancing, assemblies, or",
-        "  alternate motor frames.",
+        "- The geometry vocabulary is six operations (box, hole, rectangular hole pattern,",
+        "  slot pattern, chamfer, and fillet); the rectangular pattern still supports exactly",
+        "  four corner holes. Anything else raises rather than approximating.",
+        "- Two feature distributions are supported: the motor adapter and a flat slotted",
+        "  bracket. This demonstrates graph/compiler reuse, not open-ended part synthesis.",
+        "  There is still no GD&T, tolerancing, assembly reasoning, or bent-sheet-metal model.",
         "- Preflight and measured validation are cross-checked against each other, but both",
         "  encode the same clearance formula. A conceptual error in that formula would not",
         "  be caught by their agreement.",
         "",
         "**Deliberately deferred**",
         "",
-        "The 15-case matrix and the perturbation battery (inch inputs, relocated and",
-        "removed dimensions, rotated sketches, contradictory text, altered hole patterns)",
-        "were cut from v1 in favour of one slice that works end to end and is honestly",
-        "reported. Unit normalisation and the source-adjudication path are implemented and",
-        "unit-tested, so those perturbations are the natural next increment.",
+        "The deterministic adversarial suite now covers changed and missing dimensions,",
+        "inch/mm normalization, contradictory sources, feature removal/reordering, an",
+        "unsatisfiable requirement, unseen feature composition, and injected pipeline",
+        "faults. Drawing-layout perturbations such as rotated sketches and relocated",
+        "annotations remain deferred because the offline fixture cannot measure vision",
+        "generalization honestly.",
         "",
     ]
     REPORT.write_text("\n".join(lines), encoding="utf-8")

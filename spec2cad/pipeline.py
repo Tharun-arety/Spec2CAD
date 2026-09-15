@@ -13,22 +13,29 @@ decides whether that geometry may leave the building.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+import uuid
 
 from spec2cad.cad.compiler import REQUIRED_FOR_COMPILATION, compile_design, parameter_table
 from spec2cad.cad.executor import ExecutionError, ExecutionResult, execute, import_step
 from spec2cad.cad.script_writer import write_script
 from spec2cad.extractors.datasheet import extract_datasheet
 from spec2cad.extractors.drawing import extract_sketch
-from spec2cad.extractors.text import extract_requirement
+from spec2cad.extractors.reasoning import extract_requirement_with_reasoning
 from spec2cad.fusion.conflict_detector import run_preflight
-from spec2cad.fusion.entity_resolver import build_design_intent
+from spec2cad.fusion.graph_builder import (
+    build_intent_graph,
+    graph_for_revision,
+    project_to_design_intent,
+)
 from spec2cad.fusion.source_policy import is_interface_critical
 from spec2cad.repair.repair_planner import RepairProposal, apply_repair, plan_repairs
 from spec2cad.schemas.cad_ir import CADProgram
 from spec2cad.schemas.design_intent import DesignIntent
 from spec2cad.schemas.evidence import EvidenceSet, SemanticTarget
+from spec2cad.schemas.intent_graph import AdvancedFeatureNode, EngineeringIntentGraph
 from spec2cad.schemas.report import (
     CheckResult,
     CheckStage,
@@ -37,6 +44,7 @@ from spec2cad.schemas.report import (
     Report,
 )
 from spec2cad.validation.dimensions import run_dimensions
+from spec2cad.validation.advanced import run_advanced_geometry
 from spec2cad.validation.gate import ReleaseDecision, evaluate_release
 from spec2cad.validation.requirements import (
     compare_prediction_to_measurement,
@@ -50,6 +58,7 @@ class RevisionResult:
     """Everything produced for one DesignIntent revision."""
 
     intent: DesignIntent
+    intent_graph: Optional[EngineeringIntentGraph] = None
     program: Optional[CADProgram] = None
     execution: Optional[ExecutionResult] = None
     preflight: Optional[Report] = None
@@ -85,6 +94,12 @@ class RunResult:
     sketch_backend: str = ""
     sketch_fell_back: bool = False
     sketch_fallback_reason: Optional[str] = None
+    reasoning_backend: str = "not used (no requirement supplied)"
+    reasoning_fell_back: bool = False
+    reasoning_fallback_reason: Optional[str] = None
+    unsupported_features: list[str] = field(default_factory=list)
+    clarification_questions: list[str] = field(default_factory=list)
+    messages: list["ChatMessage"] = field(default_factory=list)
 
     @property
     def latest(self) -> RevisionResult:
@@ -97,11 +112,50 @@ class RunResult:
         raise KeyError(f"no revision v{number} in this run")
 
 
+@dataclass(frozen=True)
+class ChatMessage:
+    id: str
+    role: str
+    content: str
+    kind: str = "message"
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+
+    @classmethod
+    def create(cls, role: str, content: str, kind: str = "message") -> "ChatMessage":
+        return cls(id=uuid.uuid4().hex[:12], role=role, content=content, kind=kind)
+
+
+def _assistant_message(result: RunResult) -> ChatMessage:
+    if result.clarification_questions:
+        return ChatMessage.create(
+            "assistant", "\n".join(result.clarification_questions), "clarification"
+        )
+    if result.latest.build_error:
+        return ChatMessage.create("assistant", result.latest.build_error, "error")
+    count = len(result.latest.program.operations) if result.latest.program else 0
+    return ChatMessage.create(
+        "assistant",
+        f"Generated and validated {result.latest.intent.part.name} with {count} CAD feature"
+        f"{'s' if count != 1 else ''}.",
+        "result",
+    )
+
+
+def _requirement_text(requirement: str | Path) -> str:
+    if isinstance(requirement, Path) and requirement.exists():
+        return requirement.read_text(encoding="utf-8")
+    return str(requirement)
+
+
 def gather_evidence(
     sketch: Optional[Path] = None,
     datasheet: Optional[Path] = None,
-    requirement: Optional[Path] = None,
+    requirement: Optional[str | Path] = None,
     backend_override: Optional[str] = None,
+    use_reasoning: bool = False,
+    reasoning_context: str | None = None,
 ) -> tuple[EvidenceSet, object | None]:
     """Run every extractor whose source was supplied.
 
@@ -115,28 +169,96 @@ def gather_evidence(
 
     items = []
     sketch_result = None
+    reasoning_result = None
     if sketch is not None:
         sketch_result = extract_sketch(sketch, backend_override)
         items.extend(sketch_result.evidence)
     if datasheet is not None:
         items.extend(extract_datasheet(datasheet))
     if requirement is not None:
-        items.extend(extract_requirement(requirement))
+        reasoning_result = extract_requirement_with_reasoning(
+            requirement, enabled=use_reasoning, reasoning_context=reasoning_context
+        )
+        items.extend(reasoning_result.evidence)
 
     label = sketch_result.label if sketch_result else "not used (no sketch supplied)"
-    return EvidenceSet(items=items, backend_used=label), sketch_result
+    return EvidenceSet(
+        items=items,
+        backend_used=label,
+        reasoning_backend=(
+            reasoning_result.label
+            if reasoning_result else "not used (no requirement supplied)"
+        ),
+        reasoning_fell_back=reasoning_result.fell_back if reasoning_result else False,
+        reasoning_fallback_reason=(
+            reasoning_result.fallback_reason if reasoning_result else None
+        ),
+        unsupported_features=(
+            reasoning_result.unsupported_features if reasoning_result else []
+        ),
+        clarification_questions=(
+            reasoning_result.clarification_questions if reasoning_result else []
+        ),
+        feature_requests=(
+            reasoning_result.feature_requests if reasoning_result else []
+        ),
+    ), sketch_result
 
 
-def evaluate_revision(intent: DesignIntent) -> RevisionResult:
+def evaluate_revision(
+    intent: DesignIntent,
+    intent_graph: Optional[EngineeringIntentGraph] = None,
+    clarification_questions: Optional[list[str]] = None,
+) -> RevisionResult:
     """Run the four stages against one revision."""
-    result = RevisionResult(intent=intent)
+    result = RevisionResult(intent=intent, intent_graph=intent_graph)
+    advanced_geometry = bool(
+        intent_graph and any(
+            isinstance(node, AdvancedFeatureNode) for node in intent_graph.nodes
+        )
+    )
 
     # 1. preflight -- advisory, never blocks
-    result.preflight = run_preflight(intent)
+    result.preflight = (
+        Report(
+            stage=CheckStage.PREFLIGHT,
+            design_revision=intent.revision,
+            checks=[CheckResult(
+                id="pre_advanced_feature_contract",
+                stage=CheckStage.PREFLIGHT,
+                name="Advanced feature intent is schema-complete",
+                status=CheckStatus.PASS,
+                message="typed profile/sheet feature request passed schema validation",
+            )],
+        )
+        if advanced_geometry else run_preflight(intent)
+    )
+
+    # A material ambiguity is not a CAD execution failure and must not be
+    # guessed by the planner. Preserve extracted evidence and stop at the
+    # semantic boundary until the user answers in a new prompt.
+    if clarification_questions:
+        question_text = " ".join(clarification_questions)
+        result.build_error = f"Clarification required before CAD planning: {question_text}"
+        clarification_report = Report(
+            stage=CheckStage.SCHEMA,
+            design_revision=intent.revision,
+            checks=[CheckResult(
+                id="semantic_clarification_required",
+                stage=CheckStage.SCHEMA,
+                name="Engineering intent is unambiguous",
+                status=CheckStatus.FAIL,
+                conflict_class=ConflictClass.COMPLETENESS,
+                message=question_text,
+            )],
+        )
+        result.measured = [clarification_report]
+        result.decision = evaluate_release(intent, [clarification_report])
+        return result
 
     # 2. diagnostic generation -- runs even when preflight predicts a failure
     try:
-        program = compile_design(intent)
+        program = compile_design(intent_graph or intent)
         values = parameter_table(intent)
         result.program = program
         result.script = write_script(program, values)
@@ -170,9 +292,12 @@ def evaluate_revision(intent: DesignIntent) -> RevisionResult:
 
     # 3. measured validation -- observes the solid
     result.measured = [
-        run_topology(shape, intent),
-        run_dimensions(shape, intent),
-        run_requirements(shape, intent),
+        run_topology(shape, intent, skip_analytic_volume=advanced_geometry),
+        (
+            run_advanced_geometry(result.execution, intent.revision)
+            if advanced_geometry else run_dimensions(shape, intent)
+        ),
+        run_requirements(shape, intent, intent_graph),
     ]
     requirement_report = result.measured[-1]
     result.cross_checks = compare_prediction_to_measurement(
@@ -193,27 +318,88 @@ def evaluate_revision(intent: DesignIntent) -> RevisionResult:
 def run(
     sketch: Optional[Path] = None,
     datasheet: Optional[Path] = None,
-    requirement: Optional[Path] = None,
+    requirement: Optional[str | Path] = None,
     backend_override: Optional[str] = None,
+    use_reasoning: bool = False,
+    reasoning_context: str | None = None,
+    create_messages: bool = True,
 ) -> RunResult:
     """Extract supplied sources, fuse them and evaluate DesignIntent v1."""
     evidence, sketch_result = gather_evidence(
-        sketch, datasheet, requirement, backend_override
+        sketch, datasheet, requirement, backend_override, use_reasoning,
+        reasoning_context,
     )
     # A text-only request is a generic generated plate, not automatically a
     # motor adapter. Runs with the demo sketch/datasheet retain the established
     # motor-adapter identity.
-    part_name = "motor_adapter_plate" if sketch is not None or datasheet is not None else "mounting_plate"
-    intent, _ = build_design_intent(evidence, part_name=part_name)
-    return RunResult(
+    part_name = "motor_adapter_plate" if sketch is not None or datasheet is not None else None
+    intent_graph, _ = build_intent_graph(evidence, part_name=part_name)
+    intent = project_to_design_intent(intent_graph)
+    result = RunResult(
         evidence=evidence,
-        revisions=[evaluate_revision(intent)],
+        revisions=[evaluate_revision(
+            intent, intent_graph, evidence.clarification_questions
+        )],
         sketch_backend=(
             sketch_result.label if sketch_result else "not used (no sketch supplied)"
         ),
         sketch_fell_back=sketch_result.fell_back if sketch_result else False,
         sketch_fallback_reason=sketch_result.fallback_reason if sketch_result else None,
+        reasoning_backend=(
+            evidence.reasoning_backend
+        ),
+        reasoning_fell_back=evidence.reasoning_fell_back,
+        reasoning_fallback_reason=evidence.reasoning_fallback_reason,
+        unsupported_features=evidence.unsupported_features,
+        clarification_questions=evidence.clarification_questions,
     )
+    if create_messages and requirement is not None:
+        result.messages = [
+            ChatMessage.create("user", _requirement_text(requirement), "request"),
+            _assistant_message(result),
+        ]
+    return result
+
+
+def continue_conversation(run_result: RunResult, message: str) -> RunResult:
+    """Resolve a clarification or refine a design without losing its audit trail."""
+    content = message.strip()
+    if not content:
+        raise ValueError("a conversation turn cannot be empty")
+    user_message = ChatMessage.create("user", content, "answer")
+    history = [*run_result.messages, user_message]
+    transcript = "\n\n".join(
+        f"{item.role.upper()}: {item.content}" for item in history
+    )
+    fresh = run(
+        requirement=content,
+        use_reasoning=True,
+        reasoning_context=transcript,
+        create_messages=False,
+    )
+    next_revision = run_result.latest.revision + 1
+    graph = fresh.latest.intent_graph.model_copy(update={"revision": next_revision})
+    intent = project_to_design_intent(graph).model_copy(update={
+        "parent_revision": run_result.latest.revision,
+    })
+    combined = RunResult(
+        evidence=fresh.evidence,
+        revisions=[
+            *run_result.revisions,
+            evaluate_revision(intent, graph, fresh.clarification_questions),
+        ],
+        sketch_backend=run_result.sketch_backend,
+        sketch_fell_back=run_result.sketch_fell_back,
+        sketch_fallback_reason=run_result.sketch_fallback_reason,
+        reasoning_backend=fresh.reasoning_backend,
+        reasoning_fell_back=fresh.reasoning_fell_back,
+        reasoning_fallback_reason=fresh.reasoning_fallback_reason,
+        unsupported_features=fresh.unsupported_features,
+        clarification_questions=fresh.clarification_questions,
+        messages=history,
+    )
+    combined.messages.append(_assistant_message(combined))
+    return combined
 
 
 def repair(
@@ -237,12 +423,22 @@ def repair(
     # A new RunResult rather than an in-place append. DesignIntent revisions are
     # immutable, and a run that silently re-pointed its own `latest` would make
     # "what did v1 conclude?" unanswerable once a repair had been applied.
+    next_graph = (
+        graph_for_revision(current.intent_graph, next_intent)
+        if current.intent_graph is not None else None
+    )
     return RunResult(
         evidence=run_result.evidence,
-        revisions=[*run_result.revisions, evaluate_revision(next_intent)],
+        revisions=[*run_result.revisions, evaluate_revision(next_intent, next_graph)],
         sketch_backend=run_result.sketch_backend,
         sketch_fell_back=run_result.sketch_fell_back,
         sketch_fallback_reason=run_result.sketch_fallback_reason,
+        reasoning_backend=run_result.reasoning_backend,
+        reasoning_fell_back=run_result.reasoning_fell_back,
+        reasoning_fallback_reason=run_result.reasoning_fallback_reason,
+        unsupported_features=run_result.unsupported_features,
+        clarification_questions=run_result.clarification_questions,
+        messages=run_result.messages,
     )
 
 
@@ -306,16 +502,30 @@ def revise(
         approved_by=approved_by,
         reason=reason,
     )
+    next_graph = (
+        graph_for_revision(current.intent_graph, next_intent)
+        if current.intent_graph is not None else None
+    )
     return RunResult(
         evidence=run_result.evidence,
-        revisions=[*run_result.revisions, evaluate_revision(next_intent)],
+        revisions=[*run_result.revisions, evaluate_revision(next_intent, next_graph)],
         sketch_backend=run_result.sketch_backend,
         sketch_fell_back=run_result.sketch_fell_back,
         sketch_fallback_reason=run_result.sketch_fallback_reason,
+        reasoning_backend=run_result.reasoning_backend,
+        reasoning_fell_back=run_result.reasoning_fell_back,
+        reasoning_fallback_reason=run_result.reasoning_fallback_reason,
+        unsupported_features=run_result.unsupported_features,
+        clarification_questions=run_result.clarification_questions,
+        messages=run_result.messages,
     )
 
 
-def verify_exported_step(step_path: Path, intent: DesignIntent) -> list[Report]:
+def verify_exported_step(
+    step_path: Path,
+    intent: DesignIntent,
+    intent_graph: Optional[EngineeringIntentGraph] = None,
+) -> list[Report]:
     """Re-import an exported STEP and validate the artifact itself.
 
     Validating the in-memory result proves the pipeline worked. Validating the
@@ -326,5 +536,5 @@ def verify_exported_step(step_path: Path, intent: DesignIntent) -> list[Report]:
     return [
         run_topology(shape, intent),
         run_dimensions(shape, intent),
-        run_requirements(shape, intent),
+        run_requirements(shape, intent, intent_graph),
     ]

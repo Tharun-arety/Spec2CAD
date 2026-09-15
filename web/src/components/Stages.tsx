@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import type { Check, Evidence, Proposal, Revision, RunState } from '../types'
 import { cn } from '../lib/cn'
+import { formatValue } from '../lib/formatValue'
 import { ExtractionMode } from './ExtractionMode'
 import { Button, Empty, Field, Mark, Num, PanelHead, Tip } from './ui'
 
@@ -372,6 +373,23 @@ export function CadStage({
         </div>
       )}
 
+      {rev.derived_geometry && Object.keys(rev.derived_geometry).length > 0 && (
+        <div className="border-b border-c3 bg-c1 px-3.5 py-[8px]">
+          <div className="mb-[5px] text-[11px] font-semibold uppercase tracking-[0.07em] text-c6">
+            Derived engineering values
+          </div>
+          <div className="flex flex-wrap gap-x-[16px] gap-y-[4px]">
+            {Object.entries(rev.derived_geometry).map(([name, value]) => (
+              <span key={name} className="flex items-baseline gap-[5px] text-[12px]">
+                <span className="text-c7">{name.replace(/[._]/g, ' ')}</span>
+                <Num strong value={formatValue(value)}
+                     unit={name.endsWith('volume') ? 'mm³' : 'mm'} />
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       <ol>
         {ops.map((o, i) => {
           const on = o.id === selected
@@ -423,10 +441,7 @@ export function CadStage({
                     {o.fields.map((f) => (
                       <span key={f.name} className="flex items-baseline gap-[5px] text-[12px]">
                         <span className="text-c7">{f.name.replace(/_/g, ' ')}</span>
-                        <Num strong value={
-                          typeof f.value === 'number' ? String(+f.value.toFixed(4))
-                                                      : String(f.value ?? '—')
-                        } />
+                        <Num strong value={formatValue(f.value)} />
                         {f.parameter && (
                           <span className="num text-[9.5px] text-c6">
                             ← {f.parameter.replace(/_/g, ' ')}
