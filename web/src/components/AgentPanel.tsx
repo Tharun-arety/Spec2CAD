@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Bot, FileText, Image as ImageIcon, Paperclip, Play, Plus, RotateCcw, X,
+  Bot, CircleHelp, FileText, Image as ImageIcon, Paperclip, Play, Plus,
+  RotateCcw, Wrench, X,
 } from 'lucide-react'
-import type { RunState } from '../types'
+import type { AgentPlan, ClarificationRequest, RunState } from '../types'
 import { cn } from '../lib/cn'
 import { Button, Tip } from './ui'
 
@@ -29,6 +30,16 @@ export function AgentPanel({
   const threadEnd = useRef<HTMLDivElement>(null)
   const messages = state?.messages ?? []
   const clarificationQuestions = state?.clarification_questions ?? []
+  const agentPlan = state?.agent_plan ?? null
+  const clarifications: ClarificationRequest[] = agentPlan?.clarifications.length
+    ? agentPlan.clarifications
+    : clarificationQuestions.map((question, index) => ({
+        id: `legacy-${index}`,
+        question,
+        why: 'This answer is required before the selected CAD operation can run.',
+        options: [],
+        allow_free_text: true,
+      }))
   const continuing = messages.length > 0 && !sketch && !datasheet
   const canSend = !replayMode && !busy && Boolean(sketch || datasheet || instruction.trim())
 
@@ -37,10 +48,10 @@ export function AgentPanel({
   }, [messages.length, busy])
 
   useEffect(() => {
-    if (clarificationQuestions.length > 0 && !replayMode) {
+    if (clarifications.length > 0 && !replayMode) {
       requestAnimationFrame(() => instructionInput.current?.focus())
     }
-  }, [clarificationQuestions.length, replayMode])
+  }, [clarifications.length, replayMode])
 
   const submit = () => {
     if (!canSend) return
@@ -139,14 +150,44 @@ export function AgentPanel({
           </div>
         )}
 
-        {clarificationQuestions.length > 0 && (
-          <div className="mt-[11px] border-l-2 border-warn bg-warn-wash px-[10px] py-[8px]">
-            <p className="text-[11px] font-semibold text-warn">Decision needed</p>
-            {clarificationQuestions.map((question) => (
-              <p key={question} className="mt-[3px] text-[12px] leading-relaxed text-c8">
-                {question}
-              </p>
-            ))}
+        {agentPlan && <AgentPlanCard plan={agentPlan} />}
+
+        {clarifications.length > 0 && (
+          <div className="mt-[11px] rounded-[7px] border border-warn-line bg-warn-wash p-[10px]">
+            <div className="flex items-center gap-[6px] text-warn">
+              <CircleHelp size={14} aria-hidden />
+              <p className="text-[11px] font-semibold">Decision needed</p>
+            </div>
+            <div className="mt-[8px] space-y-[10px]">
+              {clarifications.map((clarification) => (
+                <section key={clarification.id} aria-labelledby={`${clarification.id}-question`}>
+                  <p id={`${clarification.id}-question`}
+                     className="text-[12.5px] font-medium leading-relaxed text-c9">
+                    {clarification.question}
+                  </p>
+                  <p className="mt-[3px] text-[11px] leading-relaxed text-c6">
+                    {clarification.why}
+                  </p>
+                  {clarification.options.length > 0 && (
+                    <div className="mt-[7px] grid gap-[6px]">
+                      {clarification.options.map((option) => (
+                        <button key={option.value} type="button"
+                                disabled={busy || replayMode}
+                                onClick={() => onContinue(option.value)}
+                                className="min-h-11 rounded-[6px] border border-c4 bg-c1 px-[9px]
+                                           py-[7px] text-left transition-colors hover:border-accent-line
+                                           hover:bg-accent-wash disabled:cursor-not-allowed disabled:opacity-40">
+                          <span className="block text-[12px] font-medium text-c9">{option.label}</span>
+                          <span className="mt-[2px] block text-[10.5px] leading-relaxed text-c6">
+                            {option.description}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -169,7 +210,7 @@ export function AgentPanel({
               if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && canSend) submit()
             }}
             disabled={replayMode || busy}
-            placeholder={replayMode ? 'Recorded conversation' : clarificationQuestions.length
+            placeholder={replayMode ? 'Recorded conversation' : clarifications.length
               ? 'Answer the clarification…' : continuing
                 ? 'Ask for a change…' : 'Describe a part or request an action…'}
             className="min-h-[72px] w-full resize-none bg-transparent px-[10px] py-[9px]
@@ -224,6 +265,58 @@ export function AgentPanel({
              tabIndex={-1} aria-hidden="true"
              onChange={(event) => setDatasheet(event.target.files?.[0] ?? null)} />
     </aside>
+  )
+}
+
+function AgentPlanCard({ plan }: { plan: AgentPlan }) {
+  const status = {
+    execute: 'Ready to execute',
+    clarify: 'Waiting for a decision',
+    explain: 'Explanation',
+    unsupported: 'Outside current toolset',
+  }[plan.action]
+
+  return (
+    <section className="mt-[11px] rounded-[7px] border border-c3 bg-c1 p-[10px]"
+             aria-label="Agent interpretation and tool plan">
+      <div className="flex items-center gap-[6px]">
+        <Wrench size={13} className="text-accent" aria-hidden />
+        <h3 className="text-[11px] font-semibold text-c9">Agent plan</h3>
+        <span className="ml-auto text-[10px] text-c6">{status}</span>
+      </div>
+      <p className="mt-[6px] text-[11.5px] leading-relaxed text-c7">{plan.summary}</p>
+      {plan.steps.length > 0 && (
+        <ol className="mt-[8px] list-decimal space-y-[4px] pl-[18px] text-[11px] leading-relaxed text-c7">
+          {plan.steps.map((step, index) => <li key={`${index}-${step}`}>{step}</li>)}
+        </ol>
+      )}
+      {plan.tool_calls.length > 0 && (
+        <div className="mt-[9px] space-y-[6px] border-t border-c3 pt-[8px]">
+          {plan.tool_calls.map((call, index) => (
+            <div key={`${call.name}-${index}`}>
+              <div className="flex items-center gap-[6px]">
+                <code className="rounded-[3px] bg-c2 px-[5px] py-[2px] text-[10.5px] text-accent">
+                  {call.name}
+                </code>
+                <span className="text-[10.5px] text-c6">{call.purpose}</span>
+              </div>
+              {call.arguments.length > 0 && (
+                <div className="mt-[4px] flex flex-wrap gap-[4px]">
+                  {call.arguments.map((argument) => (
+                    <span key={argument.name}
+                          title={`Source: ${argument.source}`}
+                          className="rounded-[3px] border border-c3 px-[5px] py-[2px]
+                                     text-[10px] text-c7">
+                      {argument.name}={String(argument.value)}{argument.unit ? ` ${argument.unit}` : ''}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   )
 }
 

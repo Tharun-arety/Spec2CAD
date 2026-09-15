@@ -186,10 +186,10 @@ highlights the actual rectangle it came from:
 ## Architecture
 
 ```
-inputs ──► Evidence[] ──► Engineering Intent Graph ──► Feature planner ──► CADProgram
-           (kind +        (entities + relations +      (graph-driven,       (typed,
-            confidence     provenance)                  no part switch)      no Python)
-            + authority)          │                                            │
+inputs ──► Agent interpretation ──► Evidence[] ──► Engineering Intent Graph ──► CADProgram
+           (plan / tool call /      (kind +        (entities + relations +      (typed,
+            bounded question)        confidence     provenance)                  no Python)
+                                     + authority)          │                         │
                                   ├──► DesignIntent compatibility view          ▼
                                   │                                        B-Rep
                                   └──► Requirement predicate IR                │
@@ -211,10 +211,17 @@ is reported as a **pipeline defect**, not a design problem.
 
 ### Design decisions worth the words
 
-**The LLM never emits or executes Python.** It returns schema-validated
-`Evidence` only. `cad/executor.py` is the sole importer of CadQuery (enforced by
-a test). The CadQuery script shown in the UI is *emitted by the compiler* for
-review and is never executed.
+**Every natural-language turn goes through an agent contract.** The model returns
+a schema-validated interpretation with exactly one disposition: execute a typed
+tool plan, ask a bounded clarification, explain, or report that the request is
+outside the current toolset. It must preserve dimensions already supplied in the
+audited transcript. Categorical ambiguity can include selectable options;
+missing exact dimensions remain free-text questions rather than guessed values.
+
+**The LLM never emits or executes Python.** It returns schema-validated evidence
+and a typed plan whose tool names come from a closed registry. `cad/executor.py`
+is the sole importer of CadQuery (enforced by a test). The CadQuery script shown
+in the UI is *emitted by the compiler* for review and is never executed.
 
 **The graph is now the pipeline source.** Dimensions, features, interfaces,
 requirements, source evidence, and reference geometry are typed nodes joined by

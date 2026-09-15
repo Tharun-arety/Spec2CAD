@@ -39,6 +39,7 @@ from spec2cad.fusion.graph_builder import (
 from spec2cad.fusion.source_policy import is_interface_critical
 from spec2cad.repair.repair_planner import RepairProposal, apply_repair, plan_repairs
 from spec2cad.schemas.cad_ir import CADProgram
+from spec2cad.schemas.agent import AgentPlan
 from spec2cad.schemas.design_intent import DesignIntent
 from spec2cad.schemas.evidence import EvidenceSet, SemanticTarget, SourceModality
 from spec2cad.schemas.intent_graph import AdvancedFeatureNode, EngineeringIntentGraph
@@ -105,6 +106,7 @@ class RunResult:
     reasoning_fallback_reason: Optional[str] = None
     unsupported_features: list[str] = field(default_factory=list)
     clarification_questions: list[str] = field(default_factory=list)
+    agent_plan: AgentPlan | None = None
     messages: list["ChatMessage"] = field(default_factory=list)
 
     @property
@@ -134,13 +136,33 @@ class ChatMessage:
 
 
 def _assistant_message(result: RunResult) -> ChatMessage:
+    plan = result.agent_plan
     if result.clarification_questions:
+        if plan is not None:
+            tool_path = ", ".join(
+                call.name.replace("_", " ") for call in plan.tool_calls
+            ) or "the appropriate CAD operation"
+            return ChatMessage.create(
+                "assistant",
+                f"{plan.summary}\n\nI can continue with {tool_path} after one "
+                "missing design decision is resolved. Choose an option below or "
+                "provide the exact value in your own words.",
+                "clarification",
+            )
         return ChatMessage.create(
             "assistant", "\n".join(result.clarification_questions), "clarification"
         )
     if result.latest.build_error:
         return ChatMessage.create("assistant", result.latest.build_error, "error")
     count = len(result.latest.program.operations) if result.latest.program else 0
+    if plan is not None:
+        return ChatMessage.create(
+            "assistant",
+            f"{plan.summary}\n\nGenerated and validated "
+            f"{result.latest.intent.part.name} with {count} CAD feature"
+            f"{'s' if count != 1 else ''}.",
+            "result",
+        )
     return ChatMessage.create(
         "assistant",
         f"Generated and validated {result.latest.intent.part.name} with {count} CAD feature"
@@ -273,6 +295,7 @@ def gather_evidence(
         clarification_questions=(
             reasoning_result.clarification_questions if reasoning_result else []
         ),
+        agent_plan=reasoning_result.agent_plan if reasoning_result else None,
         feature_requests=(
             reasoning_result.feature_requests if reasoning_result else []
         ),
@@ -432,6 +455,7 @@ def run(
         reasoning_fallback_reason=evidence.reasoning_fallback_reason,
         unsupported_features=evidence.unsupported_features,
         clarification_questions=evidence.clarification_questions,
+        agent_plan=evidence.agent_plan,
     )
     if create_messages and (requirement is not None or sketch is not None or datasheet is not None):
         request_text = (
@@ -485,6 +509,7 @@ def continue_conversation(run_result: RunResult, message: str) -> RunResult:
         reasoning_fallback_reason=fresh.reasoning_fallback_reason,
         unsupported_features=fresh.unsupported_features,
         clarification_questions=fresh.clarification_questions,
+        agent_plan=fresh.agent_plan,
         messages=history,
     )
     combined.messages.append(_assistant_message(combined))
@@ -527,6 +552,7 @@ def repair(
         reasoning_fallback_reason=run_result.reasoning_fallback_reason,
         unsupported_features=run_result.unsupported_features,
         clarification_questions=run_result.clarification_questions,
+        agent_plan=run_result.agent_plan,
         messages=run_result.messages,
     )
 
@@ -606,6 +632,7 @@ def revise(
         reasoning_fallback_reason=run_result.reasoning_fallback_reason,
         unsupported_features=run_result.unsupported_features,
         clarification_questions=run_result.clarification_questions,
+        agent_plan=run_result.agent_plan,
         messages=run_result.messages,
     )
 

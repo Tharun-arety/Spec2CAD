@@ -11,7 +11,7 @@ from spec2cad.extractors import base
 from spec2cad.extractors.reasoning import extract_requirement_with_reasoning
 from spec2cad.schemas.evidence import ExtractionMethod, SemanticTarget, SourceModality
 from spec2cad.pipeline import continue_conversation, run
-from spec2cad.schemas.cad_ir import TubeOp
+from spec2cad.schemas.cad_ir import CylinderOp, TubeOp
 from spec2cad.schemas.cad_ir import CurvedRodOp, RectangularLoftOp, SheetMetalBendOp
 from spec2cad.schemas.cad_ir import ParamRef
 
@@ -234,6 +234,70 @@ def test_cylindrical_tube_prompt_flows_from_reasoning_through_graph_and_cad(
     assert result.latest.released is True
 
 
+def test_agent_routes_complete_solid_cylinder_without_reasking_dimensions(
+    tmp_path, monkeypatch
+):
+    captured = {}
+    _fake_openai(monkeypatch, {
+        "facts": [
+            {
+                "target": "part_type", "kind": "feature_callout",
+                "value": "solid cylinder", "unit": None, "confidence": 0.99,
+                "is_explicit_annotation": True, "raw_text": "create a cylinder",
+            },
+            {
+                "target": "body_length", "kind": "linear_dimension",
+                "value": 25, "unit": "mm", "confidence": 0.99,
+                "is_explicit_annotation": True, "raw_text": "length 25 mm",
+            },
+            {
+                "target": "outer_diameter", "kind": "diameter",
+                "value": 15, "unit": "mm", "confidence": 0.99,
+                "is_explicit_annotation": True, "raw_text": "15 mm dia",
+            },
+        ],
+        "feature_requests": [],
+        "unsupported_features": [],
+        "clarification_questions": [],
+        "agent": {
+            "action": "execute",
+            "summary": "Create a solid cylinder 25 mm long and 15 mm in diameter.",
+            "steps": [
+                "Create the cylindrical base solid from the supplied dimensions.",
+                "Measure the result and run the release checks.",
+            ],
+            "tool_calls": [{
+                "name": "cylinder",
+                "purpose": "Create the requested solid cylinder.",
+                "arguments": [
+                    {"name": "length", "value": 25, "unit": "mm",
+                     "source": "length 25 mm"},
+                    {"name": "diameter", "value": 15, "unit": "mm",
+                     "source": "15 mm dia"},
+                ],
+            }],
+            "clarifications": [],
+        },
+    }, captured)
+    monkeypatch.setenv("OPENAI_API_KEY", "test-server-key")
+    requirement = tmp_path / "requirement.txt"
+    requirement.write_text(
+        "create a cylinder of length 25 mm and 15 mm dia", encoding="utf-8"
+    )
+
+    result = run(requirement=requirement, use_reasoning=True)
+
+    assert result.clarification_questions == []
+    assert isinstance(result.latest.program.operations[0], CylinderOp)
+    assert result.latest.intent.value_of("body_length") == 25
+    assert result.latest.intent.value_of("outer_diameter") == 15
+    assert result.agent_plan is not None
+    assert result.agent_plan.action == "execute"
+    assert result.agent_plan.tool_calls[0].name == "cylinder"
+    assert result.latest.released is True
+    assert "overall height and width" not in result.messages[-1].content
+
+
 def test_sketch_only_uses_multimodal_reasoning_for_advanced_geometry(
     tmp_path, monkeypatch,
 ):
@@ -283,8 +347,31 @@ def test_material_geometry_ambiguity_is_asked_before_cad_planning(
     )
     _fake_openai(monkeypatch, {
         "facts": [],
+        "feature_requests": [{
+            "type": "sheet_metal_bend", "id": "main_bend",
+            "leg_a": 50, "leg_b": 50, "width": 30, "thickness": 4,
+            "inside_radius": None, "angle_degrees": 90, "k_factor": None,
+        }],
         "unsupported_features": ["L-bracket"],
         "clarification_questions": [question],
+        "agent": {
+            "action": "clarify",
+            "summary": "The L-bracket envelope is known, but its construction is ambiguous.",
+            "steps": ["Confirm the construction method before creating geometry."],
+            "tool_calls": [],
+            "clarifications": [{
+                "id": "bracket-construction",
+                "question": question,
+                "why": "Bent sheet and solid extrusion require different CAD operations.",
+                "options": [
+                    {"label": "Bent sheet metal", "value": "Use bent sheet metal.",
+                     "description": "Model two legs with a bend radius and allowance."},
+                    {"label": "Solid L-profile", "value": "Use a solid extruded L-profile.",
+                     "description": "Extrude a constant L-shaped section."},
+                ],
+                "allow_free_text": True,
+            }],
+        },
     }, captured)
     monkeypatch.setenv("OPENAI_API_KEY", "test-server-key")
     requirement = tmp_path / "requirement.txt"
@@ -300,6 +387,11 @@ def test_material_geometry_ambiguity_is_asked_before_cad_planning(
     )
     assert result.latest.released is False
     assert result.latest.measured[0].checks[0].id == "semantic_clarification_required"
+    assert result.agent_plan is not None
+    assert result.agent_plan.action == "clarify"
+    assert [option.label for option in result.agent_plan.clarifications[0].options] == [
+        "Bent sheet metal", "Solid L-profile",
+    ]
 
 
 def test_explicit_sheet_metal_request_flows_through_eig_planner_and_executor(
