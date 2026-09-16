@@ -22,6 +22,7 @@ import { AgentPanel } from './components/AgentPanel'
 import { ShowcaseWorkspace } from './components/ShowcaseWorkspace'
 import { hasWebGL } from './lib/webgl'
 import { cn } from './lib/cn'
+import { Analytics } from '@vercel/analytics/react'
 
 const VIEWER_FALLBACK_NOTE =
   'This browser has no WebGL context, so the 3D viewer is unavailable. ' +
@@ -162,7 +163,9 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell flex h-full flex-col bg-c2">
+    <>
+      <Analytics />
+      <div className="app-shell flex h-full flex-col bg-c2">
       <CommandBar
         state={state} rev={rev} busy={busy}
         onSelectRevision={(n) => { setViewing(n); setScriptOpen(false) }}
@@ -501,5 +504,6 @@ export default function App() {
         onGoRelease={() => setStage(awaitingDetails ? 'sources' : 'validate')}
       />
     </div>
+    </>
   )
 }
