@@ -1,0 +1,418 @@
+{
+  "all_passed": true,
+  "benchmark_case": "B.R1.motor_adapter",
+  "freecad_version": "1.1.0",
+  "inputs_sha256": {
+    "motor_datasheet.pdf": "d1c15cc6b0605fe30ae3be959b9b7a045aed80d5f609e8845817d191e14cb722",
+    "requirement.txt": "7a07a1b55e6dedcd540f6d84d47eeb9f180ec03cc50ef534edde806a6af3ef73",
+    "sketch.fixture.json": "b3e935b16ae69e519a47c44dd2faeba8908162d7d9aad079955e4d15a8be8243",
+    "sketch.png": "22c316104e14bfc76d02d245f6372e5039892974faedf4571288ffcef9d006f7"
+  },
+  "manifest": "examples/motor_adapter/r1_benchmark_manifest.json",
+  "native_parameter_edit": {
+    "parameter_id": "dim_plate_width",
+    "recomputed": true,
+    "result_revision": 2,
+    "source_revision": 1,
+    "updated_csg": true,
+    "value": 45.0
+  },
+  "revisions": [
+    {
+      "cadquery_csg_sha256": "f491d13a3940358b25b2cd6aae31cfc652e30630f1b86a2cc2c0aa492df6e511",
+      "classification": "CONSISTENT",
+      "eig_revision": 1,
+      "feature_ir_sha256": "722f0d7424b91fe2e023045a45391ef6554fa979e8708a201da05be0c548ad7e",
+      "freecad": {
+        "artifacts": [
+          {
+            "backend_id": "freecad",
+            "backend_version": "1.1.0",
+            "byte_length": 26297,
+            "content_sha256": "ca3d0545533fd797168ccbe580d8d33e5561ba7dc0474deb03c6199eef40890e",
+            "filename": "motor_adapter_plate_r1.FCStd",
+            "id": "artifact.freecad.native_model.r1",
+            "kind": "native_model",
+            "media_type": "application/vnd.freecad",
+            "schema_version": "1.0.0",
+            "source_feature_ir_sha256": "722f0d7424b91fe2e023045a45391ef6554fa979e8708a201da05be0c548ad7e"
+          },
+          {
+            "backend_id": "freecad",
+            "backend_version": "1.1.0",
+            "byte_length": 19461,
+            "content_sha256": "057b99859c6805793d9e49a8d250326ecb9832d30d8496723778a2c39e5a4175",
+            "filename": "motor_adapter_plate_r1.step",
+            "id": "artifact.freecad.neutral_model.r1",
+            "kind": "neutral_model",
+            "media_type": "model/step",
+            "schema_version": "1.0.0",
+            "source_feature_ir_sha256": "722f0d7424b91fe2e023045a45391ef6554fa979e8708a201da05be0c548ad7e"
+          },
+          {
+            "backend_id": "freecad",
+            "backend_version": "1.1.0",
+            "byte_length": 1203298,
+            "content_sha256": "47641da59f90d4ce5ae88d864419db214e19d86cf764f4f91d8b3b1280e2a820",
+            "filename": "motor_adapter_plate_r1.stl",
+            "id": "artifact.freecad.preview_model.r1",
+            "kind": "preview_model",
+            "media_type": "model/stl",
+            "schema_version": "1.0.0",
+            "source_feature_ir_sha256": "722f0d7424b91fe2e023045a45391ef6554fa979e8708a201da05be0c548ad7e"
+          }
+        ],
+        "critical_feature_names": [
+          "FeatureFirBasePlatePad",
+          "FeatureFirShaftOpeningPocket",
+          "FeatureFirMountingHolesPattern",
+          "FeatureFirExternalChamfers"
+        ],
+        "recompute_errors": [],
+        "sketch_degrees_of_freedom": {
+          "base plate sketch": 0,
+          "mounting holes profile": 0,
+          "mounting holes seed sketch": 0,
+          "shaft opening sketch": 0
+        }
+      },
+      "freecad_csg_sha256": "35acba586cf066339891f26f716d1b960396e5e767d01443fe773ae5aba85bd6",
+      "geometry_checks": [
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "40 vs 40",
+          "kind": "dimension",
+          "left_observation_id": "observation.cadquery.brep.plate_width",
+          "maximum_absolute_error": 0.0,
+          "quantity": "plate_width",
+          "right_observation_id": "observation.freecad.brep.plate_width",
+          "unit": "mm"
+        },
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "50 vs 50",
+          "kind": "dimension",
+          "left_observation_id": "observation.cadquery.brep.plate_height",
+          "maximum_absolute_error": 0.0,
+          "quantity": "plate_height",
+          "right_observation_id": "observation.freecad.brep.plate_height",
+          "unit": "mm"
+        },
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "5 vs 5",
+          "kind": "dimension",
+          "left_observation_id": "observation.cadquery.brep.plate_thickness",
+          "maximum_absolute_error": 0.0,
+          "quantity": "plate_thickness",
+          "right_observation_id": "observation.freecad.brep.plate_thickness",
+          "unit": "mm"
+        },
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "22.5 vs 22.5",
+          "kind": "dimension",
+          "left_observation_id": "observation.cadquery.brep.opening_diameter",
+          "maximum_absolute_error": 0.0,
+          "quantity": "opening_diameter",
+          "right_observation_id": "observation.freecad.brep.opening_diameter",
+          "unit": "mm"
+        },
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "3.4 vs 3.4",
+          "kind": "dimension",
+          "left_observation_id": "observation.cadquery.brep.mounting_diameter",
+          "maximum_absolute_error": 0.0,
+          "quantity": "mounting_diameter",
+          "right_observation_id": "observation.freecad.brep.mounting_diameter",
+          "unit": "mm"
+        },
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "31 vs 31",
+          "kind": "dimension",
+          "left_observation_id": "observation.cadquery.brep.hole_spacing_x",
+          "maximum_absolute_error": 0.0,
+          "quantity": "hole_spacing_x",
+          "right_observation_id": "observation.freecad.brep.hole_spacing_x",
+          "unit": "mm"
+        },
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "31 vs 31",
+          "kind": "dimension",
+          "left_observation_id": "observation.cadquery.brep.hole_spacing_y",
+          "maximum_absolute_error": 0.0,
+          "quantity": "hole_spacing_y",
+          "right_observation_id": "observation.freecad.brep.hole_spacing_y",
+          "unit": "mm"
+        },
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "7820.37684 vs 7820.37684",
+          "kind": "volume",
+          "left_observation_id": "observation.cadquery.brep.volume",
+          "maximum_absolute_error": 0.0,
+          "quantity": "volume",
+          "right_observation_id": "observation.freecad.brep.volume",
+          "unit": "mm3"
+        },
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "maximum paired axis error 8.8817842e-15 mm",
+          "kind": "position",
+          "left_observation_id": "observation.cadquery.brep.mounting_hole_centers",
+          "maximum_absolute_error": 8.881784197001252e-15,
+          "quantity": "mounting_hole_centers",
+          "right_observation_id": "observation.freecad.brep.mounting_hole_centers",
+          "unit": "mm"
+        },
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "maximum interface diameter/position error 8.8817842e-15 mm",
+          "kind": "position",
+          "left_observation_id": "observation.cadquery.brep.interface_geometry",
+          "maximum_absolute_error": 8.881784197001252e-15,
+          "quantity": "interface_geometry",
+          "right_observation_id": "observation.freecad.brep.interface_geometry",
+          "unit": "mm"
+        }
+      ],
+      "native_traceability": {
+        "all_trace_to_eig": true,
+        "all_trace_to_feature_ir": true,
+        "critical_feature_ids": [
+          "feature.fir_base_plate_pad",
+          "feature.fir_external_chamfers",
+          "feature.fir_mounting_holes_pattern",
+          "feature.fir_shaft_opening_pocket"
+        ]
+      },
+      "predicate_checks": [
+        {
+          "identical": true,
+          "left_measured_value": 2.79999999999999,
+          "left_observation_id": "observation.cadquery.predicate.c_min_hole_edge_clearance",
+          "left_outcome": "fail",
+          "requirement_id": "c_min_hole_edge_clearance",
+          "right_measured_value": 2.8000000000000007,
+          "right_observation_id": "observation.freecad.predicate.c_min_hole_edge_clearance",
+          "right_outcome": "fail",
+          "threshold": 4.0
+        }
+      ],
+      "release": "blocked",
+      "revision": 1
+    },
+    {
+      "cadquery_csg_sha256": "b36a401676dd9c6d29ed9020405f5c04bd9456769622bad3e1f9b78ab028a449",
+      "classification": "CONSISTENT",
+      "eig_revision": 2,
+      "feature_ir_sha256": "a7f224d737f6bfd1a8c322895e94f46eeb03194c1f0b64a417444323c50f2a6e",
+      "freecad": {
+        "artifacts": [
+          {
+            "backend_id": "freecad",
+            "backend_version": "1.1.0",
+            "byte_length": 26321,
+            "content_sha256": "4ec0db389ce0627665060ca5a6084488e01477c8c1b2c033706999536e879a83",
+            "filename": "motor_adapter_plate_r2.FCStd",
+            "id": "artifact.freecad.native_model.r2",
+            "kind": "native_model",
+            "media_type": "application/vnd.freecad",
+            "schema_version": "1.0.0",
+            "source_feature_ir_sha256": "a7f224d737f6bfd1a8c322895e94f46eeb03194c1f0b64a417444323c50f2a6e"
+          },
+          {
+            "backend_id": "freecad",
+            "backend_version": "1.1.0",
+            "byte_length": 19509,
+            "content_sha256": "54ea35fbe3e1ab0b5c95b9c4138d92809cd5cc24952d415c02eff9545ee659fa",
+            "filename": "motor_adapter_plate_r2.step",
+            "id": "artifact.freecad.neutral_model.r2",
+            "kind": "neutral_model",
+            "media_type": "model/step",
+            "schema_version": "1.0.0",
+            "source_feature_ir_sha256": "a7f224d737f6bfd1a8c322895e94f46eeb03194c1f0b64a417444323c50f2a6e"
+          },
+          {
+            "backend_id": "freecad",
+            "backend_version": "1.1.0",
+            "byte_length": 1203298,
+            "content_sha256": "26526f5ef179c827053178e56ba0eb4c87f5a253bf1932641703943bc42c6f9f",
+            "filename": "motor_adapter_plate_r2.stl",
+            "id": "artifact.freecad.preview_model.r2",
+            "kind": "preview_model",
+            "media_type": "model/stl",
+            "schema_version": "1.0.0",
+            "source_feature_ir_sha256": "a7f224d737f6bfd1a8c322895e94f46eeb03194c1f0b64a417444323c50f2a6e"
+          }
+        ],
+        "critical_feature_names": [
+          "FeatureFirBasePlatePad",
+          "FeatureFirShaftOpeningPocket",
+          "FeatureFirMountingHolesPattern",
+          "FeatureFirExternalChamfers"
+        ],
+        "recompute_errors": [],
+        "sketch_degrees_of_freedom": {
+          "base plate sketch": 0,
+          "mounting holes profile": 0,
+          "mounting holes seed sketch": 0,
+          "shaft opening sketch": 0
+        }
+      },
+      "freecad_csg_sha256": "e837d7d82a888107ff868a40604fe4c8e0330ab7ddab768e3b2bfd091a452dc9",
+      "geometry_checks": [
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "45 vs 45",
+          "kind": "dimension",
+          "left_observation_id": "observation.cadquery.brep.plate_width",
+          "maximum_absolute_error": 0.0,
+          "quantity": "plate_width",
+          "right_observation_id": "observation.freecad.brep.plate_width",
+          "unit": "mm"
+        },
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "50 vs 50",
+          "kind": "dimension",
+          "left_observation_id": "observation.cadquery.brep.plate_height",
+          "maximum_absolute_error": 0.0,
+          "quantity": "plate_height",
+          "right_observation_id": "observation.freecad.brep.plate_height",
+          "unit": "mm"
+        },
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "5 vs 5",
+          "kind": "dimension",
+          "left_observation_id": "observation.cadquery.brep.plate_thickness",
+          "maximum_absolute_error": 0.0,
+          "quantity": "plate_thickness",
+          "right_observation_id": "observation.freecad.brep.plate_thickness",
+          "unit": "mm"
+        },
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "22.5 vs 22.5",
+          "kind": "dimension",
+          "left_observation_id": "observation.cadquery.brep.opening_diameter",
+          "maximum_absolute_error": 0.0,
+          "quantity": "opening_diameter",
+          "right_observation_id": "observation.freecad.brep.opening_diameter",
+          "unit": "mm"
+        },
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "3.4 vs 3.4",
+          "kind": "dimension",
+          "left_observation_id": "observation.cadquery.brep.mounting_diameter",
+          "maximum_absolute_error": 0.0,
+          "quantity": "mounting_diameter",
+          "right_observation_id": "observation.freecad.brep.mounting_diameter",
+          "unit": "mm"
+        },
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "31 vs 31",
+          "kind": "dimension",
+          "left_observation_id": "observation.cadquery.brep.hole_spacing_x",
+          "maximum_absolute_error": 0.0,
+          "quantity": "hole_spacing_x",
+          "right_observation_id": "observation.freecad.brep.hole_spacing_x",
+          "unit": "mm"
+        },
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "31 vs 31",
+          "kind": "dimension",
+          "left_observation_id": "observation.cadquery.brep.hole_spacing_y",
+          "maximum_absolute_error": 0.0,
+          "quantity": "hole_spacing_y",
+          "right_observation_id": "observation.freecad.brep.hole_spacing_y",
+          "unit": "mm"
+        },
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "9070.37684 vs 9070.37684",
+          "kind": "volume",
+          "left_observation_id": "observation.cadquery.brep.volume",
+          "maximum_absolute_error": 5.4569682106375694e-12,
+          "quantity": "volume",
+          "right_observation_id": "observation.freecad.brep.volume",
+          "unit": "mm3"
+        },
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "maximum paired axis error 8.8817842e-15 mm",
+          "kind": "position",
+          "left_observation_id": "observation.cadquery.brep.mounting_hole_centers",
+          "maximum_absolute_error": 8.881784197001252e-15,
+          "quantity": "mounting_hole_centers",
+          "right_observation_id": "observation.freecad.brep.mounting_hole_centers",
+          "unit": "mm"
+        },
+        {
+          "allowed_error": 0.01,
+          "consistent": true,
+          "detail": "maximum interface diameter/position error 8.8817842e-15 mm",
+          "kind": "position",
+          "left_observation_id": "observation.cadquery.brep.interface_geometry",
+          "maximum_absolute_error": 8.881784197001252e-15,
+          "quantity": "interface_geometry",
+          "right_observation_id": "observation.freecad.brep.interface_geometry",
+          "unit": "mm"
+        }
+      ],
+      "native_traceability": {
+        "all_trace_to_eig": true,
+        "all_trace_to_feature_ir": true,
+        "critical_feature_ids": [
+          "feature.fir_base_plate_pad",
+          "feature.fir_external_chamfers",
+          "feature.fir_mounting_holes_pattern",
+          "feature.fir_shaft_opening_pocket"
+        ]
+      },
+      "predicate_checks": [
+        {
+          "identical": true,
+          "left_measured_value": 5.29999999999999,
+          "left_observation_id": "observation.cadquery.predicate.c_min_hole_edge_clearance",
+          "left_outcome": "pass",
+          "requirement_id": "c_min_hole_edge_clearance",
+          "right_measured_value": 5.300000000000001,
+          "right_observation_id": "observation.freecad.predicate.c_min_hole_edge_clearance",
+          "right_outcome": "pass",
+          "threshold": 4.0
+        }
+      ],
+      "release": "authorised",
+      "revision": 2
+    }
+  ],
+  "schema_version": "1.0.0",
+  "step_round_trip_verified": true
+}

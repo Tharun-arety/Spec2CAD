@@ -11,7 +11,7 @@ because only one of them ran.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -78,6 +78,7 @@ class Report(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
+    schema_version: Literal["1.0.0"] = "1.0.0"
     stage: CheckStage
     design_revision: int
     checks: list[CheckResult] = Field(default_factory=list)

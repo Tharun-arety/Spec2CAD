@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT))
 
 from api.main import _run_json
+from spec2cad.capabilities import capability_payload
 from spec2cad.cad.executor import execute, export_step, export_stl
 from spec2cad.cad.script_writer import write_script
 from spec2cad.pipeline import ChatMessage, RevisionResult, RunResult
@@ -83,6 +84,7 @@ SCENARIOS = (
     proof="Generate from language",uncertainty="M5 tapping depth remains underspecified",
     description="A keyed rigid-coupling half generated from one natural-language requirement—without a drawing.",
     capabilities=["Ø20 bore","Ø60 bolt circle","4-hole circular pattern"],
+    capability_ids=["flanged_coupling"],
     operation="Revolved interface · keyway · patterned holes",inputs=["text"],
     source_dir=B/"flanged_coupling",sources=("requirement.txt",),program=coupling_program,
     material="steel",process="turned and milled",behavior="coupling",
@@ -105,6 +107,7 @@ SCENARIOS = (
     proof="Interpret a hand sketch",uncertainty="Missing material and tolerance; cut-out needs clarification",
     description="A folded controller enclosure reconstructed from drawing marks while unsupported details stay explicit.",
     capabilities=["120 × 80 × 40","1.5 mm sheet","Bends and cut-outs"],
+    capability_ids=["controller_enclosure"],
     operation="Thin-wall body · formed walls · panel openings",inputs=["sketch"],
     source_dir=B/"sheet_metal_enclosure",sources=("sketch.png",),program=enclosure_program,
     material=None,process="sheet-metal forming",behavior="enclosure",
@@ -128,6 +131,7 @@ SCENARIOS = (
     proof="Resolve disagreement",uncertainty="38 mm request violates the 4 mm edge-clearance rule",
     description="A gusseted NEMA-17 bracket that measures the text-versus-sketch conflict before an approved repair.",
     capabilities=["31 mm motor pattern","Adjustment slots","Measured repair"],
+    capability_ids=["motor_mount_bracket"],
     operation="Pads · face holes · slots · gussets",inputs=["text","sketch"],
     source_dir=B/"motor_mount_bracket",sources=("sketch.png","requirement.txt"),program=motor_program,
     material="steel",process="fabricated bracket",behavior="motor",
@@ -148,6 +152,7 @@ SCENARIOS = (
     proof="Link annotations to component data",uncertainty="P1/P2 obtain their thread geometry from HPI-12",
     description="Sketch port labels resolve against a controlled interface sheet before hidden passages are validated.",
     capabilities=["Modeled M12 threads","3-port connectivity","Wall check"],
+    capability_ids=["hydraulic_manifold"],
     operation="Multi-face drilling · internal threads · passage booleans",inputs=["sketch","document"],
     source_dir=B/"hydraulic_manifold",sources=("sketch.png","HPI-12_datasheet.pdf"),program=manifold_program,
     material="aluminium",process="milled and cross-drilled",behavior="manifold",applied_proposal=None,
@@ -166,6 +171,7 @@ SCENARIOS = (
     proof="Fuse all evidence and repair geometry",uncertainty="55 mm is too short for the controlled interface limits",
     description="A thin-wall rectangle-to-round duct whose initial shell is measured, blocked, and lengthened after approval.",
     capabilities=["100 × 60 to Ø80","2.5 mm shell","Infeasibility repair"],
+    capability_ids=["blower_transition_duct"],
     operation="Rectangle-to-circle loft · shell · end flanges",inputs=["text","sketch","document"],
     source_dir=B/"blower_transition_duct",sources=("sketch.png","requirement.txt","BDI-100-80_datasheet.pdf"),program=duct_program,
     material=None,process="injection moulding",behavior="duct",
@@ -186,7 +192,7 @@ SCENARIOS = (
 )
 
 def _public_metadata(s):
-    keys=("id","step","title","focus","proof","uncertainty","description","capabilities","operation","inputs")
+    keys=("id","step","title","focus","proof","uncertainty","description","capabilities","capability_ids","operation","inputs")
     return {k:s[k] for k in keys}
 
 def _evidence(s):
@@ -276,6 +282,7 @@ def main(argv=None):
     out.mkdir(parents=True); frozen=datetime.now(timezone.utc).isoformat(); manifests=[]
     for s in selected: manifests.append(freeze(s,out/"scenarios"/s["id"],frozen)); print(f"froze {s['title']} ({len(manifests[-1]['revisions'])} revisions)")
     catalog={"mode":"recorded_showcase","disclaimer":"Five precomputed evidence conditions demonstrate the pipeline without pretending Vercel is running a CAD kernel.","frozen_at":frozen,"default_scenario":selected[0]["id"],"scenarios":[_public_metadata(s) for s in selected]}; (out/"catalog.json").write_text(json.dumps(catalog,indent=2),encoding="utf-8")
+    (out/"capabilities.json").write_text(json.dumps(capability_payload(),indent=2,sort_keys=True)+"\n",encoding="utf-8")
     if a.publish is not None:
         pub=a.publish.resolve()
         if pub!=out:

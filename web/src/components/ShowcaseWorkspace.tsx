@@ -1,16 +1,19 @@
 import { Bot, Play } from 'lucide-react'
 import type { ReplayCatalog } from '../replay'
 import type { RunState } from '../types'
+import type { CapabilityRegistry } from '../types'
 import { cn } from '../lib/cn'
 import { Button, Mark } from './ui'
+import { CapabilityTags } from './CapabilityTags'
 
 export function ShowcaseWorkspace({
-  busy, catalog, state, activeScenarioId, onDemo,
+  busy, catalog, state, activeScenarioId, capabilityRegistry, onDemo,
 }: {
   busy: boolean
   catalog: ReplayCatalog | null
   state: RunState | null
   activeScenarioId: string | null
+  capabilityRegistry: CapabilityRegistry | null
   onDemo: (scenarioId: string) => void
 }) {
   return (
@@ -74,14 +77,7 @@ export function ShowcaseWorkspace({
 
                     <div className="mt-auto flex flex-wrap items-end gap-x-[9px] gap-y-[8px] pt-[11px]">
                       <div className="min-w-[220px] flex-1">
-                        <div className="flex flex-wrap gap-[5px]">
-                          {scenario.capabilities.map((capability) => (
-                            <span key={capability} className="rounded-[4px] border border-c4 bg-c1
-                                                               px-[6px] py-[2px] text-[10.5px] text-c7">
-                              {capability}
-                            </span>
-                          ))}
-                        </div>
+                        <CapabilityTags ids={scenario.capability_ids} registry={capabilityRegistry} />
                         <p className="num mt-[6px] text-[10px] text-c6">{scenario.operation}</p>
                       </div>
                       <Button intent={active ? 'outline' : featured ? 'solid' : 'outline'}

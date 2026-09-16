@@ -73,13 +73,13 @@ def test_validation_layer_does_not_assert_exact_face_counts():
     assert not offenders, "exact face-count assertion found:\n" + "\n".join(offenders)
 
 
-def test_only_the_executor_and_selectors_import_cadquery():
+def test_only_the_kernel_facade_imports_cadquery():
     """Keeping kernel imports contained is what makes the IR portable."""
     root = Path(__file__).resolve().parents[1] / "spec2cad"
-    allowed = {"executor.py", "selectors.py", "measure.py"}
+    allowed = {Path("backends/cadquery_kernel.py")}
     offenders = []
     for path in sorted(root.rglob("*.py")):
-        if path.name in allowed:
+        if path.relative_to(root) in allowed:
             continue
         code = _strip_comments_and_docstrings(path.read_text(encoding="utf-8"))
         if re.search(r"^\s*(?:import|from)\s+cadquery", code, re.MULTILINE):

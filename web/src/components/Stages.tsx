@@ -687,6 +687,53 @@ export function ReleaseStage({
 }
 
 
+function BackendEvidencePanel({ rev }: { rev: Revision }) {
+  const evidence = rev.backend_evidence
+  if (!evidence) return null
+  const consistent = evidence.classification === 'CONSISTENT'
+  const passing = evidence.checks.filter((check) => check.consistent).length
+
+  return (
+    <section aria-label="Backend evidence" className="border-b border-c3">
+      <PanelHead title="Backend evidence" aside={
+        <Mark state={consistent ? 'pass' : 'fail'} box glyph>
+          {evidence.classification.replace(/_/g, ' ').toLowerCase()}
+        </Mark>
+      } />
+      <div role="status" aria-live="polite" aria-atomic="true"
+           className="border-b border-c3 px-[13px] py-[10px] text-[12px] text-c7">
+        Same Feature IR · {evidence.governing ? 'governing release evidence' : 'advisory breadth check'}
+      </div>
+      <div className="grid grid-cols-1 border-b border-c3">
+        {Object.entries(evidence.backends).map(([name, backend]) => (
+          <div key={name} className="min-w-0 border-b border-c3 px-[13px] py-[9px] last:border-b-0">
+            <div className="flex items-center justify-between gap-[8px]">
+              <span className="text-[12.5px] font-semibold capitalize text-c9">{name}</span>
+              <Mark state={backend.status === 'succeeded' ? 'pass' : 'fail'} glyph>
+                {backend.status}
+              </Mark>
+            </div>
+            <div className="num mt-[4px] truncate text-[11px] text-c6"
+                 title={backend.csg_sha256 ?? undefined}>
+              {backend.version ?? 'unknown'} · {backend.csg_sha256?.slice(0, 10) ?? 'no CSG'}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="px-[13px] py-[10px]">
+        <div className="flex items-center justify-between text-[12px]">
+          <span className="text-c7">Measured agreement</span>
+          <span className="num text-c9">{passing}/{evidence.checks.length} checks</span>
+        </div>
+        {evidence.reasons.map((reason) => (
+          <p key={reason} className="mt-[5px] text-[12px] leading-relaxed text-c7">{reason}</p>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+
 /* -------------------------------------------------------------- validate */
 
 /**
@@ -702,6 +749,7 @@ export function ValidateStage({
   return (
     <>
       <ReleaseStage rev={rev} onRepair={onRepair} busy={busy} />
+      <BackendEvidencePanel rev={rev} />
       <InspectStage rev={rev} />
     </>
   )

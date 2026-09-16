@@ -1,10 +1,10 @@
 """Execute a CADProgram against the CAD kernel.
 
-This is the ONLY module in the project that imports cadquery. Nothing upstream
-produces Python; a model can at most produce schema-valid operations, and this
-module decides what each one means. An operation type with no handler is an
-error -- there is no permissive fallback, because a fallback here would mean
-silently building something other than what was asked for.
+This is the retained kernel implementation behind the CadQuery adapter. Nothing
+upstream produces Python; a model can at most produce schema-valid operations,
+and this module decides what each one means. An operation type with no handler
+is an error -- there is no permissive fallback, because a fallback here would
+mean silently building something other than what was asked for.
 
 Execution is *diagnostic*: it runs even when preflight predicted a violation, so
 the violation can be measured on real geometry rather than only predicted. The
@@ -21,7 +21,7 @@ from itertools import combinations
 from pathlib import Path
 from typing import Callable, Optional
 
-import cadquery as cq
+from spec2cad.backends.cadquery_kernel import cq
 
 from spec2cad.cad.selectors import select_edges, select_face
 from spec2cad.schemas.cad_ir import (

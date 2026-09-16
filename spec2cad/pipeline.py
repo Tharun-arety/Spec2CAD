@@ -16,11 +16,18 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+import os
 import uuid
 
 from spec2cad.cad.compiler import REQUIRED_FOR_COMPILATION, compile_design, parameter_table
-from spec2cad.cad.executor import ExecutionError, ExecutionResult, execute, import_step
+from spec2cad.backends import BuildRequest, BuildResult, BuildStatus
+from spec2cad.backends.cadquery_adapter import CadQueryAdapter
+from spec2cad.backends.freecad_adapter import FreeCADAdapter
+from spec2cad.cad_state_serialization import csg_manifest
+from spec2cad.cad.executor import ExecutionError, ExecutionResult
 from spec2cad.cad.script_writer import write_script
+from spec2cad.feature_compiler import FeatureIRCompilationError, compile_feature_ir
+from spec2cad.feature_serialization import feature_ir_manifest
 from spec2cad.extractors.base import (
     VisionBackend,
     reasoning_available,
@@ -42,12 +49,22 @@ from spec2cad.schemas.cad_ir import CADProgram
 from spec2cad.schemas.design_intent import DesignIntent
 from spec2cad.schemas.evidence import EvidenceSet, SemanticTarget, SourceModality
 from spec2cad.schemas.intent_graph import AdvancedFeatureNode, EngineeringIntentGraph
+from spec2cad.schemas.feature_ir import FeatureIR
 from spec2cad.schemas.report import (
     CheckResult,
     CheckStage,
     CheckStatus,
     ConflictClass,
     Report,
+)
+from spec2cad.reconciliation import (
+    ClassifiedReconciliation,
+    ReconciliationClassification,
+    classify_reconciliation,
+    extract_motor_observations,
+    observe_requirement_predicates,
+    reconcile_motor_geometry,
+    reconcile_predicates,
 )
 from spec2cad.validation.dimensions import run_dimensions
 from spec2cad.validation.advanced import run_advanced_geometry
@@ -66,6 +83,10 @@ class RevisionResult:
     intent: DesignIntent
     intent_graph: Optional[EngineeringIntentGraph] = None
     program: Optional[CADProgram] = None
+    feature_ir: Optional[FeatureIR] = None
+    backend_result: Optional[BuildResult] = None
+    secondary_backend_result: Optional[BuildResult] = None
+    backend_evidence: Optional[dict] = None
     execution: Optional[ExecutionResult] = None
     preflight: Optional[Report] = None
     measured: list[Report] = field(default_factory=list)
@@ -89,6 +110,153 @@ class RevisionResult:
             out.extend(report.checks)
         out.extend(self.cross_checks)
         return out
+
+
+def _semantic_measurements(graph) -> tuple[dict[str, float], list[dict[str, float]]]:
+    solid = next(
+        node for node in graph.nodes
+        if node.kind == "semantic_topology" and node.semantic_role == "part_solid"
+    )
+    solid_values = {item.name: float(item.value) for item in solid.measurements}
+    cylinders = sorted(
+        (
+            {item.name: float(item.value) for item in node.measurements}
+            for node in graph.nodes
+            if node.kind == "semantic_topology" and node.geometry_type == "cylinder"
+        ),
+        key=lambda item: (
+            item.get("diameter", 0), item.get("center_x", 0), item.get("center_y", 0)
+        ),
+    )
+    return solid_values, cylinders
+
+
+def _generic_backend_checks(left, right) -> list[dict]:
+    left_solid, left_cylinders = _semantic_measurements(left)
+    right_solid, right_cylinders = _semantic_measurements(right)
+    checks = []
+    for name in ("width", "height", "thickness", "volume"):
+        left_value, right_value = left_solid[name], right_solid[name]
+        tolerance = max(0.01, abs(left_value) * 1e-6) if name == "volume" else 0.01
+        checks.append({
+            "name": name, "left": left_value, "right": right_value,
+            "tolerance": tolerance,
+            "consistent": abs(left_value - right_value) <= tolerance,
+        })
+    checks.append({
+        "name": "cylindrical_surface_count",
+        "left": len(left_cylinders), "right": len(right_cylinders),
+        "tolerance": 0,
+        "consistent": len(left_cylinders) == len(right_cylinders),
+    })
+    if len(left_cylinders) == len(right_cylinders):
+        for index, (left_item, right_item) in enumerate(
+            zip(left_cylinders, right_cylinders), 1
+        ):
+            error = max(
+                abs(left_item.get(name, 0) - right_item.get(name, 0))
+                for name in ("diameter", "center_x", "center_y")
+            )
+            checks.append({
+                "name": f"cylindrical_surface_{index}",
+                "left": 0.0, "right": error, "tolerance": 0.01,
+                "consistent": error <= 0.01,
+            })
+    return checks
+
+
+def _run_dual_backend_evidence(
+    result: RevisionResult,
+    cadquery: CadQueryAdapter,
+) -> ClassifiedReconciliation | None:
+    feature_ir = result.feature_ir
+    primary = result.backend_result
+    if feature_ir is None or primary is None or primary.snapshot is None:
+        return None
+    root = Path(os.environ.get(
+        "SPEC2CAD_NATIVE_ARTIFACT_ROOT", "build/freecad-live"
+    )).resolve()
+    root.mkdir(parents=True, exist_ok=True)
+    freecad = FreeCADAdapter(root)
+    request = BuildRequest(
+        request_id=f"build:freecad:{feature_ir.id}:r{result.revision}",
+        backend_id="freecad", feature_ir=feature_ir,
+        feature_ir_manifest=feature_ir_manifest(feature_ir),
+    )
+    secondary = freecad.build(request)
+    result.secondary_backend_result = secondary
+    evidence = {
+        "mode": "dual_backend",
+        "feature_ir_sha256": request.feature_ir_manifest.content_sha256,
+        "backends": {
+            "cadquery": {
+                "status": primary.status.value,
+                "version": primary.backend_version,
+                "csg_sha256": primary.snapshot.state_graph_sha256,
+            },
+            "freecad": {
+                "status": secondary.status.value,
+                "version": secondary.backend_version,
+                "csg_sha256": (
+                    secondary.snapshot.state_graph_sha256
+                    if secondary.snapshot is not None else None
+                ),
+            },
+        },
+        "classification": "NOT_ASSESSED",
+        "governing": False,
+        "checks": [],
+        "reasons": [],
+    }
+    if secondary.status is not BuildStatus.SUCCEEDED or secondary.snapshot is None:
+        evidence["reasons"] = [
+            item.message for item in secondary.diagnostics
+        ] or ["FreeCAD build did not succeed"]
+        result.backend_evidence = evidence
+        return ClassifiedReconciliation(
+            feature_ir_sha256=request.feature_ir_manifest.content_sha256,
+            classification=ReconciliationClassification.NOT_ASSESSED,
+            governing=True,
+            reasons=("configured dual-backend evidence is incomplete",),
+        )
+    left_graph = cadquery.csg_for(primary.snapshot)
+    right_graph = freecad.csg_for(secondary.snapshot)
+    checks = _generic_backend_checks(left_graph, right_graph)
+    evidence["checks"] = checks
+    evidence["classification"] = (
+        "CONSISTENT" if all(item["consistent"] for item in checks)
+        else "BACKEND_DIVERGENCE"
+    )
+    evidence["reasons"] = [
+        "bounded solid and cylindrical B-Rep observations agree"
+        if evidence["classification"] == "CONSISTENT"
+        else "one or more bounded B-Rep observations diverge"
+    ]
+
+    parameter_names = {item.name for item in feature_ir.parameters}
+    motor_slice = {
+        "plate_width", "plate_height", "plate_thickness",
+        "shaft_opening_diameter", "mounting_hole_diameter",
+        "hole_spacing_x", "hole_spacing_y", "mounting_hole_count",
+        "external_chamfer",
+    } <= parameter_names
+    if motor_slice and result.intent_graph is not None:
+        left = extract_motor_observations(result.intent_graph, feature_ir, left_graph)
+        right = extract_motor_observations(result.intent_graph, feature_ir, right_graph)
+        geometry = reconcile_motor_geometry(left, right)
+        predicates = reconcile_predicates(
+            observe_requirement_predicates(left, result.intent_graph),
+            observe_requirement_predicates(right, result.intent_graph),
+            feature_ir_sha256=request.feature_ir_manifest.content_sha256,
+        )
+        classified = classify_reconciliation(left, right, geometry, predicates)
+        evidence["classification"] = classified.classification.value
+        evidence["governing"] = classified.governing
+        evidence["reasons"] = list(classified.reasons)
+        result.backend_evidence = evidence
+        return classified
+    result.backend_evidence = evidence
+    return None
 
 
 @dataclass
@@ -332,11 +500,39 @@ def evaluate_revision(
 
     # 2. diagnostic generation -- runs even when preflight predicts a failure
     try:
-        program = compile_design(intent_graph or intent)
         values = parameter_table(intent)
+        adapter = CadQueryAdapter()
+        feature_ir = None
+        if intent_graph is not None:
+            try:
+                feature_ir = compile_feature_ir(intent_graph)
+            except FeatureIRCompilationError:
+                # Existing capability families migrate incrementally. Their
+                # retained CADProgram is still executed only inside the adapter.
+                feature_ir = None
+        if feature_ir is not None:
+            request = BuildRequest(
+                request_id=f"build:{feature_ir.id}:r{intent.revision}",
+                backend_id=adapter.descriptor.backend_id,
+                feature_ir=feature_ir,
+                feature_ir_manifest=feature_ir_manifest(feature_ir),
+            )
+            backend_result = adapter.build(request)
+            result.feature_ir = feature_ir
+            result.backend_result = backend_result
+            if (
+                backend_result.status is not BuildStatus.SUCCEEDED
+                or backend_result.snapshot is None
+            ):
+                message = "; ".join(item.message for item in backend_result.diagnostics)
+                raise ExecutionError(message or "CadQuery backend build failed")
+            result.execution = adapter.execution_for(backend_result.snapshot)
+            program = result.execution.program
+        else:
+            program = compile_design(intent_graph or intent)
+            result.execution = adapter.execute_legacy(program, values)
         result.program = program
         result.script = write_script(program, values)
-        result.execution = execute(program, values)
     except (ExecutionError, ValueError) as exc:
         result.build_error = f"{type(exc).__name__}: {exc}"
         # An absent solid is never a releasable result. Passing an empty report
@@ -378,13 +574,40 @@ def evaluate_revision(
         result.preflight, requirement_report
     )
 
+    governing_reconciliation = None
+    if os.environ.get("SPEC2CAD_DUAL_BACKEND", "").lower() in {"1", "true", "yes"}:
+        try:
+            governing_reconciliation = _run_dual_backend_evidence(result, adapter)
+        except Exception as exc:
+            manifest = feature_ir_manifest(result.feature_ir)
+            result.backend_evidence = {
+                "mode": "dual_backend",
+                "feature_ir_sha256": manifest.content_sha256,
+                "backends": {
+                    "cadquery": {"status": "succeeded"},
+                    "freecad": {"status": "failed"},
+                },
+                "classification": "NOT_ASSESSED", "governing": True,
+                "checks": [],
+                "reasons": [f"{type(exc).__name__}: {exc}"],
+            }
+            governing_reconciliation = ClassifiedReconciliation(
+                feature_ir_sha256=manifest.content_sha256,
+                classification=ReconciliationClassification.NOT_ASSESSED,
+                governing=True,
+                reasons=("configured dual-backend reconciliation failed",),
+            )
+
     # 4. release gate -- the only stage that can block, and only on measurements
     cross_report = Report(
         stage=CheckStage.REQUIREMENT,
         design_revision=intent.revision,
         checks=result.cross_checks,
     )
-    result.decision = evaluate_release(intent, result.measured + [cross_report])
+    result.decision = evaluate_release(
+        intent, result.measured + [cross_report],
+        governing_reconciliation=governing_reconciliation,
+    )
     result.proposals = plan_repairs(intent, result.decision)
     return result
 
@@ -621,7 +844,7 @@ def verify_exported_step(
     re-imported file proves the thing a manufacturer would actually receive is
     the same part.
     """
-    shape = import_step(step_path)
+    shape = CadQueryAdapter().import_neutral_shape(step_path)
     return [
         run_topology(shape, intent),
         run_dimensions(shape, intent),

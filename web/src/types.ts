@@ -107,6 +107,28 @@ export interface EditableParam {
   interface_critical: boolean
 }
 
+export interface BackendEvidenceCheck {
+  name: string
+  left: number
+  right: number
+  tolerance: number
+  consistent: boolean
+}
+
+export interface BackendEvidence {
+  mode: 'dual_backend'
+  feature_ir_sha256: string
+  backends: Record<string, {
+    status: string
+    version?: string | null
+    csg_sha256?: string | null
+  }>
+  classification: string
+  governing: boolean
+  checks: BackendEvidenceCheck[]
+  reasons: string[]
+}
+
 export interface Revision {
   revision: number
   parent_revision: number | null
@@ -124,6 +146,7 @@ export interface Revision {
   preflight: Check[]
   measured: Check[]
   cross_checks: Check[]
+  backend_evidence?: BackendEvidence | null
   build_error: string | null
   release: Release
   proposals: Proposal[]
@@ -157,6 +180,26 @@ export interface Health {
   reasoning_available?: boolean
   reasoning_model?: string | null
   capabilities?: string[]
+  capability_registry?: CapabilityRegistry
+}
+
+export interface CapabilityRecord {
+  id: string
+  label: string
+  category: 'extraction' | 'representation' | 'geometry' | 'inspection' | 'engineering' | 'platform'
+  summary: string
+  implementation_maturity: 'unavailable' | 'fixture' | 'bounded' | 'proven'
+  integration: 'absent' | 'library' | 'showcase' | 'standalone_api' | 'optional_pipeline' | 'production_pipeline'
+  release_role: 'none' | 'diagnostic' | 'standalone_result' | 'governing'
+  supported_backends: string[]
+  benchmark_evidence: string[]
+  limitations: string[]
+  version: string
+}
+
+export interface CapabilityRegistry {
+  schema_version: string
+  capabilities: CapabilityRecord[]
 }
 
 export interface ChatMessage {

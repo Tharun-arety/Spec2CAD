@@ -23,6 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
+from spec2cad.capabilities import HEALTH_CAPABILITY_IDS, capability_payload
 from spec2cad.cad.executor import export_step, export_stl
 from spec2cad.cad.executor import execute
 from spec2cad.cad.assembly import execute_assembly
@@ -246,6 +247,7 @@ def _revision_json(rev: RevisionResult) -> dict:
         "preflight": [_check_json(c) for c in rev.preflight.checks] if rev.preflight else [],
         "measured": [_check_json(c) for r in rev.measured for c in r.checks],
         "cross_checks": [_check_json(c) for c in rev.cross_checks],
+        "backend_evidence": rev.backend_evidence,
         "build_error": rev.build_error,
         "release": {
             "status": rev.decision.status.value if rev.decision else "unknown",
@@ -425,16 +427,10 @@ def health() -> dict:
             "max_requirement_chars": limits.max_requirement_chars,
             "max_conversation_messages": limits.max_conversation_messages,
         },
-        "capabilities": [
-            "box", "cylinder", "tube", "hole", "rectangular_hole_pattern",
-            "linear_slot_pattern", "chamfer", "fillet",
-            "profile_extrude", "profile_pocket", "profile_revolve", "curved_rod_sweep",
-            "rectangular_loft", "curved_strip_sweep", "threaded_fastener",
-            "sheet_metal_90_bend", "assembly_transforms", "assembly_mates",
-            "collision_check", "gdt_size", "gdt_position", "gdt_flatness",
-            "gdt_perpendicularity", "mass_properties", "axial_stress",
-            "bending_stress", "thermal_expansion", "worst_case_fit",
-        ],
+        # Keep the compact legacy list while exposing the independently
+        # classified source-of-truth records alongside it.
+        "capabilities": list(HEALTH_CAPABILITY_IDS),
+        "capability_registry": capability_payload(),
     }
 
 

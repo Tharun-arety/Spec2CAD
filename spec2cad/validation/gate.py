@@ -27,6 +27,7 @@ from spec2cad.schemas.report import (
     ConflictClass,
     Report,
 )
+from spec2cad.reconciliation.classification import ClassifiedReconciliation
 
 PROVISIONAL_WATERMARK = "PROVISIONAL - NOT FOR MANUFACTURE"
 
@@ -75,7 +76,10 @@ class ReleaseDecision:
 
 
 def evaluate_release(
-    intent: DesignIntent, measured_reports: list[Report]
+    intent: DesignIntent,
+    measured_reports: list[Report],
+    *,
+    governing_reconciliation: ClassifiedReconciliation | None = None,
 ) -> ReleaseDecision:
     """Decide whether the measured geometry may be released.
 
@@ -110,6 +114,28 @@ def evaluate_release(
             conflict_class=ConflictClass.SOURCE,
             responsible_parameters=[name],
             message=f"{name} has competing explicit values that no one has decided between",
+        ))
+
+    if (
+        governing_reconciliation is not None
+        and governing_reconciliation.governing
+        and not governing_reconciliation.release_consistent
+    ):
+        classification = governing_reconciliation.classification.value
+        message = (
+            f"cross-backend reconciliation classified {classification}: "
+            + "; ".join(governing_reconciliation.reasons)
+        )
+        reasons.append(message)
+        blocking.append(CheckResult(
+            id="gate_cross_backend_reconciliation",
+            stage=CheckStage.REQUIREMENT,
+            name="governing cross-backend reconciliation",
+            status=CheckStatus.FAIL,
+            expected="CONSISTENT",
+            actual=classification,
+            conflict_class=ConflictClass.EXECUTION,
+            message=message,
         ))
 
     status = ReleaseStatus.BLOCKED if blocking else ReleaseStatus.AUTHORISED

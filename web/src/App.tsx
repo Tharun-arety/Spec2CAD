@@ -344,6 +344,7 @@ export default function App() {
                 busy={busy}
                 state={state}
                 catalog={replayCatalog}
+                capabilityRegistry={health?.capability_registry ?? null}
                 activeScenarioId={state?.run_id.startsWith('recorded-')
                   ? state.run_id.slice('recorded-'.length)
                   : replay?.scenario.id ?? null}

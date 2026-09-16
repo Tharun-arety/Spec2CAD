@@ -13,7 +13,7 @@ selector actually tests that an edge lies on the outer boundary.
 
 from __future__ import annotations
 
-import cadquery as cq
+from spec2cad.backends.cadquery_kernel import cq
 
 from spec2cad.schemas.cad_ir import EdgeSelector, FaceSelector
 

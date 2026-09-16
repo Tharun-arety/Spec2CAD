@@ -216,6 +216,7 @@ class EngineeringIntentGraph(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
+    schema_version: Literal["1.0.0"] = "1.0.0"
     revision: int = 1
     nodes: list[AnyNode] = Field(default_factory=list)
     edges: list[Edge] = Field(default_factory=list)

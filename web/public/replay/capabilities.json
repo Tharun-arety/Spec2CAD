@@ -1,0 +1,1004 @@
+{
+  "capabilities": [
+    {
+      "benchmark_evidence": [
+        "tests/test_pipeline.py",
+        "eval/report.md#deterministic-pipeline-suite"
+      ],
+      "category": "extraction",
+      "id": "deterministic_text_extraction",
+      "implementation_maturity": "bounded",
+      "integration": "production_pipeline",
+      "label": "Deterministic text extraction",
+      "limitations": [
+        "Bounded plate vocabulary; not open-ended language understanding."
+      ],
+      "release_role": "governing",
+      "summary": "Parses the bounded plate and mounting vocabulary without a model.",
+      "supported_backends": [],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_pipeline.py",
+        "eval/report.md#deterministic-pipeline-suite"
+      ],
+      "category": "extraction",
+      "id": "known_row_pdf_extraction",
+      "implementation_maturity": "bounded",
+      "integration": "production_pipeline",
+      "label": "Known-row PDF extraction",
+      "limitations": [
+        "Known rows only; not a general technical-document parser."
+      ],
+      "release_role": "governing",
+      "summary": "Reads controlled datasheet rows and their source rectangles with PyMuPDF.",
+      "supported_backends": [],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_pipeline.py::test_fixture_evidence_cannot_be_scored_as_extraction"
+      ],
+      "category": "extraction",
+      "id": "fixture_sketch_extraction",
+      "implementation_maturity": "fixture",
+      "integration": "production_pipeline",
+      "label": "Recorded sketch fixture",
+      "limitations": [
+        "A recording, excluded from extraction-accuracy metrics."
+      ],
+      "release_role": "governing",
+      "summary": "Replays labelled sketch evidence when no vision provider is configured.",
+      "supported_backends": [],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_openai_extraction.py"
+      ],
+      "category": "extraction",
+      "id": "openai_multimodal_extraction",
+      "implementation_maturity": "bounded",
+      "integration": "optional_pipeline",
+      "label": "OpenAI multimodal extraction",
+      "limitations": [
+        "Mock-tested; no current repeated stochastic benchmark result."
+      ],
+      "release_role": "governing",
+      "summary": "Maps bounded text, image and PDF evidence into schema-constrained facts and features.",
+      "supported_backends": [],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_intent_graph.py",
+        "eval/adversarial_generalization_report.md"
+      ],
+      "category": "representation",
+      "id": "engineering_intent_graph",
+      "implementation_maturity": "proven",
+      "integration": "production_pipeline",
+      "label": "Engineering Intent Graph",
+      "limitations": [
+        "Current production slice has a bounded node and relation vocabulary."
+      ],
+      "release_role": "governing",
+      "summary": "Immutable authority graph for evidence, dimensions, features, interfaces and requirements.",
+      "supported_backends": [],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_pipeline.py",
+        "tests/test_advanced_capabilities.py"
+      ],
+      "category": "representation",
+      "id": "cad_program",
+      "implementation_maturity": "proven",
+      "integration": "production_pipeline",
+      "label": "Typed CADProgram execution IR",
+      "limitations": [
+        "Execution IR, not the backend-neutral Feature IR required by R1; persisted root schema is version 1.0.0."
+      ],
+      "release_role": "governing",
+      "summary": "Ordered typed operations with tagged numeric literals and parameter references.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_pipeline.py",
+        "eval/adversarial_generalization_report.md",
+        "examples/motor_adapter/r1_reference.json"
+      ],
+      "category": "platform",
+      "id": "cadquery_backend",
+      "implementation_maturity": "proven",
+      "integration": "production_pipeline",
+      "label": "CadQuery backend",
+      "limitations": [
+        "Native editable concepts remain explicitly unavailable in its CSG."
+      ],
+      "release_role": "governing",
+      "summary": "Primary in-process geometry backend behind the typed backend protocol.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_pipeline.py::test_gate_blocks_v1_and_withholds_step",
+        "eval/report.md",
+        "examples/motor_adapter/r1_reference.json"
+      ],
+      "category": "inspection",
+      "id": "measured_release_gate",
+      "implementation_maturity": "proven",
+      "integration": "production_pipeline",
+      "label": "Measured release gate",
+      "limitations": [
+        "Governed quantities are bounded to the currently integrated validators."
+      ],
+      "release_role": "governing",
+      "summary": "Withholds STEP when measured checks or unresolved source conflicts fail.",
+      "supported_backends": [],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_pipeline.py::test_exported_step_revalidates_after_reimport",
+        "eval/adversarial_generalization_report.md",
+        "examples/motor_adapter/r1_reference.json"
+      ],
+      "category": "inspection",
+      "id": "step_round_trip",
+      "implementation_maturity": "bounded",
+      "integration": "production_pipeline",
+      "label": "STEP round-trip verification",
+      "limitations": [
+        "Caller invokes verification explicitly; no artifact manifest or hash yet."
+      ],
+      "release_role": "governing",
+      "summary": "Re-imports STEP and reruns bounded topology, dimension and requirement checks.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_pipeline.py::test_repair_creates_an_immutable_revision",
+        "eval/report.md"
+      ],
+      "category": "engineering",
+      "id": "immutable_repair_revisions",
+      "implementation_maturity": "bounded",
+      "integration": "production_pipeline",
+      "label": "Immutable repair revisions",
+      "limitations": [
+        "Narrow motor/plate repair planner; not general synthesis."
+      ],
+      "release_role": "governing",
+      "summary": "Derives attributed revisions and preserves protected motor-interface parameters.",
+      "supported_backends": [],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_capability_truth_surfaces.py",
+        "tests/test_ui_capability_metadata.py"
+      ],
+      "category": "platform",
+      "id": "capability_registry_reporting",
+      "implementation_maturity": "proven",
+      "integration": "production_pipeline",
+      "label": "Capability registry reporting",
+      "limitations": [
+        "Capability truth is informational; it never authorizes a geometry release by itself."
+      ],
+      "release_role": "diagnostic",
+      "summary": "Projects one versioned capability registry into API, UI, README and evaluation reports.",
+      "supported_backends": [],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_pipeline.py",
+        "tests/test_generalized_pipeline.py",
+        "tests/test_r1h_broad_cad.py"
+      ],
+      "category": "geometry",
+      "id": "box",
+      "implementation_maturity": "bounded",
+      "integration": "production_pipeline",
+      "label": "Box",
+      "limitations": [
+        "Bounded construction and semantic selectors only; not arbitrary CAD."
+      ],
+      "release_role": "governing",
+      "summary": "Typed box structurally realized through shared Feature IR.",
+      "supported_backends": [
+        "cadquery",
+        "freecad"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_pipeline.py",
+        "tests/test_generalized_pipeline.py",
+        "tests/test_r1h_broad_cad.py"
+      ],
+      "category": "geometry",
+      "id": "cylinder",
+      "implementation_maturity": "bounded",
+      "integration": "production_pipeline",
+      "label": "Cylinder",
+      "limitations": [
+        "Bounded construction and semantic selectors only; not arbitrary CAD."
+      ],
+      "release_role": "governing",
+      "summary": "Typed cylinder structurally realized through shared Feature IR.",
+      "supported_backends": [
+        "cadquery",
+        "freecad"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_pipeline.py",
+        "tests/test_generalized_pipeline.py",
+        "tests/test_r1h_broad_cad.py"
+      ],
+      "category": "geometry",
+      "id": "tube",
+      "implementation_maturity": "bounded",
+      "integration": "production_pipeline",
+      "label": "Tube",
+      "limitations": [
+        "Bounded construction and semantic selectors only; not arbitrary CAD."
+      ],
+      "release_role": "governing",
+      "summary": "Typed tube structurally realized through shared Feature IR.",
+      "supported_backends": [
+        "cadquery",
+        "freecad"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_pipeline.py",
+        "tests/test_generalized_pipeline.py",
+        "tests/test_r1h_broad_cad.py"
+      ],
+      "category": "geometry",
+      "id": "hole",
+      "implementation_maturity": "bounded",
+      "integration": "production_pipeline",
+      "label": "Hole",
+      "limitations": [
+        "Bounded construction and semantic selectors only; not arbitrary CAD."
+      ],
+      "release_role": "governing",
+      "summary": "Typed hole structurally realized through shared Feature IR.",
+      "supported_backends": [
+        "cadquery",
+        "freecad"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_pipeline.py",
+        "tests/test_generalized_pipeline.py",
+        "tests/test_r1h_broad_cad.py"
+      ],
+      "category": "geometry",
+      "id": "rectangular_hole_pattern",
+      "implementation_maturity": "bounded",
+      "integration": "production_pipeline",
+      "label": "Rectangular hole pattern",
+      "limitations": [
+        "Bounded construction and semantic selectors only; not arbitrary CAD."
+      ],
+      "release_role": "governing",
+      "summary": "Typed rectangular hole pattern structurally realized through shared Feature IR.",
+      "supported_backends": [
+        "cadquery",
+        "freecad"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_pipeline.py",
+        "tests/test_generalized_pipeline.py",
+        "tests/test_r1h_broad_cad.py"
+      ],
+      "category": "geometry",
+      "id": "linear_slot_pattern",
+      "implementation_maturity": "bounded",
+      "integration": "production_pipeline",
+      "label": "Linear slot pattern",
+      "limitations": [
+        "Bounded construction and semantic selectors only; not arbitrary CAD."
+      ],
+      "release_role": "governing",
+      "summary": "Typed linear slot pattern structurally realized through shared Feature IR.",
+      "supported_backends": [
+        "cadquery",
+        "freecad"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_pipeline.py",
+        "tests/test_generalized_pipeline.py",
+        "tests/test_r1h_broad_cad.py"
+      ],
+      "category": "geometry",
+      "id": "chamfer",
+      "implementation_maturity": "bounded",
+      "integration": "production_pipeline",
+      "label": "Chamfer",
+      "limitations": [
+        "Bounded construction and semantic selectors only; not arbitrary CAD."
+      ],
+      "release_role": "governing",
+      "summary": "Typed chamfer structurally realized through shared Feature IR.",
+      "supported_backends": [
+        "cadquery",
+        "freecad"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_pipeline.py",
+        "tests/test_generalized_pipeline.py",
+        "tests/test_r1h_broad_cad.py"
+      ],
+      "category": "geometry",
+      "id": "fillet",
+      "implementation_maturity": "bounded",
+      "integration": "production_pipeline",
+      "label": "Fillet",
+      "limitations": [
+        "Bounded construction and semantic selectors only; not arbitrary CAD."
+      ],
+      "release_role": "governing",
+      "summary": "Typed fillet structurally realized through shared Feature IR.",
+      "supported_backends": [
+        "cadquery",
+        "freecad"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_openai_extraction.py"
+      ],
+      "category": "geometry",
+      "id": "profile_extrude",
+      "implementation_maturity": "bounded",
+      "integration": "optional_pipeline",
+      "label": "Profile extrude",
+      "limitations": [
+        "Release checks cover topology and operation material change, not full dimensional/interface fidelity."
+      ],
+      "release_role": "governing",
+      "summary": "Typed profile extrude realized by the CadQuery executor.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_openai_extraction.py"
+      ],
+      "category": "geometry",
+      "id": "profile_pocket",
+      "implementation_maturity": "bounded",
+      "integration": "optional_pipeline",
+      "label": "Profile pocket",
+      "limitations": [
+        "Release checks cover topology and operation material change, not full dimensional/interface fidelity."
+      ],
+      "release_role": "governing",
+      "summary": "Typed profile pocket realized by the CadQuery executor.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_openai_extraction.py"
+      ],
+      "category": "geometry",
+      "id": "profile_revolve",
+      "implementation_maturity": "bounded",
+      "integration": "optional_pipeline",
+      "label": "Profile revolve",
+      "limitations": [
+        "Release checks cover topology and operation material change, not full dimensional/interface fidelity."
+      ],
+      "release_role": "governing",
+      "summary": "Typed profile revolve realized by the CadQuery executor.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_openai_extraction.py"
+      ],
+      "category": "geometry",
+      "id": "curved_rod_sweep",
+      "implementation_maturity": "bounded",
+      "integration": "optional_pipeline",
+      "label": "Curved rod sweep",
+      "limitations": [
+        "Release checks cover topology and operation material change, not full dimensional/interface fidelity."
+      ],
+      "release_role": "governing",
+      "summary": "Typed curved rod sweep realized by the CadQuery executor.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_openai_extraction.py"
+      ],
+      "category": "geometry",
+      "id": "rectangular_loft",
+      "implementation_maturity": "bounded",
+      "integration": "optional_pipeline",
+      "label": "Rectangular loft",
+      "limitations": [
+        "Release checks cover topology and operation material change, not full dimensional/interface fidelity."
+      ],
+      "release_role": "governing",
+      "summary": "Typed rectangular loft realized by the CadQuery executor.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_openai_extraction.py"
+      ],
+      "category": "geometry",
+      "id": "curved_strip_sweep",
+      "implementation_maturity": "bounded",
+      "integration": "optional_pipeline",
+      "label": "Curved strip sweep",
+      "limitations": [
+        "Release checks cover topology and operation material change, not full dimensional/interface fidelity."
+      ],
+      "release_role": "governing",
+      "summary": "Typed curved strip sweep realized by the CadQuery executor.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_openai_extraction.py"
+      ],
+      "category": "geometry",
+      "id": "threaded_fastener",
+      "implementation_maturity": "bounded",
+      "integration": "optional_pipeline",
+      "label": "Threaded fastener",
+      "limitations": [
+        "Release checks cover topology and operation material change, not full dimensional/interface fidelity."
+      ],
+      "release_role": "governing",
+      "summary": "Typed threaded fastener realized by the CadQuery executor.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_openai_extraction.py"
+      ],
+      "category": "geometry",
+      "id": "sheet_metal_90_bend",
+      "implementation_maturity": "bounded",
+      "integration": "optional_pipeline",
+      "label": "90-degree sheet-metal bend",
+      "limitations": [
+        "Release checks cover topology and operation material change, not full dimensional/interface fidelity."
+      ],
+      "release_role": "governing",
+      "summary": "Typed 90-degree sheet-metal bend realized by the CadQuery executor.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_showcase.py"
+      ],
+      "category": "geometry",
+      "id": "flanged_coupling",
+      "implementation_maturity": "bounded",
+      "integration": "showcase",
+      "label": "Flanged coupling specialization",
+      "limitations": [
+        "Frozen-showcase path constructs Evidence, DesignIntent and CADProgram by hand and bypasses EIG compilation."
+      ],
+      "release_role": "standalone_result",
+      "summary": "Typed flanged coupling specialization realized by the CadQuery executor.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_showcase.py"
+      ],
+      "category": "geometry",
+      "id": "controller_enclosure",
+      "implementation_maturity": "bounded",
+      "integration": "showcase",
+      "label": "Controller enclosure specialization",
+      "limitations": [
+        "Frozen-showcase path constructs Evidence, DesignIntent and CADProgram by hand and bypasses EIG compilation."
+      ],
+      "release_role": "standalone_result",
+      "summary": "Typed controller enclosure specialization realized by the CadQuery executor.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_showcase.py"
+      ],
+      "category": "geometry",
+      "id": "motor_mount_bracket",
+      "implementation_maturity": "bounded",
+      "integration": "showcase",
+      "label": "Motor-mount bracket specialization",
+      "limitations": [
+        "Frozen-showcase path constructs Evidence, DesignIntent and CADProgram by hand and bypasses EIG compilation."
+      ],
+      "release_role": "standalone_result",
+      "summary": "Typed motor-mount bracket specialization realized by the CadQuery executor.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_showcase.py"
+      ],
+      "category": "geometry",
+      "id": "hydraulic_manifold",
+      "implementation_maturity": "bounded",
+      "integration": "showcase",
+      "label": "Hydraulic manifold specialization",
+      "limitations": [
+        "Frozen-showcase path constructs Evidence, DesignIntent and CADProgram by hand and bypasses EIG compilation."
+      ],
+      "release_role": "standalone_result",
+      "summary": "Typed hydraulic manifold specialization realized by the CadQuery executor.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_showcase.py"
+      ],
+      "category": "geometry",
+      "id": "blower_transition_duct",
+      "implementation_maturity": "bounded",
+      "integration": "showcase",
+      "label": "Blower transition duct specialization",
+      "limitations": [
+        "Frozen-showcase path constructs Evidence, DesignIntent and CADProgram by hand and bypasses EIG compilation."
+      ],
+      "release_role": "standalone_result",
+      "summary": "Typed blower transition duct specialization realized by the CadQuery executor.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_api_guardrails.py"
+      ],
+      "category": "engineering",
+      "id": "assembly_transforms",
+      "implementation_maturity": "bounded",
+      "integration": "standalone_api",
+      "label": "Assembly transforms",
+      "limitations": [
+        "Not connected to the production release gate."
+      ],
+      "release_role": "standalone_result",
+      "summary": "Places typed component instances in a common coordinate system.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_api_guardrails.py"
+      ],
+      "category": "engineering",
+      "id": "assembly_mates",
+      "implementation_maturity": "bounded",
+      "integration": "standalone_api",
+      "label": "Assembly mate validation",
+      "limitations": [
+        "Validation only; no general mate solver or production gate integration."
+      ],
+      "release_role": "standalone_result",
+      "summary": "Validates coincident-origin, fixed-offset and concentric-axis relations.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_api_guardrails.py"
+      ],
+      "category": "engineering",
+      "id": "collision_check",
+      "implementation_maturity": "bounded",
+      "integration": "standalone_api",
+      "label": "Assembly collision check",
+      "limitations": [
+        "Standalone assembly endpoint only."
+      ],
+      "release_role": "standalone_result",
+      "summary": "Measures pairwise B-Rep intersection volume.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_api_guardrails.py"
+      ],
+      "category": "inspection",
+      "id": "gdt_size",
+      "implementation_maturity": "bounded",
+      "integration": "standalone_api",
+      "label": "GD&T size",
+      "limitations": [
+        "Standalone inspection endpoint; not connected to production release."
+      ],
+      "release_role": "standalone_result",
+      "summary": "Measures bounded gd&t size controls on a CadQuery B-Rep.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_api_guardrails.py"
+      ],
+      "category": "inspection",
+      "id": "gdt_position",
+      "implementation_maturity": "bounded",
+      "integration": "standalone_api",
+      "label": "GD&T position",
+      "limitations": [
+        "Standalone inspection endpoint; not connected to production release."
+      ],
+      "release_role": "standalone_result",
+      "summary": "Measures bounded gd&t position controls on a CadQuery B-Rep.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_api_guardrails.py"
+      ],
+      "category": "inspection",
+      "id": "gdt_flatness",
+      "implementation_maturity": "bounded",
+      "integration": "standalone_api",
+      "label": "GD&T flatness",
+      "limitations": [
+        "Standalone inspection endpoint; not connected to production release."
+      ],
+      "release_role": "standalone_result",
+      "summary": "Measures bounded gd&t flatness controls on a CadQuery B-Rep.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_api_guardrails.py"
+      ],
+      "category": "inspection",
+      "id": "gdt_perpendicularity",
+      "implementation_maturity": "bounded",
+      "integration": "standalone_api",
+      "label": "GD&T perpendicularity",
+      "limitations": [
+        "Standalone inspection endpoint; not connected to production release."
+      ],
+      "release_role": "standalone_result",
+      "summary": "Measures bounded gd&t perpendicularity controls on a CadQuery B-Rep.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_api_guardrails.py"
+      ],
+      "category": "engineering",
+      "id": "mass_properties",
+      "implementation_maturity": "bounded",
+      "integration": "standalone_api",
+      "label": "Mass properties",
+      "limitations": [
+        "Standalone analysis endpoint; not revision-bound or release-governing."
+      ],
+      "release_role": "standalone_result",
+      "summary": "Runs bounded mass properties calculations from explicit inputs.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_api_guardrails.py"
+      ],
+      "category": "engineering",
+      "id": "axial_stress",
+      "implementation_maturity": "bounded",
+      "integration": "standalone_api",
+      "label": "Axial stress",
+      "limitations": [
+        "Standalone analysis endpoint; not revision-bound or release-governing."
+      ],
+      "release_role": "standalone_result",
+      "summary": "Runs bounded axial stress calculations from explicit inputs.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_api_guardrails.py"
+      ],
+      "category": "engineering",
+      "id": "bending_stress",
+      "implementation_maturity": "bounded",
+      "integration": "standalone_api",
+      "label": "Bending stress",
+      "limitations": [
+        "Standalone analysis endpoint; not revision-bound or release-governing."
+      ],
+      "release_role": "standalone_result",
+      "summary": "Runs bounded bending stress calculations from explicit inputs.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_api_guardrails.py"
+      ],
+      "category": "engineering",
+      "id": "thermal_expansion",
+      "implementation_maturity": "bounded",
+      "integration": "standalone_api",
+      "label": "Thermal expansion",
+      "limitations": [
+        "Standalone analysis endpoint; not revision-bound or release-governing."
+      ],
+      "release_role": "standalone_result",
+      "summary": "Runs bounded thermal expansion calculations from explicit inputs.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_advanced_capabilities.py",
+        "tests/test_api_guardrails.py"
+      ],
+      "category": "engineering",
+      "id": "worst_case_fit",
+      "implementation_maturity": "bounded",
+      "integration": "standalone_api",
+      "label": "Worst-case fit",
+      "limitations": [
+        "Standalone analysis endpoint; not revision-bound or release-governing."
+      ],
+      "release_role": "standalone_result",
+      "summary": "Runs bounded worst-case fit calculations from explicit inputs.",
+      "supported_backends": [
+        "cadquery"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_feature_ir_schema.py",
+        "tests/test_feature_ir_schema.py::test_provenance_traverses_an_actual_motor_adapter_eig",
+        "tests/test_feature_ir_compiler.py",
+        "tests/test_feature_ir_validation.py",
+        "tests/test_feature_ir_serialization.py",
+        "tests/test_feature_ir_parity.py"
+      ],
+      "category": "representation",
+      "id": "feature_ir",
+      "implementation_maturity": "bounded",
+      "integration": "production_pipeline",
+      "label": "Feature IR",
+      "limitations": [
+        "The bounded primitive/feature vocabulary is integrated; advanced geometry families retain the transitional CADProgram path."
+      ],
+      "release_role": "none",
+      "summary": "Backend-neutral parametric realization plan.",
+      "supported_backends": [],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_backend_contracts.py",
+        "tests/test_backend_protocol.py",
+        "tests/test_cadquery_adapter.py",
+        "tests/test_cadquery_import_boundary.py",
+        "tests/test_freecad_adapter.py",
+        "tests/test_feature_ir_parity.py"
+      ],
+      "category": "platform",
+      "id": "backend_protocol",
+      "implementation_maturity": "bounded",
+      "integration": "production_pipeline",
+      "label": "Typed backend protocol",
+      "limitations": [
+        "CadQuery and FreeCAD implement the versioned operation boundary for the bounded primitive/feature vocabulary; advanced families remain internally adapted."
+      ],
+      "release_role": "none",
+      "summary": "Versioned build, inspection and export contracts.",
+      "supported_backends": [
+        "cadquery",
+        "freecad"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_freecad_worker.py::test_real_freecad_worker_ping_when_runtime_is_available",
+        "tests/test_freecad_worker.py::test_real_worker_builds_native_editable_motor_document",
+        "tests/test_freecad_worker.py::test_real_worker_returns_typed_refusal_for_unsupported_selector",
+        "tests/test_cad_state_graph_schema.py",
+        "tests/test_freecad_adapter.py",
+        "tests/test_r1_native_foundation_benchmark.py",
+        "eval/r1_native_foundation_report.json"
+      ],
+      "category": "platform",
+      "id": "freecad_backend",
+      "implementation_maturity": "bounded",
+      "integration": "optional_pipeline",
+      "label": "FreeCAD backend",
+      "limitations": [
+        "FreeCAD 1.1 structurally realizes the bounded primitive/feature vocabulary with stable-ID native edits; surfacing, assemblies and arbitrary features remain unsupported."
+      ],
+      "release_role": "diagnostic",
+      "summary": "Out-of-process native editable FreeCAD realization.",
+      "supported_backends": [
+        "freecad"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_cad_state_graph_schema.py",
+        "tests/test_cad_state_graph_schema.py::test_all_relationship_kinds_are_typed_and_provenance_resolves",
+        "tests/test_freecad_worker.py::test_real_worker_builds_native_editable_motor_document",
+        "tests/test_cadquery_adapter.py::test_adapter_build_and_inspect_both_motor_revisions",
+        "tests/test_r1_native_foundation_benchmark.py",
+        "eval/r1_native_foundation_report.json"
+      ],
+      "category": "representation",
+      "id": "cad_state_graph",
+      "implementation_maturity": "bounded",
+      "integration": "optional_pipeline",
+      "label": "CAD State Graph",
+      "limitations": [
+        "Both backends emit truthful immutable CSGs for four bounded compositions; the CSG remains evidence and never design authority."
+      ],
+      "release_role": "diagnostic",
+      "summary": "Immutable observation of backend-native build state.",
+      "supported_backends": [
+        "cadquery",
+        "freecad"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "benchmark_evidence": [
+        "tests/test_reconciliation_tolerances.py",
+        "tests/test_reconciliation_observations.py",
+        "tests/test_cross_backend_geometry.py",
+        "tests/test_cross_backend_predicates.py",
+        "tests/test_reconciliation_release_gate.py",
+        "tests/test_r1_native_foundation_benchmark.py",
+        "eval/r1_native_foundation_report.json"
+      ],
+      "category": "inspection",
+      "id": "cross_backend_reconciliation",
+      "implementation_maturity": "bounded",
+      "integration": "optional_pipeline",
+      "label": "Cross-backend reconciliation",
+      "limitations": [
+        "Release-governing comparison remains motor-adapter bounded; four broader compositions have advisory solid/cylindrical cross-backend checks."
+      ],
+      "release_role": "governing",
+      "summary": "Typed comparison of governed observations from two backends.",
+      "supported_backends": [
+        "cadquery",
+        "freecad"
+      ],
+      "version": "1.0.0"
+    }
+  ],
+  "schema_version": "1.0.0"
+}

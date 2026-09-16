@@ -1,0 +1,207 @@
+{
+  "backend": "cadquery",
+  "case_id": "motor_adapter",
+  "inputs_sha256": {
+    "motor_datasheet.pdf": "d1c15cc6b0605fe30ae3be959b9b7a045aed80d5f609e8845817d191e14cb722",
+    "requirement.txt": "7a07a1b55e6dedcd540f6d84d47eeb9f180ec03cc50ef534edde806a6af3ef73",
+    "sketch.fixture.json": "b3e935b16ae69e519a47c44dd2faeba8908162d7d9aad079955e4d15a8be8243",
+    "sketch.png": "22c316104e14bfc76d02d245f6372e5039892974faedf4571288ffcef9d006f7"
+  },
+  "revisions": [
+    {
+      "applied_proposal": null,
+      "approved_by": null,
+      "cad_program": {
+        "design_revision": 1,
+        "operations": [
+          {
+            "centered": true,
+            "depth": {"kind": "param_ref", "ref": "plate_thickness"},
+            "height": {"kind": "param_ref", "ref": "plate_height"},
+            "id": "base_plate",
+            "type": "box",
+            "width": {"kind": "param_ref", "ref": "plate_width"}
+          },
+          {
+            "depth": null,
+            "diameter": {"kind": "param_ref", "ref": "shaft_opening_diameter"},
+            "id": "shaft_opening",
+            "support": "top_face",
+            "termination": "through_all",
+            "type": "hole",
+            "x": {"kind": "literal", "value": 0.0},
+            "y": {"kind": "literal", "value": 0.0}
+          },
+          {
+            "count": 4,
+            "diameter": {"kind": "param_ref", "ref": "mounting_hole_diameter"},
+            "id": "mounting_holes",
+            "spacing_x": {"kind": "param_ref", "ref": "hole_spacing_x"},
+            "spacing_y": {"kind": "param_ref", "ref": "hole_spacing_y"},
+            "support": "top_face",
+            "termination": "through_all",
+            "type": "rectangular_hole_pattern"
+          },
+          {
+            "distance": {"kind": "param_ref", "ref": "external_chamfer"},
+            "edge_selector": "external_vertical_edges",
+            "id": "external_chamfers",
+            "type": "chamfer"
+          }
+        ],
+        "part_name": "motor_adapter_plate",
+        "schema_version": "1.0.0",
+        "units": "mm"
+      },
+      "cad_program_sha256": "dc097aa58328538c3709b6037bb3fa09db0e7a10c0fe84514783edc988a7f772",
+      "eig_sha256": "c43d43f6b7844f366ef54bb3ed33f4761f75b2947fa90b5bffafd9ff510ec3ce",
+      "feature_ir": {
+        "byte_length": 11063,
+        "content_sha256": "722f0d7424b91fe2e023045a45391ef6554fa979e8708a201da05be0c548ad7e",
+        "document_id": "fir_motor_adapter_plate_r1",
+        "document_schema_version": "1.0.0",
+        "schema_version": "1.0.0"
+      },
+      "geometry": {
+        "circular_features": [
+          {"diameter_mm": 3.4, "x_mm": -15.5, "y_mm": -15.5},
+          {"diameter_mm": 3.4, "x_mm": -15.5, "y_mm": 15.5},
+          {"diameter_mm": 3.4, "x_mm": 15.5, "y_mm": -15.5},
+          {"diameter_mm": 3.4, "x_mm": 15.5, "y_mm": 15.5},
+          {"diameter_mm": 22.5, "x_mm": 0.0, "y_mm": -0.0}
+        ],
+        "height_mm": 50.0,
+        "solid_count": 1,
+        "thickness_mm": 5.0,
+        "valid": true,
+        "volume_mm3": 7820.376844,
+        "width_mm": 40.0
+      },
+      "parent_revision": null,
+      "release": {
+        "responsible_parameters": ["plate_width", "hole_spacing_x", "mounting_hole_diameter"],
+        "status": "blocked",
+        "step_export_allowed": false
+      },
+      "requirement_checks": [
+        {
+          "conflict_class": "constraint_conflict",
+          "id": "req_edge_clearance",
+          "measured_value": 2.8,
+          "required_value": 4.0,
+          "status": "fail"
+        }
+      ],
+      "revision": 1,
+      "script_sha256": "74ce69358ae131f429838fa39f1edcd7cca2df0cb010c3418a19ab2829043d23"
+    },
+    {
+      "applied_proposal": "widen_to_recommended",
+      "approved_by": "r1-reference",
+      "cad_program": {
+        "design_revision": 2,
+        "operations": [
+          {
+            "centered": true,
+            "depth": {"kind": "param_ref", "ref": "plate_thickness"},
+            "height": {"kind": "param_ref", "ref": "plate_height"},
+            "id": "base_plate",
+            "type": "box",
+            "width": {"kind": "param_ref", "ref": "plate_width"}
+          },
+          {
+            "depth": null,
+            "diameter": {"kind": "param_ref", "ref": "shaft_opening_diameter"},
+            "id": "shaft_opening",
+            "support": "top_face",
+            "termination": "through_all",
+            "type": "hole",
+            "x": {"kind": "literal", "value": 0.0},
+            "y": {"kind": "literal", "value": 0.0}
+          },
+          {
+            "count": 4,
+            "diameter": {"kind": "param_ref", "ref": "mounting_hole_diameter"},
+            "id": "mounting_holes",
+            "spacing_x": {"kind": "param_ref", "ref": "hole_spacing_x"},
+            "spacing_y": {"kind": "param_ref", "ref": "hole_spacing_y"},
+            "support": "top_face",
+            "termination": "through_all",
+            "type": "rectangular_hole_pattern"
+          },
+          {
+            "distance": {"kind": "param_ref", "ref": "external_chamfer"},
+            "edge_selector": "external_vertical_edges",
+            "id": "external_chamfers",
+            "type": "chamfer"
+          }
+        ],
+        "part_name": "motor_adapter_plate",
+        "schema_version": "1.0.0",
+        "units": "mm"
+      },
+      "cad_program_sha256": "41d7a9372e047fdc78273c673ed0e984b915f543a2875984ea18b31b11ada841",
+      "eig_sha256": "9c61b28922f2a6ebb31a7b2a74f1040bc316123a0e46850611e5ec433d23399c",
+      "feature_ir": {
+        "byte_length": 11063,
+        "content_sha256": "a7f224d737f6bfd1a8c322895e94f46eeb03194c1f0b64a417444323c50f2a6e",
+        "document_id": "fir_motor_adapter_plate_r2",
+        "document_schema_version": "1.0.0",
+        "schema_version": "1.0.0"
+      },
+      "geometry": {
+        "circular_features": [
+          {"diameter_mm": 3.4, "x_mm": -15.5, "y_mm": -15.5},
+          {"diameter_mm": 3.4, "x_mm": -15.5, "y_mm": 15.5},
+          {"diameter_mm": 3.4, "x_mm": 15.5, "y_mm": -15.5},
+          {"diameter_mm": 3.4, "x_mm": 15.5, "y_mm": 15.5},
+          {"diameter_mm": 22.5, "x_mm": 0.0, "y_mm": -0.0}
+        ],
+        "height_mm": 50.0,
+        "solid_count": 1,
+        "thickness_mm": 5.0,
+        "valid": true,
+        "volume_mm3": 9070.376844,
+        "width_mm": 45.0
+      },
+      "parent_revision": 1,
+      "release": {
+        "responsible_parameters": [],
+        "status": "authorised",
+        "step_export_allowed": true
+      },
+      "requirement_checks": [
+        {
+          "conflict_class": null,
+          "id": "req_edge_clearance",
+          "measured_value": 5.3,
+          "required_value": 4.0,
+          "status": "pass"
+        }
+      ],
+      "revision": 2,
+      "script_sha256": "3381c2cee408b886177ac0e3eea0d7faad17751342d7331395f8754b8417fc4f"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "step_round_trip": {
+    "all_reports_passed": true,
+    "geometry_matches_in_memory": true,
+    "restored_geometry": {
+      "circular_features": [
+        {"diameter_mm": 3.4, "x_mm": -15.5, "y_mm": -15.5},
+        {"diameter_mm": 3.4, "x_mm": -15.5, "y_mm": 15.5},
+        {"diameter_mm": 3.4, "x_mm": 15.5, "y_mm": -15.5},
+        {"diameter_mm": 3.4, "x_mm": 15.5, "y_mm": 15.5},
+        {"diameter_mm": 22.5, "x_mm": 0.0, "y_mm": -0.0}
+      ],
+      "height_mm": 50.0,
+      "solid_count": 1,
+      "thickness_mm": 5.0,
+      "valid": true,
+      "volume_mm3": 9070.376844,
+      "width_mm": 45.0
+    },
+    "revision": 2
+  }
+}

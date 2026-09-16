@@ -84,13 +84,15 @@ python -m spec2cad.cli examples/mounting_bracket     # second feature distributi
 python -m pytest                                     # public and pipeline tests
 python -m eval.run_public_guardrails                 # abuse/cost/resource eval
 python -m eval.run_eval                              # 39 deterministic checks
+python -m eval.r1_native_foundation                  # B.R1: two real backends + native edit
+python -m eval.r1h_native_hardening                  # B.R1H: four families + topology edit
 python -m eval.run_adversarial_generalization       # adversarial stage metrics
 ```
 
 Web UI (two terminals):
 
 ```bash
-uvicorn api.main:app --port 8000
+SPEC2CAD_DUAL_BACKEND=1 uvicorn api.main:app --port 8000
 ```
 
 ```bash
@@ -184,15 +186,13 @@ highlights the actual rectangle it came from:
 ## Architecture
 
 ```
-inputs ──► Evidence[] ──► Engineering Intent Graph ──► Feature planner ──► CADProgram
-           (kind +        (entities + relations +      (graph-driven,       (typed,
-            confidence     provenance)                  no part switch)      no Python)
-            + authority)          │                                            │
-                                  ├──► DesignIntent compatibility view          ▼
-                                  │                                        B-Rep
-                                  └──► Requirement predicate IR                │
-                                              │                                ▼
-                          DesignIntent vN+1 ◄─┴─ REPAIR ◄─ RELEASE GATE ◄─ MEASURED
+inputs ─► Evidence ─► Engineering Intent Graph ─► Feature IR
+                         │                         │
+                         ├► DesignIntent view      ├► CadQuery adapter ─► CSG + B-Rep
+                         │                         └► FreeCAD worker  ─► CSG + native model
+                         └► Requirement predicates              │
+                                                               ▼
+DesignIntent vN+1 ◄─ REPAIR ◄─ RELEASE GATE ◄─ classified reconciliation
 ```
 
 **Four stages, deliberately not merged:**
@@ -210,9 +210,20 @@ is reported as a **pipeline defect**, not a design problem.
 ### Design decisions worth the words
 
 **The LLM never emits or executes Python.** It returns schema-validated
-`Evidence` only. `cad/executor.py` is the sole importer of CadQuery (enforced by
-a test). The CadQuery script shown in the UI is *emitted by the compiler* for
-review and is never executed.
+`Evidence` only. The kernel facade is the sole product importer of CadQuery
+(enforced by a test). The CadQuery script shown in the UI is *emitted by the
+compiler* for review and is never executed.
+
+**R1H proves two genuinely different backends across a bounded CAD vocabulary.**
+The same backend-neutral Feature IR drives CadQuery and an isolated FreeCAD 1.1
+worker for rectangular, cylindrical and tubular bases, circular openings,
+rectangular hole patterns, linear slots, chamfers and fillets. Backend code does
+not recognize demo part or parameter names: native aliases are opaque and edits
+resolve stable Feature IR IDs. B.R1H builds four unrelated compositions twice,
+records latency/failures, changes slot topology, and proves typed refusals. This
+is deliberately not a claim of arbitrary profiles, surfacing or universal CAD.
+Release-governing reconciliation remains the measured motor-interface slice;
+broader family comparisons are advisory.
 
 **The graph is now the pipeline source.** Dimensions, features, interfaces,
 requirements, source evidence, and reference geometry are typed nodes joined by
@@ -320,11 +331,32 @@ intent that supposedly produced it.
 
 ## Scope
 
+### Capability truth contract
+
+`spec2cad/capabilities.py` is the machine-readable source for capability claims.
+Each record classifies implementation maturity, integration level, release role,
+supported backends, benchmark evidence, limitations and its own version as
+independent fields. In particular, a bounded standalone API is not described as
+production-integrated or release-governing merely because its tests pass.
+
+`GET /health` retains the compact `capabilities` ID list for compatibility and
+also returns the versioned `capability_registry` document. The generated
+evaluation report renders its capability table from the same registry.
+
+The governed production geometry slice remains the motor/plate path and its
+slotted-bracket generalization. Advanced profile/sweep/loft/thread/sheet-bend
+features traverse an optional model-to-EIG path but currently govern only
+topology and operation material change. Assembly, GD&T and analytic calculations
+are standalone results, not inputs to the production release gate. The five
+specialized public-showcase solids are real CadQuery builds, but their frozen
+replay builder hand-constructs the intermediate records and does not prove the
+production EIG compiler path.
+
 **Built and working:** the motor-adapter slice end to end — genuine datasheet
 extraction with real traceability, rule-cited fastener lookup, two-class conflict
 detection, diagnostic generation, measured validation, the release gate,
-immutable repair revisions, STEP round-trip verification, a five-panel UI, 129
-tests, 39 deterministic evaluation checks, a container deployment path and a
+immutable repair revisions, STEP round-trip verification, a five-panel UI,
+39 deterministic evaluation checks, a container deployment path and a
 5.0 MB static showcase bundle.
 
 Also working: an Engineering Intent Graph with parity-tested projection, a

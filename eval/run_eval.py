@@ -24,6 +24,11 @@ from eval.metrics import (
     VarianceReport,
     score_extraction,
 )
+from spec2cad.capabilities import (
+    CAPABILITIES,
+    CAPABILITY_SCHEMA_VERSION,
+    ImplementationMaturity,
+)
 from spec2cad.extractors.base import VisionBackend, backend_label, select_backend
 from spec2cad.extractors.drawing import extract_sketch
 from spec2cad.fusion.conflict_detector import edge_clearance, minimum_plate_dimension
@@ -263,9 +268,36 @@ def write_report(pipeline: PipelineScore, variance: VarianceReport, note: str) -
                 f"{'yes' if o.correct else 'no'} |"
             )
 
+    available = [
+        item for item in CAPABILITIES
+        if item.implementation_maturity is not ImplementationMaturity.UNAVAILABLE
+    ]
+    unavailable = [
+        item for item in CAPABILITIES
+        if item.implementation_maturity is ImplementationMaturity.UNAVAILABLE
+    ]
+
     lines += [
         "",
-        "## 3. Failure analysis",
+        "## 3. Capability baseline",
+        "",
+        f"Registry schema `{CAPABILITY_SCHEMA_VERSION}` reports **{len(available)} available**",
+        f"and **{len(unavailable)} unavailable/planned** capabilities. Implementation maturity,",
+        "pipeline integration and release role are independent fields; a tested library utility",
+        "is not described as production or release-governing unless those fields say so.",
+        "",
+        "| Capability | Maturity | Integration | Release role |",
+        "|---|---|---|---|",
+    ]
+    for item in CAPABILITIES:
+        lines.append(
+            f"| {item.label} | {item.implementation_maturity.value} | "
+            f"{item.integration.value} | {item.release_role.value} |"
+        )
+
+    lines += [
+        "",
+        "## 4. Failure analysis",
         "",
         "Stated plainly, because a prototype with hidden limitations is worse than a",
         "smaller one with known ones.",
@@ -290,12 +322,20 @@ def write_report(pipeline: PipelineScore, variance: VarianceReport, note: str) -
         "  version of it scraped `3` out of the sentence \"listed in section 3\" on page 4;",
         "  that is now fixed by anchoring labels to the row start, and regression-tested,",
         "  but the class of error is inherent to rule-based extraction.",
-        "- The geometry vocabulary is six operations (box, hole, rectangular hole pattern,",
-        "  slot pattern, chamfer, and fillet); the rectangular pattern still supports exactly",
-        "  four corner holes. Anything else raises rather than approximating.",
-        "- Two feature distributions are supported: the motor adapter and a flat slotted",
-        "  bracket. This demonstrates graph/compiler reuse, not open-ended part synthesis.",
-        "  There is still no GD&T, tolerancing, assembly reasoning, or bent-sheet-metal model.",
+        "- The production governed dimensional slice is the motor adapter/plate family plus a",
+        "  slotted-bracket generalization. The rectangular pattern supports exactly four corner",
+        "  holes; unsupported cases raise rather than approximating.",
+        "- Advanced profile, sweep, loft, threaded-fastener and 90-degree sheet-bend operations",
+        "  can traverse the optional model-to-EIG pipeline, but their governing checks currently",
+        "  cover topology and material change rather than full dimensional/interface fidelity.",
+        "- Assembly, GD&T and analytic engineering calculations are bounded standalone APIs.",
+        "  Their results are not connected to the production release gate.",
+        "- Five additional specialized solids are real CadQuery builds used by the frozen public",
+        "  showcase, but that replay builder constructs Evidence, DesignIntent and CADProgram by",
+        "  hand; it is not evidence of production EIG compilation.",
+        "- R1 cross-backend reconciliation is release-governing only for the benchmarked",
+        "  motor-adapter revisions. Other Feature IR families and native FreeCAD edits are",
+        "  explicitly unsupported until later benchmark slices promote them.",
         "- Preflight and measured validation are cross-checked against each other, but both",
         "  encode the same clearance formula. A conceptual error in that formula would not",
         "  be caught by their agreement.",

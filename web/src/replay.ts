@@ -14,7 +14,7 @@
  * that was not recorded both fail with an explanation, rather than quietly
  * returning the one result that happens to be on disk.
  */
-import type { Health, RunState } from './types'
+import type { CapabilityRegistry, Health, RunState } from './types'
 
 const BASE = '/replay'
 
@@ -27,6 +27,7 @@ export interface ReplayScenario {
   uncertainty: string
   description: string
   capabilities: string[]
+  capability_ids?: string[]
   operation: string
   inputs: Array<'text' | 'sketch' | 'document'>
 }
@@ -52,6 +53,8 @@ export interface ReplayManifest {
 
 let cachedCatalog: ReplayCatalog | null = null
 let catalogPromise: Promise<ReplayCatalog> | null = null
+let cachedCapabilities: CapabilityRegistry | null = null
+let capabilitiesPromise: Promise<CapabilityRegistry> | null = null
 const cachedManifests = new Map<string, ReplayManifest>()
 const manifestPromises = new Map<string, Promise<ReplayManifest>>()
 
@@ -65,6 +68,19 @@ function catalog(): Promise<ReplayCatalog> {
     })
   }
   return catalogPromise
+}
+
+function capabilities(): Promise<CapabilityRegistry> {
+  if (cachedCapabilities) return Promise.resolve(cachedCapabilities)
+  if (!capabilitiesPromise) {
+    capabilitiesPromise = fetch(`${BASE}/capabilities.json`, { cache: 'no-cache' })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`capability registry missing (${res.status})`)
+        cachedCapabilities = (await res.json()) as CapabilityRegistry
+        return cachedCapabilities
+      })
+  }
+  return capabilitiesPromise
 }
 
 async function manifest(scenarioId?: string): Promise<ReplayManifest> {
@@ -112,12 +128,16 @@ export const replayApi = {
   manifest,
 
   async health(): Promise<Health> {
-    const m = await manifest()
+    const [m, registry] = await Promise.all([manifest(), capabilities()])
     return {
       status: 'replay',
       sketch_backend: 'fixture',
       sketch_backend_label: `${m.sketch_backend} · recorded replay`,
       vision_available: false,
+      capabilities: registry.capabilities
+        .filter((item) => item.implementation_maturity !== 'unavailable')
+        .map((item) => item.id),
+      capability_registry: registry,
     }
   },
 

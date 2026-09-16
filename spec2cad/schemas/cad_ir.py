@@ -469,6 +469,7 @@ class CADProgram(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
+    schema_version: Literal["1.0.0"] = "1.0.0"
     part_name: str
     units: Literal["mm"] = "mm"
     operations: list[Operation] = Field(default_factory=list, max_length=64)

@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -255,6 +255,7 @@ class EvidenceSet(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    schema_version: Literal["1.0.0"] = "1.0.0"
     items: list[Evidence] = Field(default_factory=list)
     backend_used: str = Field(
         default="unknown",

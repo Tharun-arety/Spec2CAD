@@ -1,6 +1,6 @@
 # Spec2CAD evaluation report
 
-Generated 2026-09-15 08:09 UTC
+Generated 2026-09-16 08:45 UTC
 
 Two suites are reported separately and never averaged together. One measures
 the pipeline; the other measures an extractor. Combining them would produce a
@@ -65,7 +65,66 @@ recording, because replaying a recording measures the recording.
 __
 
 
-## 3. Failure analysis
+## 3. Capability baseline
+
+Registry schema `1.0.0` reports **49 available**
+and **0 unavailable/planned** capabilities. Implementation maturity,
+pipeline integration and release role are independent fields; a tested library utility
+is not described as production or release-governing unless those fields say so.
+
+| Capability | Maturity | Integration | Release role |
+|---|---|---|---|
+| Deterministic text extraction | bounded | production_pipeline | governing |
+| Known-row PDF extraction | bounded | production_pipeline | governing |
+| Recorded sketch fixture | fixture | production_pipeline | governing |
+| OpenAI multimodal extraction | bounded | optional_pipeline | governing |
+| Engineering Intent Graph | proven | production_pipeline | governing |
+| Typed CADProgram execution IR | proven | production_pipeline | governing |
+| CadQuery backend | proven | production_pipeline | governing |
+| Measured release gate | proven | production_pipeline | governing |
+| STEP round-trip verification | bounded | production_pipeline | governing |
+| Immutable repair revisions | bounded | production_pipeline | governing |
+| Capability registry reporting | proven | production_pipeline | diagnostic |
+| Box | bounded | production_pipeline | governing |
+| Cylinder | bounded | production_pipeline | governing |
+| Tube | bounded | production_pipeline | governing |
+| Hole | bounded | production_pipeline | governing |
+| Rectangular hole pattern | bounded | production_pipeline | governing |
+| Linear slot pattern | bounded | production_pipeline | governing |
+| Chamfer | bounded | production_pipeline | governing |
+| Fillet | bounded | production_pipeline | governing |
+| Profile extrude | bounded | optional_pipeline | governing |
+| Profile pocket | bounded | optional_pipeline | governing |
+| Profile revolve | bounded | optional_pipeline | governing |
+| Curved rod sweep | bounded | optional_pipeline | governing |
+| Rectangular loft | bounded | optional_pipeline | governing |
+| Curved strip sweep | bounded | optional_pipeline | governing |
+| Threaded fastener | bounded | optional_pipeline | governing |
+| 90-degree sheet-metal bend | bounded | optional_pipeline | governing |
+| Flanged coupling specialization | bounded | showcase | standalone_result |
+| Controller enclosure specialization | bounded | showcase | standalone_result |
+| Motor-mount bracket specialization | bounded | showcase | standalone_result |
+| Hydraulic manifold specialization | bounded | showcase | standalone_result |
+| Blower transition duct specialization | bounded | showcase | standalone_result |
+| Assembly transforms | bounded | standalone_api | standalone_result |
+| Assembly mate validation | bounded | standalone_api | standalone_result |
+| Assembly collision check | bounded | standalone_api | standalone_result |
+| GD&T size | bounded | standalone_api | standalone_result |
+| GD&T position | bounded | standalone_api | standalone_result |
+| GD&T flatness | bounded | standalone_api | standalone_result |
+| GD&T perpendicularity | bounded | standalone_api | standalone_result |
+| Mass properties | bounded | standalone_api | standalone_result |
+| Axial stress | bounded | standalone_api | standalone_result |
+| Bending stress | bounded | standalone_api | standalone_result |
+| Thermal expansion | bounded | standalone_api | standalone_result |
+| Worst-case fit | bounded | standalone_api | standalone_result |
+| Feature IR | bounded | production_pipeline | none |
+| Typed backend protocol | bounded | production_pipeline | none |
+| FreeCAD backend | bounded | optional_pipeline | diagnostic |
+| CAD State Graph | bounded | optional_pipeline | diagnostic |
+| Cross-backend reconciliation | bounded | optional_pipeline | governing |
+
+## 4. Failure analysis
 
 Stated plainly, because a prototype with hidden limitations is worse than a
 smaller one with known ones.
@@ -90,12 +149,20 @@ smaller one with known ones.
   version of it scraped `3` out of the sentence "listed in section 3" on page 4;
   that is now fixed by anchoring labels to the row start, and regression-tested,
   but the class of error is inherent to rule-based extraction.
-- The geometry vocabulary is six operations (box, hole, rectangular hole pattern,
-  slot pattern, chamfer, and fillet); the rectangular pattern still supports exactly
-  four corner holes. Anything else raises rather than approximating.
-- Two feature distributions are supported: the motor adapter and a flat slotted
-  bracket. This demonstrates graph/compiler reuse, not open-ended part synthesis.
-  There is still no GD&T, tolerancing, assembly reasoning, or bent-sheet-metal model.
+- The production governed dimensional slice is the motor adapter/plate family plus a
+  slotted-bracket generalization. The rectangular pattern supports exactly four corner
+  holes; unsupported cases raise rather than approximating.
+- Advanced profile, sweep, loft, threaded-fastener and 90-degree sheet-bend operations
+  can traverse the optional model-to-EIG pipeline, but their governing checks currently
+  cover topology and material change rather than full dimensional/interface fidelity.
+- Assembly, GD&T and analytic engineering calculations are bounded standalone APIs.
+  Their results are not connected to the production release gate.
+- Five additional specialized solids are real CadQuery builds used by the frozen public
+  showcase, but that replay builder constructs Evidence, DesignIntent and CADProgram by
+  hand; it is not evidence of production EIG compilation.
+- R1 cross-backend reconciliation is release-governing only for the benchmarked
+  motor-adapter revisions. Other Feature IR families and native FreeCAD edits are
+  explicitly unsupported until later benchmark slices promote them.
 - Preflight and measured validation are cross-checked against each other, but both
   encode the same clearance formula. A conceptual error in that formula would not
   be caught by their agreement.

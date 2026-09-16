@@ -24,7 +24,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-import cadquery as cq
+from spec2cad.backends.cadquery_kernel import cq
 
 # Tolerances for comparing measured geometry against intent.
 LINEAR_TOLERANCE_MM = 1e-4

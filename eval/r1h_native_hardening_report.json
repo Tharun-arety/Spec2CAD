@@ -1,0 +1,230 @@
+{
+  "all_passed": true,
+  "benchmark": "B.R1H",
+  "families": [
+    {
+      "backends": {
+        "cadquery": {
+          "expected_artifact_count": 0,
+          "failure_count": 0,
+          "repeatable_csg": false,
+          "repeatable_semantics": true,
+          "runs": [
+            {
+              "artifact_count": 0,
+              "csg_sha256": "9a2ebd17a318d2f03275482aaef7cdd456f53018f1a50ede745d4141ed90b12b",
+              "seconds": 0.071326,
+              "semantic_sha256": "feb0b6fc95d5989f6a7f622d13eafb2e5c5cab0c407565652837dfc07f4bde90",
+              "status": "succeeded"
+            },
+            {
+              "artifact_count": 0,
+              "csg_sha256": "c509bb332cbd3cbbe9e174cca0d888c842c57162f4386490fd0aa1ca59c1f413",
+              "seconds": 0.062921,
+              "semantic_sha256": "feb0b6fc95d5989f6a7f622d13eafb2e5c5cab0c407565652837dfc07f4bde90",
+              "status": "succeeded"
+            }
+          ]
+        },
+        "freecad": {
+          "expected_artifact_count": 3,
+          "failure_count": 0,
+          "repeatable_csg": false,
+          "repeatable_semantics": true,
+          "runs": [
+            {
+              "artifact_count": 3,
+              "csg_sha256": "d319e813b9628ed44efb29a214d618493a290d99ba5497c804fdcb929cc1b5e0",
+              "seconds": 0.625023,
+              "semantic_sha256": "93fad68310bfcbabb83c4106954f1bafa1de65b2b6a0b1b14cd4bdadede79168",
+              "status": "succeeded"
+            },
+            {
+              "artifact_count": 3,
+              "csg_sha256": "7f99a223112f3db3cca7fa0cfd5d3633f9f264ccd8f900f2b768596e0d074bae",
+              "seconds": 0.646526,
+              "semantic_sha256": "93fad68310bfcbabb83c4106954f1bafa1de65b2b6a0b1b14cd4bdadede79168",
+              "status": "succeeded"
+            }
+          ]
+        }
+      },
+      "family": "interface_plate"
+    },
+    {
+      "backends": {
+        "cadquery": {
+          "expected_artifact_count": 0,
+          "failure_count": 0,
+          "repeatable_csg": false,
+          "repeatable_semantics": true,
+          "runs": [
+            {
+              "artifact_count": 0,
+              "csg_sha256": "1aac605d7a7d29350315451b2933580fdb25a8df15b13b1d00dc61a915a40356",
+              "seconds": 0.099147,
+              "semantic_sha256": "9d308a6e362dfcc90a202a29279dd8d686c713c74ea51cbca08c28e084b1d008",
+              "status": "succeeded"
+            },
+            {
+              "artifact_count": 0,
+              "csg_sha256": "9a96245ef6cfd5d62fcc93674a2fd70eab97efd2726efbb44dfcba20c84853ec",
+              "seconds": 0.10805,
+              "semantic_sha256": "9d308a6e362dfcc90a202a29279dd8d686c713c74ea51cbca08c28e084b1d008",
+              "status": "succeeded"
+            }
+          ]
+        },
+        "freecad": {
+          "expected_artifact_count": 3,
+          "failure_count": 0,
+          "repeatable_csg": false,
+          "repeatable_semantics": true,
+          "runs": [
+            {
+              "artifact_count": 3,
+              "csg_sha256": "aa29564d15d2f6121110862c383a32469183998f9cb15eaa715bee7e922c30f0",
+              "seconds": 0.680127,
+              "semantic_sha256": "b2a4141e3a55cc4afe529ec5a342619e754cc10bc3542f5ab8e2a968aa95308a",
+              "status": "succeeded"
+            },
+            {
+              "artifact_count": 3,
+              "csg_sha256": "8456874763852b7618d1d874774ea6b4621e1a34bb961f946a501d515e476370",
+              "seconds": 0.694832,
+              "semantic_sha256": "b2a4141e3a55cc4afe529ec5a342619e754cc10bc3542f5ab8e2a968aa95308a",
+              "status": "succeeded"
+            }
+          ]
+        }
+      },
+      "family": "slotted_bracket"
+    },
+    {
+      "backends": {
+        "cadquery": {
+          "expected_artifact_count": 0,
+          "failure_count": 0,
+          "repeatable_csg": false,
+          "repeatable_semantics": true,
+          "runs": [
+            {
+              "artifact_count": 0,
+              "csg_sha256": "5422db58a91a99307c2a6636215a0db8295c670d4c4b34381ad6033de4a8eae4",
+              "seconds": 0.012842,
+              "semantic_sha256": "c0c0762a842a0224dbd519e235c9cac7a179b155352daae36f3bbb2c08c8ad09",
+              "status": "succeeded"
+            },
+            {
+              "artifact_count": 0,
+              "csg_sha256": "0fdcc23f67a2cb1937094856da1ef8083e404bd21e0fae2fecb8bb54dd98bd3c",
+              "seconds": 0.011505,
+              "semantic_sha256": "c0c0762a842a0224dbd519e235c9cac7a179b155352daae36f3bbb2c08c8ad09",
+              "status": "succeeded"
+            }
+          ]
+        },
+        "freecad": {
+          "expected_artifact_count": 3,
+          "failure_count": 0,
+          "repeatable_csg": false,
+          "repeatable_semantics": true,
+          "runs": [
+            {
+              "artifact_count": 3,
+              "csg_sha256": "b272dbeaabcacb598d76858bfa40daaeba889569a052fc3746a5734a1975c344",
+              "seconds": 0.461084,
+              "semantic_sha256": "fce7176b7a558a956c66d3921e4bda2ca317c547595263283f9d7275d52d10c9",
+              "status": "succeeded"
+            },
+            {
+              "artifact_count": 3,
+              "csg_sha256": "b4d5f6d1e6572a44f6483eb4b4a6334e51ba6c3d7532469f4290917bdc91f1c6",
+              "seconds": 0.460649,
+              "semantic_sha256": "fce7176b7a558a956c66d3921e4bda2ca317c547595263283f9d7275d52d10c9",
+              "status": "succeeded"
+            }
+          ]
+        }
+      },
+      "family": "solid_cylinder"
+    },
+    {
+      "backends": {
+        "cadquery": {
+          "expected_artifact_count": 0,
+          "failure_count": 0,
+          "repeatable_csg": false,
+          "repeatable_semantics": true,
+          "runs": [
+            {
+              "artifact_count": 0,
+              "csg_sha256": "e7766f22ff21eea28997005436cdbbd4ecf9f19c486ffdfa029611764b9658b3",
+              "seconds": 0.011929,
+              "semantic_sha256": "1b8d77a6689a24be60a5dc09e770a5cf6d81c57dbcf65d9a5114d824d78741c1",
+              "status": "succeeded"
+            },
+            {
+              "artifact_count": 0,
+              "csg_sha256": "3b8a83a1d4f92979ff03ec6044a4451a033a314a2c3b28bbc2db1e1b274d2f04",
+              "seconds": 0.012807,
+              "semantic_sha256": "1b8d77a6689a24be60a5dc09e770a5cf6d81c57dbcf65d9a5114d824d78741c1",
+              "status": "succeeded"
+            }
+          ]
+        },
+        "freecad": {
+          "expected_artifact_count": 3,
+          "failure_count": 0,
+          "repeatable_csg": false,
+          "repeatable_semantics": true,
+          "runs": [
+            {
+              "artifact_count": 3,
+              "csg_sha256": "9624bf24b451d799945677e97d409ef01e3d330f8f1d9c2473671b52fe95edc1",
+              "seconds": 0.468954,
+              "semantic_sha256": "3dce5223a20ae29e161fdfbc3cd2108b899835fe5636e21248c957e45c2b3113",
+              "status": "succeeded"
+            },
+            {
+              "artifact_count": 3,
+              "csg_sha256": "6fcdb8499b271f3d4101079e9bb2e8b2e4972863e36b32a58d09ffcff8393d53",
+              "seconds": 0.46752,
+              "semantic_sha256": "3dce5223a20ae29e161fdfbc3cd2108b899835fe5636e21248c957e45c2b3113",
+              "status": "succeeded"
+            }
+          ]
+        }
+      },
+      "family": "hollow_tube"
+    }
+  ],
+  "freecad_version": "1.1.0",
+  "schema_version": "1.0.0",
+  "scope": "bounded primitive and feature vocabulary; not universal CAD",
+  "topology_edit": {
+    "after": 3.0,
+    "after_curves": 12,
+    "before": 2.0,
+    "before_curves": 8,
+    "parameter_id": "dim_slot_count",
+    "seconds": 0.809972,
+    "status": "succeeded"
+  },
+  "typed_refusals": {
+    "cadquery": {
+      "diagnostic_codes": [
+        "unsupported_capability"
+      ],
+      "seconds": 0.00044,
+      "status": "unsupported"
+    },
+    "freecad": {
+      "diagnostic_codes": [
+        "unsupported_capability"
+      ],
+      "seconds": 0.471058,
+      "status": "unsupported"
+    }
+  }
+}

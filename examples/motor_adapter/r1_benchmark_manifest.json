@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0.0",
+  "case_id": "B.R1.motor_adapter",
+  "determinism": "deterministic_pipeline",
+  "inputs": [
+    "sketch.png",
+    "sketch.fixture.json",
+    "motor_datasheet.pdf",
+    "requirement.txt"
+  ],
+  "ambiguity": {
+    "revision_1": "minimum edge clearance conflicts with the measured geometry",
+    "repair": "human-approved widen_to_recommended creates immutable revision 2"
+  },
+  "expected_evidence": {
+    "eig_revisions": [1, 2],
+    "shared_feature_ir_per_revision": true,
+    "backends": ["cadquery", "freecad"],
+    "artifacts": ["native_model", "neutral_model", "preview_model"],
+    "measurements": [
+      "plate_width",
+      "plate_height",
+      "plate_thickness",
+      "opening_diameter",
+      "mounting_diameter",
+      "mounting_hole_centers",
+      "hole_spacing_x",
+      "hole_spacing_y",
+      "volume",
+      "interface_geometry"
+    ],
+    "predicate_outcomes": {"revision_1": "fail", "revision_2": "pass"},
+    "release_outcomes": {"revision_1": "blocked", "revision_2": "authorised"},
+    "native_parameter_edit": "plate_width: 40 mm -> 45 mm",
+    "step_round_trip": true
+  }
+}

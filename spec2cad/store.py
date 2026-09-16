@@ -24,6 +24,13 @@ from typing import Optional
 from spec2cad.schemas.design_intent import DesignIntent
 from spec2cad.schemas.evidence import EvidenceSet
 from spec2cad.schemas.intent_graph import EngineeringIntentGraph
+from spec2cad.schemas.versioning import (
+    PERSISTED_SCHEMA_VERSION,
+    normalize_legacy_root,
+)
+
+
+DATABASE_SCHEMA_VERSION = 1
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
@@ -52,6 +59,12 @@ CREATE TABLE IF NOT EXISTS api_usage (
     units        INTEGER NOT NULL,
     PRIMARY KEY (day, client_hash)
 );
+
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    version       INTEGER PRIMARY KEY,
+    applied_at    TEXT NOT NULL,
+    description   TEXT NOT NULL
+);
 """
 
 
@@ -71,8 +84,31 @@ class Store:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         with closing(self._connect()) as conn:
+            current = int(conn.execute("PRAGMA user_version").fetchone()[0])
+            if current > DATABASE_SCHEMA_VERSION:
+                raise RuntimeError(
+                    f"database schema version {current} is newer than supported "
+                    f"version {DATABASE_SCHEMA_VERSION}"
+                )
             conn.executescript(SCHEMA)
+            for version in range(current + 1, DATABASE_SCHEMA_VERSION + 1):
+                self._apply_migration(conn, version)
             conn.commit()
+
+    @staticmethod
+    def _apply_migration(conn: sqlite3.Connection, version: int) -> None:
+        if version != 1:
+            raise RuntimeError(f"no database migration registered for version {version}")
+        conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations "
+            "(version, applied_at, description) VALUES (?, ?, ?)",
+            (
+                version,
+                datetime.now(timezone.utc).isoformat(),
+                "establish versioned evidence, intent, EIG, report and state roots",
+            ),
+        )
+        conn.execute(f"PRAGMA user_version = {version}")
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(str(self.db_path))
@@ -175,6 +211,10 @@ class Store:
     # ---------------- revisions ----------------
 
     def save_revision(self, run_id: str, intent: DesignIntent, state: dict) -> None:
+        versioned_state = {
+            "schema_version": PERSISTED_SCHEMA_VERSION,
+            **state,
+        }
         with closing(self._connect()) as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO revisions "
@@ -185,7 +225,7 @@ class Store:
                     intent.revision,
                     datetime.now(timezone.utc).isoformat(),
                     intent.model_dump_json(),
-                    json.dumps(state, default=str),
+                    json.dumps(versioned_state, default=str),
                 ),
             )
             conn.commit()
@@ -204,7 +244,7 @@ class Store:
                 "SELECT state_json FROM revisions WHERE run_id = ? AND revision = ?",
                 (run_id, revision),
             ).fetchone()
-        return json.loads(row["state_json"]) if row else None
+        return normalize_legacy_root(json.loads(row["state_json"])) if row else None
 
     def get_intent_graph(
         self, run_id: str, revision: int

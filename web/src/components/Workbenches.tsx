@@ -6,8 +6,9 @@ import {
 import { api } from '../api'
 import { cn } from '../lib/cn'
 import type { ReplayCatalog } from '../replay'
-import type { Evidence, RunState } from '../types'
+import type { CapabilityRegistry, Evidence, RunState } from '../types'
 import { Button, Mark, Num, Tip } from './ui'
+import { CapabilityTags } from './CapabilityTags'
 
 interface SourceWorkspaceProps {
   busy: boolean
@@ -15,6 +16,7 @@ interface SourceWorkspaceProps {
   visionAvailable: boolean
   state: RunState | null
   replayCatalog: ReplayCatalog | null
+  capabilityRegistry: CapabilityRegistry | null
   activeScenarioId: string | null
   onDemo: (scenarioId: string) => void
   onCompile: (sketch: File | null, datasheet: File | null, instruction: string) => void
@@ -31,6 +33,7 @@ interface SourceWorkspaceProps {
  */
 export function SourceWorkspace({
   busy, replayMode, visionAvailable, state, replayCatalog, activeScenarioId,
+  capabilityRegistry,
   onDemo, onCompile, onContinue, onNew,
 }: SourceWorkspaceProps) {
   const [sketch, setSketch] = useState<File | null>(null)
@@ -259,15 +262,7 @@ export function SourceWorkspace({
                       </div>
                       <div className="mt-auto flex flex-wrap items-end gap-x-[8px] gap-y-[7px] pt-[10px]">
                         <div className="min-w-[220px] flex-1">
-                          <div className="flex flex-wrap gap-[5px]">
-                            {scenario.capabilities.map((capability) => (
-                              <span key={capability}
-                                    className="rounded-[4px] border border-c4 bg-c1 px-[6px] py-[2px]
-                                               text-[10.5px] text-c7">
-                                {capability}
-                              </span>
-                            ))}
-                          </div>
+                          <CapabilityTags ids={scenario.capability_ids} registry={capabilityRegistry} />
                           <div className="num mt-[6px] text-[10px] text-c6">
                             CAD construction · {scenario.operation}
                           </div>

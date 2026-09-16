@@ -17,6 +17,7 @@
         "\u00d860 bolt circle",
         "4-hole circular pattern"
       ],
+      "capability_ids": ["flanged_coupling"],
       "operation": "Revolved interface \u00b7 keyway \u00b7 patterned holes",
       "inputs": [
         "text"
@@ -35,6 +36,7 @@
         "1.5 mm sheet",
         "Bends and cut-outs"
       ],
+      "capability_ids": ["controller_enclosure"],
       "operation": "Thin-wall body \u00b7 formed walls \u00b7 panel openings",
       "inputs": [
         "sketch"
@@ -53,6 +55,7 @@
         "Adjustment slots",
         "Measured repair"
       ],
+      "capability_ids": ["motor_mount_bracket"],
       "operation": "Pads \u00b7 face holes \u00b7 slots \u00b7 gussets",
       "inputs": [
         "text",
@@ -72,6 +75,7 @@
         "3-port connectivity",
         "Wall check"
       ],
+      "capability_ids": ["hydraulic_manifold"],
       "operation": "Multi-face drilling \u00b7 internal threads \u00b7 passage booleans",
       "inputs": [
         "sketch",
@@ -91,6 +95,7 @@
         "2.5 mm shell",
         "Infeasibility repair"
       ],
+      "capability_ids": ["blower_transition_duct"],
       "operation": "Rectangle-to-circle loft \u00b7 shell \u00b7 end flanges",
       "inputs": [
         "text",
