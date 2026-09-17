@@ -435,7 +435,7 @@ def compile_feature_ir(graph: EngineeringIntentGraph) -> FeatureIR:
         design_revision=graph.revision,
         part=FeatureIRPart(
             id="fir_part",
-            name=part_node.name,
+            name=_slug(part_node.name),
             label=part_node.label or part_node.name,
             intent_links=_link(part_node.id, IntentRelation.REALIZES),
             body_ids=(body_id,),

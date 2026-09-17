@@ -1,80 +1,76 @@
-# Spec2CAD — a multimodal design-intent compiler
+# Spec2CAD
 
-**Live demo: https://spec2cad.vercel.app** — five recorded evidence conditions, each labelled
-as such. Vercel cannot host the pipeline itself (the CadQuery bundle
-measures 1165 MB against a 500 MB function limit), so the deployment replays
-genuine frozen output rather than simulating it. Uploading documents and
-applying an unrecorded resolution both refuse, with the reason. For live
-generation run it locally or as a container — see `DEPLOYMENT.md`.
+**Multimodal engineering intent → validated parametric CAD**
 
-Takes any available combination of a hand sketch, component datasheet and
-written requirement, and produces the traceable evidence and design intent that
-the supplied sources support. Complete inputs continue through a parametric
-feature plan, generated STEP model and validation report — and when the sources
-are jointly impossible, the system says so instead of quietly building something.
+Give it a requirement, an engineering sketch, a technical document — or a combination of them.
 
-The thesis is not "an LLM can write CadQuery." It is the separation that makes
-generated geometry accountable:
+Spec2CAD extracts traceable engineering evidence, builds an **Engineering Intent Graph**, compiles that intent into typed CAD operations, generates parametric geometry, and validates the resulting B-Rep against the requirements that produced it.
 
+[**Live demo →**](https://spec2cad.vercel.app) · [Architecture](#architecture) · [Examples](#five-evidence-conditions) · [Quickstart](#quickstart)
+
+```text
+Text / Sketch / Technical Document
+              ↓
+       Evidence extraction
+              ↓
+    Engineering Intent Graph
+              ↓
+   Requirement Predicate IR
+              ↓
+        Feature planning
+              ↓
+       Parametric CAD
+              ↓
+   B-Rep / STEP validation
+              ↓
+     Repair / release gate
 ```
-evidence  ≠  design intent  ≠  CAD program  ≠  measured B-Rep  ≠  release authorisation
+
+The point is not that an LLM can write CadQuery. The point is the separation between what the sources say, what the system believes the design intent is, what geometry gets built, and what the final solid actually measures.
+
+```text
+evidence ≠ design intent ≠ CAD program ≠ measured B-Rep ≠ release authorisation
 ```
+
+> **Demo note** — the public Vercel deployment replays five genuine frozen pipeline runs. It does not pretend to run CadQuery inside Vercel; the full pipeline runs locally or in the container deployment described in [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
 ---
 
-## The demonstration
+## Why this exists
 
-The public benchmark is organized by evidence condition rather than by CAD
-operation: a text-only flanged coupling, sketch-only sheet-metal enclosure,
-text-plus-sketch motor bracket, sketch-plus-datasheet hydraulic manifold, and a
-fully multimodal blower transition duct. Their uncertainty behaviors are also
-different: underspecification, missing information, source disagreement,
-cross-document dependency, and geometric infeasibility. The coupling and
-enclosure carry recorded clarification approvals; the motor bracket and duct
-carry measured engineering repairs. The manifold needs neither.
+Real engineering intent rarely arrives as one clean prompt.
 
-| Source | States | |
-|---|---|---|
-| Sketch | plate is 40 × 50 mm | read correctly |
-| Datasheet (p.3) | 31 × 31 mm hole pattern, 4 × M3, ⌀22 boss | read correctly |
-| Requirement | 5 mm aluminium, normal-clearance M3, **≥4 mm edge clearance**, 1 mm chamfers | read correctly |
-| ISO 273 | M3 medium clearance → ⌀3.4 mm | cited, not guessed |
+A dimension may be written on a sketch. A hole pattern may come from a supplier datasheet. A clearance requirement may be stated in text. A standard may define the actual fastener diameter. Two sources may disagree — or every source may be individually correct while the combined design is geometrically impossible.
 
-Every value is right. Together they are impossible:
+Sending all of that directly to a code-generating model collapses evidence, interpretation, execution, and verification into one opaque step.
 
-```
-edge clearance = (40 − 31)/2 − 3.4/2 = 2.8 mm      required: 4 mm
-```
+Spec2CAD keeps them separate so the system can answer questions such as:
 
-The system builds the candidate anyway — **so the violation can be measured on
-real geometry rather than only predicted** — measures 2.8000 mm on the solid,
-blocks the release, and explains itself:
-
-> Release BLOCKED for DesignIntent v1. STEP export is withheld.
-> measured only 2.8 mm between the nearest mounting-hole edge and the plate
-> boundary, against a required 4 mm. The minimum feasible plate width is 42.4 mm.
->
-> Responsible parameters: `plate_width`, `hole_spacing_x`, `mounting_hole_diameter`
-> — every one read correctly. They are simply not jointly satisfiable, so this is
-> a **constraint conflict**, not a misreading.
-
-A human approves widening to 45 mm. That derives **DesignIntent v2** (v1 stays
-intact and retrievable), regenerates, measures **5.3000 mm**, and authorises the
-STEP — which is then re-imported and re-validated, so the *artifact* is proven,
-not just the in-memory result.
-
-The generalisation check is a second, text-only **slotted mounting bracket**:
-80 × 50 × 4 mm, a four-hole pattern, two 8 × 20 mm slots, and 3 mm corner
-fillets. It passes through the same evidence → graph → feature planner → typed
-CAD IR → measured validation path. Renaming the part leaves its CAD program
-unchanged; the plan is selected from graph features, not `if part == bracket`.
+- Where did this dimension come from?
+- Was it explicitly stated or inferred?
+- Which source is authoritative?
+- Which requirement does this feature satisfy?
+- Did the generated B-Rep actually meet it?
+- If not, which parameters caused the failure?
+- Can a repair be proposed without silently rewriting the original intent?
 
 ---
 
-## Quickstart
+## Five evidence conditions
 
-Everything below runs on `C:\Users\tharu\miniforge3\python.exe`, which already
-has CadQuery. Elsewhere: `pip install -r requirements.txt`.
+The public showcase is organized by **how engineering evidence arrives**, not by CAD operation.
+
+| # | Evidence | Part | What the case demonstrates | CAD operations |
+|---|---|---|---|---|
+| 01 | **Text only** | Flanged shaft coupling | Generate from natural language while keeping an underspecified M5 tapping depth explicit | revolved interface · keyway · circular hole pattern |
+| 02 | **Sketch only** | Sheet-metal enclosure | Reconstruct geometry from drawing marks while refusing to invent missing material/tolerance information | thin-wall body · formed walls · panel openings |
+| 03 | **Text + sketch** | Motor-mount bracket | Detect a text-vs-sketch / clearance conflict, measure it on geometry, and apply an approved repair | pads · face holes · slots · gussets |
+| 04 | **Sketch + technical document** | Hydraulic manifold | Resolve sketch port labels against controlled interface data before validating hidden passages | multi-face drilling · modeled threads · passage booleans |
+| 05 | **Text + sketch + technical document** | Blower transition duct | Fuse all evidence, detect geometric infeasibility, block release, and lengthen the design after approval | rectangle-to-circle loft · shell · end flanges |
+
+Open the [live demo](https://spec2cad.vercel.app) to inspect each recorded run through **Sources → Evidence → Intent → Inspect → Release**.
+
+### Run locally
 
 ```bash
 python examples/motor_adapter/generate_inputs.py     # seeded, byte-identical
@@ -98,49 +94,56 @@ SPEC2CAD_DUAL_BACKEND=1 uvicorn api.main:app --port 8000
 ```bash
 cd web && npm install && npm run dev        # http://localhost:5173
 ```
+### What a run is supposed to expose
+
+```text
+Input
+  ↓
+Extracted evidence + provenance
+  ↓
+Engineering Intent Graph
+  ↓
+Resolved parameters + requirement predicates
+  ↓
+Typed feature plan
+  ↓
+Generated CAD
+  ↓
+Measured validation
+  ↓
+Released / blocked / repaired
+```
+
+The repository also contains a separate text-only **slotted mounting bracket** generalisation case: 80 × 50 × 4 mm, four mounting holes, two 8 × 20 mm slots, and 3 mm corner fillets. It passes through the same graph → planner → typed CAD IR → measured validation path; the planner selects from graph features rather than part-name switches.
 
 ---
 
-## Interface
+## A concrete failure case
 
-An application shell, not a page. The frame never scrolls: a command bar, a
-stage rail, a permanent 3D viewport, a feature timeline along the bottom, and a
-contextual inspector on the right. Panels scroll independently.
+The motor-adapter path demonstrates why measurement matters.
 
-The shape is taken from parametric CAD tools, and it maps onto data the pipeline
-already produces rather than being imposed on it:
-
-| Shell element | What it actually shows |
+| Source | States |
 |---|---|
-| Command bar | part, material, process, the current revision, a link to this repo, and the history toggle |
-| Stage rail | Sources → Evidence → Intent → Inspect → Release, badged with live failure and proposal counts. Sources is an AI-style composer that accepts any one, two, or all three inputs. Rail and inspector sit together on the **left**, the way an activity bar and its sidebar do, so choosing a stage and reading it are one glance; the active tab takes the panel's surface so the two read as one object. Clicking the active stage collapses the panel and gives the viewport the full width. |
-| Editor / viewport | Evidence opens source documents in VS Code-style tabs and replaces the CAD view; selecting a value shows its highlighted extraction region. Intent, CAD and Validate retain the built-solid viewport. |
-| Timeline | the real feature history — `base_plate → shaft_opening → mounting_holes → external_chamfers`. Selecting one opens what that operation actually is: its resolved values and the parameter each came from. |
-| Inspector | the panel for the selected stage; a blocked run opens on Release, a released one on Inspect. Parameters are editable — changing one derives the next revision through the same `derive()` path an accepted proposal uses. |
-| Status bar | the gate decision plus the governing measurement, tinted by outcome |
-| Revision graph | history as a commit log, newest first. DesignIntent revisions are already an immutable attributed chain — parent, proposal, change, approver — so they are drawn as one. A filled node was released, a hollow one refused; selecting a node opens that revision. |
+| Sketch | plate width = **40 mm** |
+| Datasheet | **31 × 31 mm** motor-hole pattern, 4 × M3, ⌀22 boss |
+| Requirement | **≥4 mm edge clearance**, 5 mm aluminium, normal-clearance M3 |
+| ISO 273 lookup | M3 medium clearance → **⌀3.4 mm** |
 
-**Proportion is golden-ratio, not eyeballed.** Every fixed dimension is a
-Fibonacci number, so the ratios between them are φ exactly rather than an
-approximation of it:
+Every value is read correctly. Together they are impossible:
 
-```
-command bar  55 : status bar 34  =  1.6176      φ = 1.6180
-inspector   377 : 233            =  φ           377 = F(14)
-rail 55 · timeline 55 · radii 5/8/13 · spacing 3/5/8/13/21/34
+```text
+edge clearance = (40 − 31)/2 − 3.4/2 = 2.8 mm
+required       = 4.0 mm
 ```
 
-The type scale steps by **√φ = 1.272** from a 14px base — 11 / 14 / 17.8 / 22.6 /
-28.8. A full 1.618 jump between adjacent sizes is far too coarse for dense UI
-text, so φ is applied across two steps instead of one.
+Spec2CAD still builds the diagnostic candidate so the failure can be measured on the **real solid**, not only predicted symbolically.
 
-**Colour is OKLCH and reserved for meaning.** Steps are perceptually even rather
-than evenly spaced in sRGB, where the same numeric gap looks larger in blues
-than in yellows. A cool-cast neutral ramp carries the interface; iris marks
-selection and the primary action; danger/success/warn carry outcomes. No status
-is conveyed by hue alone — each also carries a glyph (`✓ ✕ ! –`) and a weight
-change, so the interface still reads in greyscale or with colour-vision
-deficiency.
+```text
+measured edge clearance: 2.8000 mm
+release: BLOCKED
+```
+
+The system attributes the failure to the responsible parameters rather than blaming a source that was read correctly. An approved repair widens the plate to 45 mm, derives a new immutable intent revision, regenerates the CAD, measures **5.3000 mm**, and then STEP-exports, re-imports, and validates the artifact again.
 
 Audited on the shipped CSS: **all 14 informational pairings clear 4.5:1**
 (`c6` 4.66, accent 5.15, danger 5.16, success 5.04, warn 5.61). The one token
@@ -148,7 +151,7 @@ below that line, `c5`, is used exclusively for disabled and decorative elements,
 which WCAG exempts — the two places it had been carrying information were moved
 to `c6`.
 
-Type is **Geist** and **Geist Mono**, drawn for technical interfaces. Monospace
+Type is **IBM Plex Sans** and **IBM Plex Mono**, drawn for technical interfaces. Monospace
 is used only for measured numerals, with tabular figures so digits align down a
 column — never for labels.
 
@@ -196,29 +199,55 @@ highlights the actual rectangle it came from:
 
 ## Architecture
 
+```text
+inputs
+  │
+  ▼
+Agent interpretation
+(plan / bounded question / explanation)
+  │
+  ▼
+Evidence[]
+(kind · value · source · confidence · authority · region)
+  │
+  ▼
+Engineering Intent Graph
+(entities · relations · provenance · constraints)
+  │
+  ├──────────────► DesignIntent compatibility projection
+  │
+  └──────────────► Requirement Predicate IR
+                         │
+                         ▼
+                     Feature IR
+                         │
+                   ┌─────┴─────┐
+                   ▼           ▼
+              CadQuery      FreeCAD
+              adapter       worker
+                   └─────┬─────┘
+                         │
+                         ▼
+                 CSG + measured B-Rep
+                         │
+                         ▼
+          classified reconciliation + release gate
+                         │
+              ┌──────────┴──────────┐
+              ▼                     ▼
+           release              repair proposal
+                                      │
+                                      ▼
+                              DesignIntent vN+1
 ```
-inputs ─► Evidence ─► Engineering Intent Graph ─► Feature IR
-                         │                         │
-                         ├► DesignIntent view      ├► CadQuery adapter ─► CSG + B-Rep
-                         │                         └► FreeCAD worker  ─► CSG + native model
-                         └► Requirement predicates              │
-                                                               ▼
-DesignIntent vN+1 ◄─ REPAIR ◄─ RELEASE GATE ◄─ classified reconciliation
-```
 
-**Four stages, deliberately not merged:**
+### The important boundaries
 
-| Stage | Runs on | Blocks? |
-|---|---|---|
-| Preflight | DesignIntent, symbolically | **No** — advisory, predicts only |
-| Diagnostic generation | CADProgram | **No** — always builds, so violations are measurable |
-| Measured validation | the B-Rep | **No** — reports ground truth |
-| Release gate | measured reports | **Yes — the only gate** |
+**Evidence is not intent.** Every extracted fact keeps provenance, extraction method, confidence, and authority instead of being flattened into a prompt.
 
-Preflight and measurement are cross-checked against each other. A disagreement
-is reported as a **pipeline defect**, not a design problem.
+**Intent is not CAD code.** Dimensions, features, interfaces, requirements, source evidence, and reference geometry live as typed graph nodes and relations such as `defines`, `supported_by`, `constrains`, and `located_relative_to`.
 
-### Design decisions worth the words
+**The LLM does not execute Python.** Model output is schema-constrained and limited to a closed typed operation vocabulary. `cad/executor.py` is the sole CadQuery importer.
 
 **The LLM never emits or executes Python.** It returns schema-validated
 `Evidence` only. The kernel facade is the sole product importer of CadQuery
@@ -236,111 +265,149 @@ is deliberately not a claim of arbitrary profiles, surfacing or universal CAD.
 Release-governing reconciliation remains the measured motor-interface slice;
 broader family comparisons are advisory.
 
-**The graph is now the pipeline source.** Dimensions, features, interfaces,
-requirements, source evidence, and reference geometry are typed nodes joined by
-relations such as `defines`, `supported_by`, `constrains`, and
-`located_relative_to`. `DesignIntent` remains as a parity-tested compatibility
-projection for validators and revision code while they migrate.
+**Requirements compile to predicates.** A statement such as “minimum 4 mm edge clearance” becomes a typed geometric predicate such as a `MinimumDistance(...)`, which is later evaluated against the generated B-Rep.
 
-**Requirements compile to predicates.** A stated edge-clearance requirement is
-compiled to `MinimumDistance(feature=mounting_holes, target=part_boundary,
-threshold=...)`, then measured on the B-Rep. The validator no longer discovers
-which feature a magic constraint string was meant to govern.
+**Confidence and authority are different.** A blurry datasheet can be low-confidence but authoritative; a crisp scaled sketch value can be high-confidence but advisory.
 
-**Authority and confidence are separate axes.** Confidence is "did I read this
-correctly"; authority is "is this source entitled to define this". A blurry
-datasheet scan is low-confidence but definitive; a crisp value scaled off a
-sketch is high-confidence but advisory. Collapsing them loses the distinction
-that makes fusion defensible.
-
-**Authority never overrules an explicit annotation.** Two sources that each
-*state* a value and disagree produce `ADJUDICATION_REQUIRED` with both values
-preserved — a question for a human, not something to settle with a precedence
-table. A blanket "datasheet beats sketch" rule would silently discard a number a
-person deliberately wrote down, and the discarded one might be right.
-
-**Source conflicts and constraint conflicts are different things.** The headline
-case is a *constraint* conflict: nobody misread anything, so it is attributed to
-parameters rather than blamed on a document.
-
-**Repairs are immutable revisions.** `DesignIntent` is frozen; a repair calls
-`derive()`, which records before/after, the proposal, and the approver. v1 never
-changes. Freezing the nested models mattered — with only the outer model frozen,
-`intent.parameters["plate_width"].value = 45.0` silently mutated v1.
-
-**Typed parameter references, not stringly-typed numbers.** A CAD operation
-field is `NumberLiteral | ParamRef` as a tagged union, so `45` and
-`"plate_width"` are different types rather than told apart by guessing. The
-payoff is visible in the generated scripts for v1 and v2: they differ *only* in
-`plate_width = 40` vs `45`.
-
-**Safe vs unsafe repairs.** Widening the plate is safe. Moving the hole pattern
-is not — it builds cleanly, passes every check against the altered intent, and
-does not bolt to the motor; the failure surfaces at assembly. Unsafe proposals
-are shown with their consequence but refuse to auto-apply.
+**Repairs create revisions.** A repair derives a new frozen intent revision with before/after values, proposal, and approver. The original revision remains intact.
 
 ---
 
 ## Validation measures the solid
 
-Nothing here echoes an input parameter, so a wrongly built feature actually
-fails. Public CadQuery API only:
+Validation does not simply compare requested values with the parameters fed into the CAD program. It interrogates the generated topology.
 
-| What | How | Verified |
+| What | Measurement approach | Example verified result |
 |---|---|---|
-| Hole ⌀ and centres | `Edge.radius()`, `Edge.Center()` | 1.7000 @ ±15.500 → spacing 31.0 |
-| Plate extents | planar `Face.normalAt()` + `Face.Center()` | 45.000000 / 5.000000 |
-| Material integrity | measured vs analytic volume | delta **0.000000** mm³ |
-| Through holes | matching circles on top and bottom | 5 openings |
-| Edge clearance | hole edges vs measured boundary | 2.8000 → 5.3000 |
-| Slots | paired semicircular B-Rep arcs | 2 × 8.0000 × 20.0000 mm |
-| Corner fillets | external quarter-circle arcs | 4 × R3.0000 mm |
+| Hole diameter / centres | public `Edge.radius()` / `Edge.Center()` | radius 1.7000 at ±15.500 → 31 mm spacing |
+| Plate extents | planar face normals + centres | 45.000000 / 5.000000 |
+| Material integrity | measured vs analytic volume | delta **0.000000 mm³** |
+| Through-holes | matching circular openings on top and bottom | 5 openings |
+| Edge clearance | measured hole edges vs part boundary | **2.8000 → 5.3000 mm** after repair |
+| Slots | paired semicircular B-Rep arcs | **2 × 8 × 20 mm** |
+| Corner fillets | external quarter-circle arcs | **4 × R3 mm** |
 
-Three bans, each from something that actually went wrong, enforced by
-`tests/test_no_brittle_apis.py`:
+The project deliberately avoids brittle validation shortcuts such as private OCC accessors, bounding-box dimensions for precision measurements, and exact face-count assertions.
 
-- **No private OCC accessors.** `face._geomAdaptor().Cylinder().Radius()` worked
-  but the public `Edge.radius()` gives the identical value.
-- **No bounding boxes for dimensions.** `BoundingBox().zlen` reported **5.007**
-  for a 5.000 mm plate.
-- **No exact face counts.** They break on any added fillet and prove little; the
-  analytic volume comparison is tolerance-aware and catches real defects.
+The release process has four separate stages:
 
-A fourth correction is recorded in the code: the rule "chamfer must be less than
-half the plate thickness" is **false**. These chamfers run along vertical edges,
-so thickness does not constrain them — a 1 mm chamfer on a 1.5 mm plate builds a
-valid solid. The real limit is in-plane, and that is what preflight checks.
+| Stage | Operates on | Blocks release? |
+|---|---|---|
+| Preflight | intent, symbolically | No — advisory |
+| Diagnostic generation | typed CAD program | No — build the candidate |
+| Measured validation | generated B-Rep | No — report ground truth |
+| Release gate | measured reports | **Yes — the only gate** |
+
+A disagreement between symbolic preflight and measured validation is treated as a **pipeline defect**, not a design failure.
 
 ---
 
-## Repository
+## Extraction and multimodal reasoning
 
+| Source | Current path | Without an API key |
+|---|---|---|
+| Technical PDF | PyMuPDF for known rows; bounded PDF text can join semantic planning | known rows only |
+| Requirement text | deterministic plate parser + ISO 273 lookup; broader language maps to the typed feature vocabulary through OpenAI | narrow plate fallback |
+| Engineering sketch | OpenAI multimodal semantic pass; Anthropic remains supported by the legacy sketch reader | arbitrary uploads unavailable |
+
+Every evidence row records its `extraction_method`. Recorded fixture data is explicitly excluded from extraction-accuracy claims; replaying a frozen run is not presented as measuring a vision model.
+
+When available, source regions are retained so the UI can trace a resolved value back to the exact location it came from — for example a datasheet row containing the 31 × 31 mm mounting pattern.
+
+---
+
+## Interface
+
+The UI is structured like an engineering application rather than a chat page.
+
+- **Sources** — text, sketch, technical-document inputs
+- **Evidence** — extracted values with provenance and source-region inspection
+- **Intent** — resolved parameters, graph-backed design intent, requirements
+- **CAD / Inspect** — generated solid and real feature history
+- **Release** — measured checks, conflicts, repairs, and gate decision
+- **Revision history** — immutable intent revisions and approvals
+
+Selecting an evidence value can open the source region that produced it; selecting a CAD feature exposes the resolved parameters behind that operation.
+
+---
+
+## Quickstart
+
+### Requirements
+
+- Python with CadQuery support
+- Node.js for the web client
+- optional `OPENAI_API_KEY` for broader semantic text/PDF reasoning and sketch vision
+
+```bash
+pip install -r requirements.txt
 ```
+
+Run the deterministic examples:
+
+```bash
+python examples/motor_adapter/generate_inputs.py
+python -m spec2cad.cli examples/motor_adapter
+python -m spec2cad.cli examples/motor_adapter --approve widen_to_recommended
+python -m spec2cad.cli examples/mounting_bracket
+```
+
+Run validation/evaluation:
+
+```bash
+python -m pytest
+python -m eval.run_public_guardrails
+python -m eval.run_eval
+python -m eval.run_adversarial_generalization
+```
+
+Run the application locally:
+
+```bash
+uvicorn api.main:app --port 8000
+```
+
+In a second terminal:
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Then open `http://localhost:5173`.
+
+See [`DEPLOYMENT.md`](DEPLOYMENT.md) for the container/deployment path.
+
+---
+
+## Repository map
+
+```text
 spec2cad/
-  schemas/      evidence · intent_graph · CAD/profile · assembly · GD&T · analysis IR
-  extractors/   datasheet (real) · text (real) · vision · fixtures · drawing
-  knowledge/    ISO 273 clearance table · rounding recommendations
-  fusion/       source_policy · entity_resolver · graph_builder · conflict_detector
-  cad/          compiler · executor (sole CadQuery importer) · assembly API · selectors
-  validation/   predicates · measure · topology · dimensions · GD&T · requirements · gate
-  repair/       repair_planner
-  pipeline.py · store.py (SQLite) · cli.py
-api/main.py     FastAPI
-web/            React + Vite + Tailwind v4 + three.js, five sheet zones
-examples/       motor adapter + slotted mounting bracket
-eval/           metrics · run_eval → report.md
-scripts/        freeze_demo.py (static replay bundle)
-tests/          118 tests
+  schemas/      evidence · intent graph · CAD/profile · assembly · GD&T · analysis IR
+  extractors/   datasheet · text · vision · drawing · recorded fixtures
+  knowledge/    engineering lookup data such as ISO 273
+  fusion/       source policy · entity resolution · graph construction · conflicts
+  cad/          compiler · graph-driven planner · executor · selectors · assembly API
+  validation/   predicates · geometry measurement · topology · requirements · release gate
+  repair/       repair planning
+  pipeline.py   end-to-end orchestration
+  store.py      revision / graph persistence
+
+api/            FastAPI application
+web/            React + Vite + Tailwind + three.js interface
+examples/       motor adapter · mounting bracket · benchmark/showcase inputs
+eval/           deterministic + adversarial evaluation
+scripts/        showcase / replay generation
+tests/          pipeline, CAD, validation and regression tests
 ```
 
-Geometry is deliberately **not** persisted. The pipeline is deterministic, so
-the stored intent graph plus the compiler reproduces the exact solid; storing
-the B-Rep too would create a second source of truth that could drift from the
-intent that supposedly produced it.
+Geometry itself is not persisted as the source of truth. The intent graph plus deterministic compiler reproduces the solid; persisting a second authoritative geometry representation would create another object that can drift from the intent that supposedly generated it.
 
 ---
 
-## Scope
+## Current scope
 
 ### Capability truth contract
 
@@ -370,22 +437,31 @@ immutable repair revisions, STEP round-trip verification, a five-panel UI,
 39 deterministic evaluation checks, a container deployment path and a
 5.0 MB static showcase bundle.
 
-Also working: an Engineering Intent Graph with parity-tested projection, a
-graph-driven feature compiler, a typed minimum-distance predicate IR, and a
-second slotted-bracket distribution with independently measured slots and
-fillets. This proves reuse across two feature sets; it does not claim open-ended
-part understanding.
+### Working today
 
-The advanced typed layer supports closed line/arc sketch profiles for additive
-extrusion, pocketing and revolution; modeled external helical fastener threads;
-circular rods swept along a
-straight–arc–straight centerline; verified 90-degree constant-thickness
-sheet bends with bend allowance and developed length; assemblies with component
-transforms, origin/offset/concentric mate validation and B-Rep collision checks;
-GD&T inspection for size, true position, flatness and perpendicularity; and
-explicit-input mass, axial/bending stress, thermal expansion and worst-case fit
-calculations. These are bounded engineering operations: arbitrary model code,
-automatic mate solving, non-90-degree sheet bends and FEA are not implied.
+- multimodal evidence model with provenance, confidence, authority, and source regions
+- Engineering Intent Graph as the pipeline source
+- typed requirement-predicate IR
+- graph-driven CAD feature planning
+- schema-constrained semantic interpretation
+- typed CAD program rather than arbitrary generated Python
+- CadQuery execution behind a single executor boundary
+- measured B-Rep validation
+- release gating
+- immutable repair revisions
+- STEP export → re-import → re-validation
+- five recorded evidence-condition showcases
+- second feature-distribution / mounting-bracket generalisation case
+- closed line/arc profiles, extrusion, pocketing, revolution
+- modeled external helical fastener threads
+- straight–arc–straight sweeps
+- bounded 90° sheet-metal bends
+- assemblies with component transforms and selected mate validation
+- selected GD&T inspection and explicit-input engineering calculations
+
+### Deliberately not claimed
+
+Spec2CAD is **not** a universal CAD agent or production-ready mechanical design system.
 
 When a server credential or request-scoped compatible credential is supplied,
 the public run path feeds the
@@ -396,20 +472,27 @@ arbitrary CAD code. Written image dimensions are accepted as evidence, while
 pixel scaling and invented dimensions are explicitly prohibited. The narrow
 deterministic plate parser remains the no-model fallback.
 
-The adversarial suite holds the graph feature planner and CAD vocabulary fixed,
-then evaluates regressions, evidence and unit perturbations, an unseen flange
-composition, executor and symbolic fault injection, graph persistence, and STEP
-revalidation. It reports graph construction, planning, execution, geometry,
-requirements, refusal correctness, and STEP round-trip separately in
-`eval/adversarial_generalization_report.md` and a machine-readable JSON peer.
+Current limitations include:
 
-**Deliberately deferred:** drawing-layout perturbations such as rotated sketches
-and relocated annotations, automatic general mate solving, non-90-degree sheet
-bends, FEA, alternate motor frames, and universal drawing parsing. The offline
-fixture cannot measure vision generalization honestly, so those cases remain
-outside the deterministic suite.
+- arbitrary engineering drawing understanding is not solved
+- drawing-layout perturbations such as rotated sketches and relocated annotations are deferred
+- semantic extraction quality depends on the configured multimodal model
+- the typed CAD vocabulary is intentionally bounded
+- general automatic mate solving is not implemented
+- non-90° sheet-metal bends are outside the current supported path
+- FEA is not part of the CAD validation loop
+- the public Vercel demo is recorded replay, not live CadQuery execution
+- the deterministic offline fixture cannot honestly measure vision generalisation
+- symbolic preflight and measured clearance validation currently share some domain formulas, so agreement between them cannot detect every conceptual mistake
 
-Known limitations are stated plainly in `eval/report.md` under **Failure
-analysis** — including that the offline demo does not exercise drawing
-understanding at all, and that preflight and measured validation share a
-clearance formula, so their agreement would not catch a conceptual error in it.
+The adversarial suite reports graph construction, planning, execution, geometry, requirements, refusal correctness, and STEP round-trip separately rather than collapsing everything into one success number.
+
+---
+
+## The design principle
+
+The long-term problem is not simply generating geometry from language.
+
+It is preserving **engineering intent** when that intent is fragmented across different sources, converting it into operations a CAD system can execute, and then proving that the resulting artifact still satisfies the evidence and constraints that justified it.
+
+That is the part Spec2CAD is built to explore.

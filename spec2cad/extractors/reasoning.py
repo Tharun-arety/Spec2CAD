@@ -1,9 +1,10 @@
 """Structured model reasoning over free-form engineering instructions.
 
-The model is an extractor, not a CAD generator.  It can map varied wording onto
-the Engineering Intent Graph's existing semantic targets, but cannot create a
-new target, feature, template, or planner operation.  Deterministic facts always
-win: model facts are admitted only for targets the rule parser did not extract.
+The model interprets, extracts, selects a typed tool path, and asks bounded
+clarifications; it is not a CAD generator. It can map varied wording onto the
+Engineering Intent Graph's existing semantic targets and operations, but cannot
+create a new target, feature, template, or planner operation. Deterministic facts
+always win: model facts are admitted only for targets the rule parser missed.
 """
 
 from __future__ import annotations
@@ -11,7 +12,6 @@ from __future__ import annotations
 import json
 import base64
 import mimetypes
-import os
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -19,6 +19,7 @@ from typing import Any
 
 from spec2cad.extractors.base import (
     load_env,
+    openai_api_key,
     reasoning_available,
     reasoning_model,
     model_max_output_tokens,
@@ -51,6 +52,12 @@ from spec2cad.schemas.advanced_intent import (
     SheetMetalFeatureIntent,
     ThreadedFastenerFeatureIntent,
 )
+from spec2cad.schemas.agent import (
+    AgentPlan,
+    AgentToolArgument,
+    AgentToolCall,
+    ClarificationRequest,
+)
 from spec2cad.public_guardrails import current_safety_identifier
 
 
@@ -68,6 +75,7 @@ class ReasoningExtractionResult:
     unsupported_features: list[str] = field(default_factory=list)
     clarification_questions: list[str] = field(default_factory=list)
     feature_requests: list[FeatureIntent] = field(default_factory=list)
+    agent_plan: AgentPlan | None = None
 
 
 _TARGETS = [target.value for target in SemanticTarget]
@@ -77,7 +85,8 @@ REASONING_JSON_SCHEMA: dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
     "required": [
-        "facts", "feature_requests", "unsupported_features", "clarification_questions"
+        "facts", "feature_requests", "unsupported_features", "clarification_questions",
+        "agent",
     ],
     "properties": {
         "facts": {
@@ -215,6 +224,83 @@ REASONING_JSON_SCHEMA: dict[str, Any] = {
             "type": "array",
             "items": {"type": "string"},
         },
+        "agent": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["action", "summary", "steps", "tool_calls", "clarifications"],
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["execute", "clarify", "explain", "unsupported"],
+                },
+                "summary": {"type": "string"},
+                "steps": {"type": "array", "items": {"type": "string"}},
+                "tool_calls": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "required": ["name", "purpose", "arguments"],
+                        "properties": {
+                            "name": {"type": "string", "enum": [
+                                "box", "cylinder", "tube", "hole",
+                                "rectangular_hole_pattern", "linear_slot_pattern",
+                                "chamfer", "fillet", "profile_extrude",
+                                "profile_revolve", "curved_rod_sweep",
+                                "rectangular_loft", "curved_strip_sweep",
+                                "threaded_fastener", "sheet_metal_90_bend",
+                            ]},
+                            "purpose": {"type": "string"},
+                            "arguments": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "additionalProperties": False,
+                                    "required": ["name", "value", "unit", "source"],
+                                    "properties": {
+                                        "name": {"type": "string"},
+                                        "value": {
+                                            "type": ["number", "string", "boolean", "null"]
+                                        },
+                                        "unit": {"type": ["string", "null"]},
+                                        "source": {"type": "string"},
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+                "clarifications": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "required": [
+                            "id", "question", "why", "options", "allow_free_text"
+                        ],
+                        "properties": {
+                            "id": {"type": "string"},
+                            "question": {"type": "string"},
+                            "why": {"type": "string"},
+                            "options": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "additionalProperties": False,
+                                    "required": ["label", "value", "description"],
+                                    "properties": {
+                                        "label": {"type": "string"},
+                                        "value": {"type": "string"},
+                                        "description": {"type": "string"},
+                                    },
+                                },
+                            },
+                            "allow_free_text": {"type": "boolean"},
+                        },
+                    },
+                },
+            },
+        },
     },
 }
 
@@ -237,6 +323,17 @@ assistant turns are clarification context only and must never become evidence.
 Resolve an assistant question using the following user answer, and return the
 complete consolidated intent. A later user correction supersedes the earlier
 value instead of becoming a contradictory source.
+
+Act as an engineering planning agent on every turn: interpret the user's goal,
+select the smallest valid CAD tool path, and return a concise user-visible plan
+under agent. The agent tool calls are a typed proposal; the deterministic
+compiler validates and executes them. Never emit code or invent a tool. Use
+action=execute when the supplied facts are sufficient, clarify only when a
+missing decision changes the geometry, explain for a non-mutating question, and
+unsupported only when no available tool composition can express the request.
+Do not ask for a value already present anywhere in the conversation transcript.
+Each plan step should say what will be built or checked rather than restating the
+prompt. Tool arguments must repeat the resolved values and their evidence source.
 
 Map only onto the supplied closed semantic-target vocabulary. Translate informal
 wording, synonyms, spelling mistakes and everyday part names into geometric
@@ -261,6 +358,34 @@ dimensions. Do not call a recognizable shape unsupported merely because it is
 underspecified. If words such as small, miniature, or scaled are used without a
 numeric reference, ask for a target envelope or scale factor. If construction
 method changes the geometry, ask the user to confirm it.
+
+Primitive routing has priority over advanced silhouette routing. A solid
+cylinder with a stated diameter and axial length maps directly to facts
+outer_diameter and body_length and an agent tool call named cylinder. A hollow
+cylinder maps to tube and additionally uses inner_diameter or wall_thickness. A
+rectangular block/plate with three envelope dimensions maps to box. Do not turn
+these primitives into profile_extrude or profile_revolve, and do not ask for
+profile width, height, opening size, or extrusion thickness when the primitive's
+own required dimensions are already supplied. “Length” of a cylinder is its
+axial body_length; “dia” means outer_diameter. When all required primitive
+dimensions are present, execute it without a clarification.
+
+Select tools from geometry, not from the familiarity of the part noun:
+- box(width, height, depth): a straight constant rectangular prism.
+- cylinder(diameter, length): a straight solid with a constant circular section.
+  This includes straight rods, pins, shafts, dowels, pucks, and spacers when no
+  bore or curved centerline is requested.
+- tube(outer_diameter, length, plus inner_diameter or wall_thickness): a straight
+  constant circular section with an axial bore.
+- curved_rod_sweep(diameter, total_length, bend_start, bend_radius, bend_angle):
+  only when the user explicitly requests a bent/curved centerline or path.
+- profile_extrude/profile_revolve: custom closed sections that are not already a
+  box, cylinder, or tube; never use them as a more elaborate primitive.
+- sheet_metal_90_bend, rectangular_loft, curved_strip_sweep, and
+  threaded_fastener: use only for their explicit geometric/manufacturing forms.
+The presence of the word rod is not evidence of a bend. A straight constant
+circular part with a length and outside diameter is a cylinder regardless of its
+everyday product name.
 
 For an underspecified request for one rigid part, unsupported_features MUST stay
 empty on the first turn. Select the closest candidate construction and emit its
@@ -287,7 +412,10 @@ fastener, screw, or bolt holes.
 
 When an ambiguity would materially change the feature plan or manufacturing
 geometry, do not choose silently. Put one narrow question in
-clarification_questions. In particular, an L-bracket without an explicit
+clarification_questions and mirror it in agent.clarifications. Give two to four
+options when the choice is categorical; leave options empty and allow free text
+when an exact engineering value is required. Explain briefly why the answer
+changes the generated geometry. In particular, an L-bracket without an explicit
 manufacturing form is ambiguous: ask whether it is a bent sheet-metal part
 (bend radius/allowance required) or a solid extruded/machined L-profile. Do not
 ask when the user already specifies either form. Preserve any independent,
@@ -494,6 +622,120 @@ def _feature_requests(payload: dict[str, Any]) -> tuple[list[FeatureIntent], lis
     return requests, questions
 
 
+def _normalise_agent_plan(
+    payload: dict[str, Any],
+    questions: list[str],
+    feature_requests: list[FeatureIntent],
+) -> AgentPlan:
+    """Validate the model's plan and reconcile it with deterministic contracts."""
+    raw_plan = payload.get("agent")
+    try:
+        plan = AgentPlan.model_validate(raw_plan)
+    except (TypeError, ValueError):
+        plan = AgentPlan(
+            action="clarify" if questions else "execute",
+            summary="Interpreted the request into the supported CAD feature vocabulary.",
+            steps=[],
+            tool_calls=[],
+            clarifications=[],
+        )
+
+    clarifications = list(plan.clarifications)
+    # Resolve construction forks before exposing parameters that belong to only
+    # one branch. Once the user chooses, the next transcript turn can ask for
+    # that branch's exact dimensions without overwhelming or biasing them.
+    categorical = [item for item in clarifications if item.options]
+    if categorical:
+        clarifications = categorical[:1]
+    represented = {item.question.strip().casefold() for item in clarifications}
+    pending_questions = [] if clarifications else questions
+    for index, question in enumerate(pending_questions):
+        if question.strip().casefold() in represented:
+            continue
+        clarifications.append(ClarificationRequest(
+            id=f"required_{index + 1}",
+            question=question,
+            why="This value or choice is required by the selected CAD operation.",
+            options=[],
+            allow_free_text=True,
+        ))
+
+    tool_calls = list(plan.tool_calls)
+    if not tool_calls:
+        advanced_tool_names = {
+            "profile_extrude": "profile_extrude",
+            "profile_revolve": "profile_revolve",
+            "sheet_metal_bend": "sheet_metal_90_bend",
+            "curved_rod": "curved_rod_sweep",
+            "rectangular_loft": "rectangular_loft",
+            "curved_strip": "curved_strip_sweep",
+            "threaded_fastener": "threaded_fastener",
+        }
+        tool_calls.extend(
+            AgentToolCall(
+                name=advanced_tool_names[request.type],
+                purpose=f"Build the requested {request.type.replace('_', ' ')} geometry.",
+                arguments=[],
+            )
+            for request in feature_requests
+        )
+
+    # Older/mocked payloads do not contain an agent plan. Derive primitive tool
+    # visibility from the same facts that drive the graph so every API response
+    # still describes the operation it will execute.
+    if not tool_calls:
+        facts = {
+            item.get("target"): item
+            for item in payload.get("facts", [])
+            if isinstance(item, dict) and item.get("target")
+        }
+        primitive: str | None = None
+        relevant: tuple[str, ...] = ()
+        if {"outer_diameter", "body_length"}.issubset(facts):
+            primitive = "tube" if (
+                "inner_diameter" in facts or "wall_thickness" in facts
+            ) else "cylinder"
+            relevant = (
+                "outer_diameter", "inner_diameter", "wall_thickness", "body_length"
+            )
+        elif {"plate_width", "plate_height", "plate_thickness"}.issubset(facts):
+            primitive = "box"
+            relevant = ("plate_width", "plate_height", "plate_thickness")
+        if primitive:
+            arguments = [
+                AgentToolArgument(
+                    name=name,
+                    value=facts[name].get("value"),
+                    unit=facts[name].get("unit"),
+                    source=facts[name].get("raw_text") or "user requirement",
+                )
+                for name in relevant if name in facts
+            ]
+            tool_calls.append(AgentToolCall(
+                name=primitive,
+                purpose=f"Create the requested {primitive} base solid.",
+                arguments=arguments,
+            ))
+
+    action = "clarify" if clarifications else plan.action
+    if action == "execute" and not tool_calls and payload.get("unsupported_features"):
+        action = "unsupported"
+    steps = list(plan.steps)
+    if not steps and tool_calls:
+        steps = [
+            "Validate the resolved inputs for "
+            f"{tool_calls[0].name.replace('_', ' ')}.",
+            "Execute the typed CAD operation and measure the resulting solid.",
+            "Run release checks before enabling STEP export.",
+        ]
+    return plan.model_copy(update={
+        "action": action,
+        "steps": steps,
+        "tool_calls": tool_calls,
+        "clarifications": clarifications,
+    })
+
+
 def _feature_evidence(
     requests: list[FeatureIntent], text: str, source_name: str, model: str,
     *,
@@ -692,7 +934,7 @@ def _model_facts(
     model = reasoning_model(model_connection)
     client = OpenAI(**openai_client_options(
         model_connection,
-        default_api_key=os.environ.get("OPENAI_API_KEY", ""),
+        default_api_key=openai_api_key() or "",
         timeout=model_timeout_seconds(),
     ))
     if (
@@ -889,13 +1131,17 @@ def extract_requirement_with_reasoning(
     merged = deterministic + [item for item in inferred if item.target not in existing]
     merged.extend(feature_evidence)
     model_questions = list(payload.get("clarification_questions", []))
+    initial_questions = list(dict.fromkeys(contract_questions + model_questions))
+    agent_plan = _normalise_agent_plan(payload, initial_questions, feature_requests)
+    all_questions = list(dict.fromkeys(
+        [item.question for item in agent_plan.clarifications] or initial_questions
+    ))
     return ReasoningExtractionResult(
         evidence=merged,
         label=f"rule parser + {provider} reasoning ({model})",
         attempted=True,
         unsupported_features=list(payload.get("unsupported_features", [])),
-        clarification_questions=list(dict.fromkeys(
-            contract_questions + model_questions
-        )),
+        clarification_questions=all_questions,
         feature_requests=feature_requests,
+        agent_plan=agent_plan,
     )

@@ -52,12 +52,13 @@ service cannot be used.
 **Live: https://spec2cad.vercel.app**
 
 The Vercel frontend calls the Render CAD service first and offers the recorded
-catalog only as an explicit fallback. Set `OPENAI_API_KEY` on the Render service
-to enable schema-constrained natural-language planning and combined text,
-engineering-sketch, and technical-PDF interpretation. The key is server-side;
-never expose it through a `VITE_` variable. `/health` reports the enabled input
-modes under `inputs` so the frontend and deployment checks can distinguish full
-multimodal planning from the deterministic plate fallback.
+catalog only as an explicit fallback. Add a Render Secret File named
+`OPENAI_API_KEY` (mounted at `/etc/secrets/OPENAI_API_KEY`) or set the equivalent
+environment variable to enable schema-constrained natural-language planning and
+combined text, engineering-sketch, and technical-PDF interpretation. The key is
+server-side; never expose it through a `VITE_` variable. `/health` reports the
+enabled input modes under `inputs` so the frontend and deployment checks can
+distinguish full multimodal planning from the deterministic plate fallback.
 
 **Decision: GO, via a container** for live generation. The backend is an ordinary long-running
 FastAPI process, not a serverless function. Trimming `vtkmodules` would save a
@@ -179,8 +180,9 @@ needs; it is not headroom for concurrent geometry builds.
    Remove `VITE_REPLAY=1` from `vercel.json`'s build command when you do — that
    flag forces replay and ignores the backend entirely.
 
-5. Set `OPENAI_API_KEY` in the Render dashboard to enable broad natural-language
-   planning and combined text, sketch and PDF interpretation. Without it the
+5. Add a Render Secret File named `OPENAI_API_KEY` (or set the `OPENAI_API_KEY`
+   environment variable) to enable broad natural-language planning and combined
+   text, sketch and PDF interpretation. Without it the
    public live path intentionally remains the narrow deterministic plate parser,
    and arbitrary sketch uploads are refused rather than misrepresented.
 

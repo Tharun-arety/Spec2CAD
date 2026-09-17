@@ -25,6 +25,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 from spec2cad.schemas.advanced_intent import FeatureIntent
+from spec2cad.schemas.agent import AgentPlan
 
 
 class EvidenceKind(str, Enum):
@@ -266,6 +267,7 @@ class EvidenceSet(BaseModel):
     reasoning_fallback_reason: Optional[str] = None
     unsupported_features: list[str] = Field(default_factory=list)
     clarification_questions: list[str] = Field(default_factory=list)
+    agent_plan: Optional[AgentPlan] = None
     feature_requests: list[FeatureIntent] = Field(
         default_factory=list,
         description="schema-validated advanced feature intents carried into the EIG",

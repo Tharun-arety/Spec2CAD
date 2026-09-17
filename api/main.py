@@ -283,6 +283,10 @@ def _run_json(run_id: str, run_result) -> dict:
         "reasoning_fallback_reason": run_result.reasoning_fallback_reason,
         "unsupported_features": run_result.unsupported_features,
         "clarification_questions": run_result.clarification_questions,
+        "agent_plan": (
+            run_result.agent_plan.model_dump(mode="json")
+            if run_result.agent_plan is not None else None
+        ),
         "messages": [
             {
                 "id": message.id,

@@ -163,6 +163,7 @@ export interface RunState {
   reasoning_fallback_reason?: string | null
   unsupported_features?: string[]
   clarification_questions?: string[]
+  agent_plan?: AgentPlan | null
   messages?: ChatMessage[]
   feature_requests?: Record<string, unknown>[]
   contains_fixture_evidence: boolean
@@ -215,6 +216,41 @@ export interface CapabilityRecord {
 export interface CapabilityRegistry {
   schema_version: string
   capabilities: CapabilityRecord[]
+}
+
+export interface AgentToolArgument {
+  name: string
+  value: number | string | boolean | null
+  unit: string | null
+  source: string
+}
+
+export interface AgentToolCall {
+  name: string
+  purpose: string
+  arguments: AgentToolArgument[]
+}
+
+export interface ClarificationOption {
+  label: string
+  value: string
+  description: string
+}
+
+export interface ClarificationRequest {
+  id: string
+  question: string
+  why: string
+  options: ClarificationOption[]
+  allow_free_text: boolean
+}
+
+export interface AgentPlan {
+  action: 'execute' | 'clarify' | 'explain' | 'unsupported'
+  summary: string
+  steps: string[]
+  tool_calls: AgentToolCall[]
+  clarifications: ClarificationRequest[]
 }
 
 export interface ChatMessage {

@@ -13,9 +13,10 @@ evidence is structurally excluded from any reported extraction-accuracy number
 (see eval/metrics.py), because replaying a recording measures nothing about
 extraction.
 
-Deployment keys are read from the process environment, ``.env.local``, or
-``.env`` at the project root. A public caller may instead supply an ephemeral
-request-scoped connection; it is never installed into the process environment.
+Deployment keys are read from the process environment, Render's
+``/etc/secrets/OPENAI_API_KEY`` secret file, ``.env.local``, or ``.env`` at the
+project root. A public caller may instead supply an ephemeral request-scoped
+connection; it is never installed into the process environment or persisted.
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ from dotenv import dotenv_values
 from spec2cad.extractors.model_provider import ModelConnection
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_OPENAI_SECRET_FILE = Path("/etc/secrets/OPENAI_API_KEY")
 _ENV_LOADED = False
 _FILE_MANAGED_VALUES: dict[str, str] = {}
 _ENV_FILE_SIGNATURE: tuple[tuple[bool, int, int], ...] | None = None
@@ -129,12 +131,33 @@ def reasoning_model(connection: ModelConnection | None = None) -> str:
     return os.environ.get("SPEC2CAD_REASONING_MODEL", openai_model())
 
 
+def openai_api_key() -> str | None:
+    """Return the server-side key without requiring a particular secret transport.
+
+    Process and dotenv values take precedence. Render secret files are read from
+    ``/etc/secrets/OPENAI_API_KEY`` by default; tests and other hosts can
+    override that location with ``SPEC2CAD_OPENAI_API_KEY_FILE``.
+    """
+    load_env()
+    value = os.environ.get("OPENAI_API_KEY", "").strip()
+    if value:
+        return value
+
+    secret_path = Path(
+        os.environ.get("SPEC2CAD_OPENAI_API_KEY_FILE", str(DEFAULT_OPENAI_SECRET_FILE))
+    )
+    try:
+        value = secret_path.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    return value or None
+
+
 def reasoning_available(connection: ModelConnection | None = None) -> bool:
     """Whether server-default or request-scoped reasoning can be attempted."""
     if connection is not None:
         return True
-    load_env()
-    return bool(os.environ.get("OPENAI_API_KEY"))
+    return bool(openai_api_key())
 
 
 def model_max_output_tokens() -> int:
@@ -174,6 +197,7 @@ def select_backend(
     load_env()
     requested = (override or os.environ.get("SPEC2CAD_VISION_BACKEND", "auto")).lower()
 
+    configured_openai_key = openai_api_key()
     if connection is not None:
         if requested not in {"auto", "openai"}:
             raise ValueError(
@@ -190,7 +214,7 @@ def select_backend(
                 f"unknown SPEC2CAD_VISION_BACKEND {requested!r}; "
                 f"expected one of {[b.value for b in VisionBackend]}"
             ) from None
-        if backend is VisionBackend.OPENAI and not os.environ.get("OPENAI_API_KEY"):
+        if backend is VisionBackend.OPENAI and not configured_openai_key:
             raise RuntimeError("SPEC2CAD_VISION_BACKEND=openai but OPENAI_API_KEY is not set")
         if backend is VisionBackend.ANTHROPIC and not os.environ.get("ANTHROPIC_API_KEY"):
             raise RuntimeError(
@@ -198,7 +222,7 @@ def select_backend(
             )
         return backend
 
-    if os.environ.get("OPENAI_API_KEY"):
+    if configured_openai_key:
         return VisionBackend.OPENAI
     if os.environ.get("ANTHROPIC_API_KEY"):
         return VisionBackend.ANTHROPIC
