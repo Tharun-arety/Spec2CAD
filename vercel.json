@@ -1,17 +1,21 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd web && npm install && VITE_API_BASE=https://spec2cad-api.onrender.com VITE_REPLAY_FALLBACK=1 npm run build",
+  "buildCommand": "cd web && VITE_API_BASE=https://spec2cad-api.onrender.com VITE_REPLAY_FALLBACK=1 npm run build",
   "outputDirectory": "web/dist",
-  "installCommand": "echo 'dependencies are installed by buildCommand'",
+  "installCommand": "cd web && npm ci",
   "framework": null,
   "headers": [
     {
       "source": "/replay/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600, stale-while-revalidate=86400" }]
     },
     {
-      "source": "/replay/artifacts/(.*).step",
+      "source": "/replay/scenarios/(.*)/artifacts/(.*).step",
       "headers": [{ "key": "Content-Type", "value": "application/step" }]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     }
   ]
 }

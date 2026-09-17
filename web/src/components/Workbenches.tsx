@@ -487,10 +487,11 @@ interface EvidenceWorkbenchProps {
   state: RunState
   picked: Evidence | null
   onPick: (evidence: Evidence | null) => void
+  mode?: 'sources' | 'evidence'
 }
 
 /** Main editor for source-backed evidence, with one tab per source document. */
-export function EvidenceWorkbench({ state, picked, onPick }: EvidenceWorkbenchProps) {
+export function EvidenceWorkbench({ state, picked, onPick, mode = 'evidence' }: EvidenceWorkbenchProps) {
   const sources = useMemo(() => {
     const map = new Map<string, { id: string; label: string; kind: string }>()
     for (const evidence of state.evidence) {
@@ -525,12 +526,13 @@ export function EvidenceWorkbench({ state, picked, onPick }: EvidenceWorkbenchPr
   }
 
   return (
-    <section className="flex h-full min-h-0 flex-col bg-c0" aria-label="Evidence editor">
+    <section className="flex h-full min-h-0 flex-col bg-c0"
+             aria-label={mode === 'sources' ? 'Source explorer' : 'Evidence editor'}>
       <EditorTabs tabs={sources} active={active} onSelect={selectTab} />
 
       <div className="flex h-[34px] shrink-0 items-center gap-[6px] border-b border-c3
                       bg-c1 px-[13px] text-[11.5px] text-c6">
-        <span>evidence</span><span>/</span>
+        <span>{mode}</span><span>/</span>
         <span className="min-w-0 truncate text-c8" title={active}>{active}</span>
         <span className="ml-auto num">{sourceEvidence.length} observation
           {sourceEvidence.length === 1 ? '' : 's'}</span>

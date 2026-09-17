@@ -36,6 +36,7 @@ from spec2cad.extractors.base import (
 )
 from spec2cad.extractors.datasheet import extract_datasheet, read_document_text
 from spec2cad.extractors.drawing import SketchExtraction, extract_sketch
+from spec2cad.extractors.model_provider import ModelConnection
 from spec2cad.extractors.reasoning import extract_requirement_with_reasoning
 from spec2cad.fusion.conflict_detector import run_preflight
 from spec2cad.fusion.graph_builder import (
@@ -330,6 +331,7 @@ def gather_evidence(
     backend_override: Optional[str] = None,
     use_reasoning: bool = False,
     reasoning_context: str | None = None,
+    model_connection: ModelConnection | None = None,
 ) -> tuple[EvidenceSet, object | None]:
     """Run every extractor whose source was supplied.
 
@@ -345,19 +347,24 @@ def gather_evidence(
     sketch_result = None
     reasoning_result = None
 
-    # When OpenAI reasoning is available, give the sketch to the same typed
+    # When compatible model reasoning is available, give the sketch to the same typed
     # semantic planner that interprets the written requirement. The legacy
     # sketch reader is deliberately plate-specific; running it first would
     # constrain an otherwise generic part back to the motor-adapter vocabulary.
-    selected_backend = select_backend(backend_override) if sketch is not None else None
+    selected_backend = (
+        select_backend(backend_override, model_connection)
+        if sketch is not None else None
+    )
     multimodal_sketch = bool(
         sketch is not None
         and use_reasoning
-        and reasoning_available()
+        and reasoning_available(model_connection)
         and selected_backend is VisionBackend.OPENAI
     )
     if sketch is not None and not multimodal_sketch:
-        sketch_result = extract_sketch(sketch, backend_override)
+        sketch_result = extract_sketch(
+            sketch, backend_override, model_connection=model_connection,
+        )
         items.extend(sketch_result.evidence)
     if datasheet is not None:
         items.extend(extract_datasheet(datasheet))
@@ -412,13 +419,37 @@ def gather_evidence(
             image_path=sketch if multimodal_sketch else None,
             source_modality=source_modality,
             source_files=source_files,
+            model_connection=model_connection,
         )
+        # A failed multimodal pass means the attached image was not assessed.
+        # Do not silently discard that source and let the historical plate
+        # fallback reach CAD compilation with an empty parameter table.
+        if multimodal_sketch and reasoning_result.fell_back:
+            reasoning_result.clarification_questions.insert(
+                0,
+                "I couldn't interpret the uploaded image with the configured "
+                "vision model. Retry the upload, or describe the part and provide "
+                "at least one real-world reference dimension.",
+            )
+        elif (
+            not reasoning_result.evidence
+            and not reasoning_result.feature_requests
+            and not reasoning_result.clarification_questions
+        ):
+            reasoning_result.clarification_questions.append(
+                "I need more buildable geometry before CAD planning. For an "
+                "unscaled image, provide at least one real-world reference "
+                "dimension or a target overall envelope."
+            )
         items.extend(reasoning_result.evidence)
         if multimodal_sketch:
             sketch_result = SketchExtraction(
                 evidence=[],
                 backend=VisionBackend.OPENAI,
-                label=f"openai multimodal intent ({reasoning_model()})",
+                label=(
+                    f"{model_connection.display_name.lower() if model_connection else 'openai'} "
+                    f"multimodal intent ({reasoning_model(model_connection)})"
+                ),
                 fell_back=reasoning_result.fell_back,
                 fallback_reason=reasoning_result.fallback_reason,
             )
@@ -620,11 +651,12 @@ def run(
     use_reasoning: bool = False,
     reasoning_context: str | None = None,
     create_messages: bool = True,
+    model_connection: ModelConnection | None = None,
 ) -> RunResult:
     """Extract supplied sources, fuse them and evaluate DesignIntent v1."""
     evidence, sketch_result = gather_evidence(
         sketch, datasheet, requirement, backend_override, use_reasoning,
-        reasoning_context,
+        reasoning_context, model_connection,
     )
     # The recorded fixture and narrow deterministic document parser describe a
     # motor adapter. A multimodal request that produced an advanced feature is
@@ -673,7 +705,12 @@ def run(
     return result
 
 
-def continue_conversation(run_result: RunResult, message: str) -> RunResult:
+def continue_conversation(
+    run_result: RunResult,
+    message: str,
+    *,
+    model_connection: ModelConnection | None = None,
+) -> RunResult:
     """Resolve a clarification or refine a design without losing its audit trail."""
     content = message.strip()
     if not content:
@@ -688,6 +725,7 @@ def continue_conversation(run_result: RunResult, message: str) -> RunResult:
         use_reasoning=True,
         reasoning_context=transcript,
         create_messages=False,
+        model_connection=model_connection,
     )
     next_revision = run_result.latest.revision + 1
     graph = fresh.latest.intent_graph.model_copy(update={"revision": next_revision})

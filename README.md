@@ -160,9 +160,9 @@ three.js viewport is code-split, so the initial bundle is ~250 kB.
 
 | Source | How it is read | Real without an API key? |
 |---|---|---|
-| **Datasheet PDF** | exact known rows via PyMuPDF; bounded PDF text also joins semantic planning when OpenAI is configured | **Known rows only** |
-| **Requirement text** | deterministic plate parser + ISO 273 lookup; OpenAI maps broader language to the typed feature vocabulary | **Plate fallback only** |
-| **Sketch** | joins the same OpenAI semantic pass as text and PDF; Anthropic remains available for the legacy plate reader | **No for arbitrary uploads** |
+| **Datasheet PDF** | exact known rows via PyMuPDF; bounded PDF text also joins semantic planning when a compatible model is configured | **Known rows only** |
+| **Requirement text** | deterministic plate parser + ISO 273 lookup; a schema-capable model maps broader language to the typed feature vocabulary | **Plate fallback only** |
+| **Sketch** | joins the same schema-constrained semantic pass as text and PDF; Anthropic remains available for the legacy plate reader | **No for arbitrary uploads** |
 
 The difference is never hidden. Every evidence row carries its
 `extraction_method`, the UI shows it, and `eval/metrics.py` **raises** rather
@@ -175,6 +175,17 @@ vision; it is never sent to the browser. `.env.local` edits are picked up on
 the next request. `SPEC2CAD_REASONING_MODEL` and `SPEC2CAD_OPENAI_MODEL` may
 override the text and vision models independently. Anthropic remains supported
 for sketch vision only.
+
+Live users may instead open **Model → Bring my own API key** in the agent panel.
+The key, model and provider selection stay in that browser tab's memory and are
+sent only with generation requests; they are not written to run state, browser
+storage, evidence, logs or artifacts. OpenAI works directly. Other providers
+must expose OpenAI-compatible chat completions with strict JSON-schema output
+and, for sketches, compatible image input. Custom HTTPS hosts are restricted to
+the deployment's approved host list (`SPEC2CAD_ALLOWED_MODEL_HOSTS`, plus the
+built-in common-provider list) so the public API cannot become an arbitrary
+network proxy. A native provider with a different wire protocol still requires
+an explicit adapter.
 
 Because the datasheet path is genuinely parsed, clicking a value in the UI
 highlights the actual rectangle it came from:
@@ -376,7 +387,8 @@ explicit-input mass, axial/bending stress, thermal expansion and worst-case fit
 calculations. These are bounded engineering operations: arbitrary model code,
 automatic mate solving, non-90-degree sheet bends and FEA are not implied.
 
-When an OpenAI server credential is configured, the public run path feeds the
+When a server credential or request-scoped compatible credential is supplied,
+the public run path feeds the
 written requirement, an attached engineering sketch, and bounded text extracted
 from an attached technical PDF into one schema-constrained semantic pass. The
 model may select only the typed operations above; it cannot emit or execute

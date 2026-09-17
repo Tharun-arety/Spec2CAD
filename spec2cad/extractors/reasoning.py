@@ -1,4 +1,4 @@
-"""Structured OpenAI reasoning over free-form engineering instructions.
+"""Structured model reasoning over free-form engineering instructions.
 
 The model is an extractor, not a CAD generator.  It can map varied wording onto
 the Engineering Intent Graph's existing semantic targets, but cannot create a
@@ -24,6 +24,11 @@ from spec2cad.extractors.base import (
     model_max_output_tokens,
     model_timeout_seconds,
     safe_backend_error,
+)
+from spec2cad.extractors.model_provider import (
+    ModelConnection,
+    ModelProvider,
+    openai_client_options,
 )
 from spec2cad.extractors.text import extract_requirement
 from spec2cad.fusion.source_policy import authority_for
@@ -287,6 +292,12 @@ manufacturing form is ambiguous: ask whether it is a bent sheet-metal part
 (bend radius/allowance required) or a solid extruded/machined L-profile. Do not
 ask when the user already specifies either form. Preserve any independent,
 unambiguous facts while asking the question.
+
+If the user asks you to choose dimensions, treat that as permission to discuss
+or propose a design later, not as numeric evidence. For an unscaled image, ask
+for at least one real-world reference dimension or target overall envelope and
+the functional constraints that should govern sizing. Never manufacture numeric
+facts from image proportions alone.
 
 Supported advanced feature intents are profile_extrude, profile_revolve,
 sheet_metal_bend, curved_rod, curved_strip, rectangular_loft and
@@ -673,33 +684,68 @@ def _model_facts(
     image_path: Path | None = None,
     source_modality: SourceModality = SourceModality.REQUIREMENT_TEXT,
     source_files: dict[str, str] | None = None,
+    model_connection: ModelConnection | None = None,
 ) -> tuple[list[Evidence], dict[str, Any]]:
     from openai import OpenAI
 
     load_env()
-    model = reasoning_model()
-    client = OpenAI(
-        api_key=os.environ["OPENAI_API_KEY"],
-        timeout=model_timeout_seconds(), max_retries=1,
-    )
-    response = client.responses.create(
-        model=model,
-        instructions=REASONING_INSTRUCTIONS,
-        input=_model_input(text, image_path),
-        text={
-            "format": {
+    model = reasoning_model(model_connection)
+    client = OpenAI(**openai_client_options(
+        model_connection,
+        default_api_key=os.environ.get("OPENAI_API_KEY", ""),
+        timeout=model_timeout_seconds(),
+    ))
+    if (
+        model_connection is not None
+        and model_connection.provider is ModelProvider.OPENAI_COMPATIBLE
+    ):
+        user_content: str | list[dict[str, Any]] = text
+        if image_path is not None:
+            mime = mimetypes.guess_type(image_path.name)[0] or "image/png"
+            encoded = base64.b64encode(image_path.read_bytes()).decode("ascii")
+            user_content = [
+                {"type": "text", "text": text},
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:{mime};base64,{encoded}"},
+                },
+            ]
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": REASONING_INSTRUCTIONS},
+                {"role": "user", "content": user_content},
+            ],
+            response_format={
                 "type": "json_schema",
-                "name": "engineering_intent_facts",
-                "strict": True,
-                "schema": REASONING_JSON_SCHEMA,
-            }
-        },
-        store=False,
-        max_output_tokens=model_max_output_tokens(),
-        safety_identifier=current_safety_identifier(),
-        extra_headers={"X-Client-Request-Id": str(uuid.uuid4())},
-    )
-    payload = _parse_response(response.output_text or "")
+                "json_schema": {
+                    "name": "engineering_intent_facts",
+                    "strict": True,
+                    "schema": REASONING_JSON_SCHEMA,
+                },
+            },
+            max_tokens=model_max_output_tokens(),
+        )
+        payload = _parse_response(response.choices[0].message.content or "")
+    else:
+        response = client.responses.create(
+            model=model,
+            instructions=REASONING_INSTRUCTIONS,
+            input=_model_input(text, image_path),
+            text={
+                "format": {
+                    "type": "json_schema",
+                    "name": "engineering_intent_facts",
+                    "strict": True,
+                    "schema": REASONING_JSON_SCHEMA,
+                }
+            },
+            store=False,
+            max_output_tokens=model_max_output_tokens(),
+            safety_identifier=current_safety_identifier(),
+            extra_headers={"X-Client-Request-Id": str(uuid.uuid4())},
+        )
+        payload = _parse_response(response.output_text or "")
 
     out: list[Evidence] = []
     target_counts: dict[SemanticTarget, int] = {}
@@ -757,6 +803,7 @@ def extract_requirement_with_reasoning(
     image_path: Path | None = None,
     source_modality: SourceModality = SourceModality.REQUIREMENT_TEXT,
     source_files: dict[str, str] | None = None,
+    model_connection: ModelConnection | None = None,
 ) -> ReasoningExtractionResult:
     """Combine deterministic extraction with model-based semantic extraction.
 
@@ -765,15 +812,17 @@ def extract_requirement_with_reasoning(
     """
     deterministic = extract_requirement(text_or_path, source_name)
     text, resolved_name = _read_text(text_or_path, source_name)
-    if not enabled or not reasoning_available():
+    available = reasoning_available(model_connection)
+    if not enabled or not available:
         reason = None if enabled else "reasoning disabled for this caller"
         return ReasoningExtractionResult(
             evidence=deterministic,
-            label="rule parser" if not reasoning_available() else "rule parser (reasoning disabled)",
+            label="rule parser" if not available else "rule parser (reasoning disabled)",
             fallback_reason=reason,
         )
 
-    model = reasoning_model()
+    model = reasoning_model(model_connection)
+    provider = model_connection.display_name if model_connection else "OpenAI"
     try:
         inferred, payload = _model_facts(
             reasoning_context or text,
@@ -781,11 +830,12 @@ def extract_requirement_with_reasoning(
             image_path=image_path,
             source_modality=source_modality,
             source_files=source_files,
+            model_connection=model_connection,
         )
     except Exception as exc:
         return ReasoningExtractionResult(
             evidence=deterministic,
-            label=f"rule parser (OpenAI {model} unavailable)",
+            label=f"rule parser ({provider} {model} unavailable)",
             attempted=True,
             fell_back=True,
             fallback_reason=safe_backend_error(exc),
@@ -841,7 +891,7 @@ def extract_requirement_with_reasoning(
     model_questions = list(payload.get("clarification_questions", []))
     return ReasoningExtractionResult(
         evidence=merged,
-        label=f"rule parser + OpenAI reasoning ({model})",
+        label=f"rule parser + {provider} reasoning ({model})",
         attempted=True,
         unsupported_features=list(payload.get("unsupported_features", [])),
         clarification_questions=list(dict.fromkeys(

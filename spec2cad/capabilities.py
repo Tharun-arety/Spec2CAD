@@ -204,13 +204,18 @@ CAPABILITIES: tuple[CapabilityRecord, ...] = tuple([
         limitations=("A recording, excluded from extraction-accuracy metrics.",),
     ),
     _record(
-        "openai_multimodal_extraction", "OpenAI multimodal extraction",
+        "openai_multimodal_extraction", "Schema-constrained multimodal extraction",
         CapabilityCategory.EXTRACTION,
-        "Maps bounded text, image and PDF evidence into schema-constrained facts and features.",
+        "Maps bounded text, image and PDF evidence through OpenAI or an approved "
+        "OpenAI-compatible endpoint into schema-constrained facts and features.",
         ImplementationMaturity.BOUNDED, IntegrationLevel.OPTIONAL_PIPELINE,
         ReleaseRole.GOVERNING,
         evidence=("tests/test_openai_extraction.py",),
-        limitations=("Mock-tested; no current repeated stochastic benchmark result.",),
+        limitations=(
+            "Custom endpoints must implement compatible chat completions, image input "
+            "when used, and strict JSON schema output; no repeated stochastic benchmark.",
+        ),
+        version="1.1.0",
     ),
     _record(
         "engineering_intent_graph", "Engineering Intent Graph",

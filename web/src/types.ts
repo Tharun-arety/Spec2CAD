@@ -179,6 +179,21 @@ export interface Health {
   vision_model?: string | null
   reasoning_available?: boolean
   reasoning_model?: string | null
+  model_connections?: {
+    bring_your_own_key: boolean
+    providers: string[]
+    compatible_hosts: string[]
+    credentials_persisted: boolean
+  }
+  public_limits?: {
+    requests_per_minute: number
+    ai_units_per_client_day: number
+    max_requirement_chars: number
+    max_conversation_messages: number
+    max_concurrent_jobs?: number
+    job_queue_timeout_ms?: number
+    max_cached_runs?: number
+  }
   capabilities?: string[]
   capability_registry?: CapabilityRegistry
 }

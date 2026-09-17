@@ -1,4 +1,4 @@
-"""Genuine multimodal sketch extraction via OpenAI or Anthropic.
+"""Genuine multimodal sketch extraction via compatible providers or Anthropic.
 
 The model returns structured facts, never code and never a CAD program. Its
 output is validated against SKETCH_JSON_SCHEMA and then against the Evidence
@@ -32,6 +32,7 @@ from spec2cad.extractors.base import (
     model_max_output_tokens,
     model_timeout_seconds,
 )
+from spec2cad.extractors.model_provider import ModelConnection, openai_client_options
 from spec2cad.public_guardrails import current_safety_identifier
 from spec2cad.fusion.source_policy import authority_for
 from spec2cad.schemas.evidence import (
@@ -114,16 +115,19 @@ def _to_evidence(facts: list[dict[str, Any]], image_path: Path, model_name: str)
     return out
 
 
-def _extract_openai(image_path: Path) -> list[Evidence]:
+def _extract_openai(
+    image_path: Path, connection: ModelConnection | None = None,
+) -> list[Evidence]:
     from openai import OpenAI
 
     load_env()
-    client = OpenAI(
-        api_key=os.environ["OPENAI_API_KEY"],
-        timeout=model_timeout_seconds(), max_retries=1,
-    )
+    client = OpenAI(**openai_client_options(
+        connection,
+        default_api_key=os.environ.get("OPENAI_API_KEY", ""),
+        timeout=model_timeout_seconds(),
+    ))
     b64, mime = _encode_image(image_path)
-    model = openai_model()
+    model = openai_model(connection)
 
     response = client.chat.completions.create(
         model=model,
@@ -197,7 +201,9 @@ def _extract_anthropic(image_path: Path) -> list[Evidence]:
 
 
 def extract_sketch_with_vision(
-    image_path: str | Path, backend: VisionBackend
+    image_path: str | Path,
+    backend: VisionBackend,
+    connection: ModelConnection | None = None,
 ) -> list[Evidence]:
     """Run genuine multimodal extraction against the sketch."""
     image_path = Path(image_path)
@@ -205,7 +211,7 @@ def extract_sketch_with_vision(
         raise FileNotFoundError(f"sketch not found: {image_path}")
 
     if backend is VisionBackend.OPENAI:
-        return _extract_openai(image_path)
+        return _extract_openai(image_path, connection)
     if backend is VisionBackend.ANTHROPIC:
         return _extract_anthropic(image_path)
     raise ValueError(f"{backend} is not a vision backend")

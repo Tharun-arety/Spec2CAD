@@ -13,6 +13,7 @@ from spec2cad.extractors.base import (
     select_backend,
 )
 from spec2cad.extractors.fixtures import FixtureNotFound, load_fixture_evidence
+from spec2cad.extractors.model_provider import ModelConnection
 from spec2cad.extractors.vision import VisionExtractionError, extract_sketch_with_vision
 from spec2cad.schemas.evidence import Evidence
 
@@ -31,6 +32,7 @@ def extract_sketch(
     backend_override: Optional[str] = None,
     *,
     allow_fallback: bool = True,
+    model_connection: ModelConnection | None = None,
 ) -> SketchExtraction:
     """Extract facts from a sketch using whichever backend is configured.
 
@@ -43,19 +45,23 @@ def extract_sketch(
     an honest failure rather than a fixture in disguise.
     """
     image_path = Path(image_path)
-    backend = select_backend(backend_override)
+    backend = select_backend(backend_override, model_connection)
 
     if backend is VisionBackend.FIXTURE:
         return SketchExtraction(
             evidence=load_fixture_evidence(image_path),
             backend=backend,
-            label=backend_label(backend),
+            label=backend_label(backend, model_connection),
         )
 
     try:
-        evidence = extract_sketch_with_vision(image_path, backend)
+        evidence = extract_sketch_with_vision(
+            image_path, backend, model_connection,
+        )
         return SketchExtraction(
-            evidence=evidence, backend=backend, label=backend_label(backend)
+            evidence=evidence,
+            backend=backend,
+            label=backend_label(backend, model_connection),
         )
     except (VisionExtractionError, Exception) as exc:  # noqa: B014 - report any failure
         if not allow_fallback:
@@ -68,7 +74,10 @@ def extract_sketch(
         return SketchExtraction(
             evidence=evidence,
             backend=VisionBackend.FIXTURE,
-            label=f"{backend_label(VisionBackend.FIXTURE)} after {backend.value} failed",
+            label=(
+                f"{backend_label(VisionBackend.FIXTURE)} after "
+                f"{backend_label(backend, model_connection)} failed"
+            ),
             fell_back=True,
             fallback_reason=reason,
         )

@@ -7,60 +7,46 @@
    Context stays on the left; the agent conversation stays on the right.
    The frame never scrolls; panels scroll on their own.
 
-   PROPORTION
-   Every fixed dimension is a Fibonacci number, so the ratios between them are
-   the golden ratio rather than an approximation of it:
-
-       command bar 55 : status bar 34   =  1.6176  ( phi = 1.6180 )
-       inspector  377 : 233             =  phi        377 = F(14)
-       rail        55, timeline 55      =  F(10)
-
-   The type scale steps by sqrt(phi) = 1.272, which is phi applied twice across
-   two steps -- fine enough for dense UI text, where a full 1.618 jump between
-   adjacent sizes would be far too coarse.
-
-   COLOUR
-   OKLCH throughout, so steps are perceptually even rather than evenly spaced in
-   sRGB (where the same numeric gap looks bigger in blues than in yellows). The
-   neutral ramp carries a slight cool cast so white surfaces read as considered
-   rather than blank; hue is reserved for meaning.
+   The shell is an evidence instrument: flat graphite surfaces, compact rails,
+   square controls and semantic colour only where state needs it. The CAD view
+   stays quiet; Canvas alone carries the diagram grid.
 --------------------------------------------------------------------------- */
 
 @theme {
-  /* Carbon-black surfaces with enough separation to keep a dense editor legible. */
-  --color-c0: oklch(19% 0.006 285);       /* raised surface        */
-  --color-c1: oklch(13.5% 0.005 285);     /* app background        */
-  --color-c2: oklch(16.5% 0.006 285);     /* sunken / hover        */
-  --color-c3: oklch(25% 0.008 285);       /* hairline              */
-  --color-c4: oklch(32% 0.009 285);       /* border                */
-  --color-c5: oklch(43% 0.01 285);        /* disabled/decorative   */
-  --color-c6: oklch(65% 0.012 285);       /* muted text            */
-  --color-c7: oklch(76% 0.01 285);        /* secondary text        */
-  --color-c8: oklch(89% 0.007 285);       /* strong text           */
-  --color-c9: oklch(97% 0.004 285);       /* primary text          */
+  --color-c0: #181c18;
+  --color-c1: #101310;
+  --color-c2: #202520;
+  --color-c3: #343b34;
+  --color-c4: #414941;
+  --color-c5: #626b62;
+  --color-c6: #a1aaa0;
+  --color-c7: #b8c0b6;
+  --color-c8: #d8ddd4;
+  --color-c9: #edf0e8;
 
-  /* Sea-glass signal: interaction only, never ambient decoration. */
-  --color-accent: oklch(80% 0.12 155);
-  --color-accent-hover: oklch(86% 0.11 155);
-  --color-accent-fg: oklch(14% 0.01 285);
-  --color-accent-wash: oklch(23% 0.035 155);
-  --color-accent-line: oklch(43% 0.065 155);
+  /* Orange is interaction. Cyan is observed/measured agreement. */
+  --color-accent: #ef6a3b;
+  --color-accent-hover: #ff8152;
+  --color-accent-fg: #101310;
+  --color-accent-wash: #3d251d;
+  --color-accent-line: #8e4229;
+  --color-observed: #63c9c2;
+  --color-observed-wash: #173533;
+  --color-observed-line: #357873;
 
   /* ---- semantic ---- */
-  --color-danger: oklch(72% 0.16 25);
-  --color-danger-wash: oklch(22% 0.045 25);
-  --color-danger-line: oklch(44% 0.09 25);
+  --color-danger: #ff766c;
+  --color-danger-wash: #3b201f;
+  --color-danger-line: #8a3d39;
+  --color-success: #72c68e;
+  --color-success-wash: #193325;
+  --color-success-line: #39714c;
+  --color-warn: #e8c267;
+  --color-warn-wash: #332b18;
+  --color-warn-line: #75602d;
 
-  --color-success: oklch(75% 0.13 160);
-  --color-success-wash: oklch(22% 0.035 160);
-  --color-success-line: oklch(43% 0.07 160);
-
-  --color-warn: oklch(82% 0.13 80);
-  --color-warn-wash: oklch(22% 0.04 80);
-  --color-warn-line: oklch(46% 0.08 80);
-
-  --font-display: "Chakra Petch", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
   /* ---- type scale: base 14, ratio sqrt(phi) = 1.272 ---- */
@@ -70,31 +56,24 @@
   --text-readout: 22.6px;
   --text-hero: 28.8px;
 
-  /* ---- Fibonacci layout + spacing ---- */
-  --spacing-rail: 55px;
-  --spacing-bar: 55px;
-  --spacing-status: 34px;
-  --spacing-timeline: 55px;
-  --spacing-inspector: 377px;
+  --spacing-rail: 62px;
+  --spacing-bar: 48px;
+  --spacing-status: 35px;
+  --spacing-timeline: 45px;
+  --spacing-inspector: 236px;
 
-  --radius-sm: 5px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 5px;
 
-  --shadow-raised: 0 1px 2px oklch(2% 0 0 / 0.55),
-                   inset 0 1px 0 oklch(100% 0 0 / 0.035);
+  --shadow-raised: none;
   --shadow-float: 0 18px 50px oklch(2% 0 0 / 0.68),
                   0 0 0 1px oklch(100% 0 0 / 0.025);
 }
 
 :root {
   color-scheme: dark;
-  --viewport-glow: radial-gradient(70% 75% at 57% 42%,
-    oklch(24% 0.018 155 / 0.34), transparent 74%);
-  --viewport-grid: linear-gradient(oklch(74% 0.02 285 / 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, oklch(74% 0.02 285 / 0.055) 1px, transparent 1px);
-  --viewport-grid-size: 21px 21px;
-  --chrome-grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.075'/%3E%3C/svg%3E");
+  --chrome-grain: none;
 }
 
 @layer base {
@@ -165,16 +144,102 @@
     background-image: var(--chrome-grain);
   }
 
+  .app-shell button,
+  .app-shell input,
+  .app-shell textarea,
+  .app-shell article,
+  .app-shell a[role='button'] {
+    border-radius: 2px !important;
+  }
+
+  .discard-workspace-dialog {
+    color-scheme: dark;
+    position: fixed;
+    inset: 0;
+    max-height: calc(100dvh - 34px);
+    margin: auto;
+    overflow: auto;
+  }
+
+  .discard-workspace-dialog::backdrop {
+    background: rgb(5 7 5 / 0.76);
+  }
+
+  .access-gate-shell {
+    position: relative;
+    min-height: 100dvh;
+  }
+
+  .access-gate-content {
+    grid-template-columns: minmax(0, 1fr) minmax(400px, 480px);
+    gap: 89px;
+    padding-block: 76px 250px;
+  }
+
+  .access-gate-footer {
+    right: 55px;
+    bottom: 17px;
+    left: 55px;
+  }
+
+  .instrument-plot {
+    position: relative;
+    border: 1px solid var(--color-c3);
+    border-left-color: var(--color-accent-line);
+    background-color: color-mix(in oklch, var(--color-c1) 88%, var(--color-accent-wash));
+    background-image:
+      linear-gradient(oklch(78% 0.12 220 / 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(78% 0.12 220 / 0.055) 1px, transparent 1px);
+    background-size: 13px 13px;
+    box-shadow: inset 0 0 34px oklch(8% 0.01 220 / 0.42);
+  }
+
+  .instrument-plot::before,
+  .instrument-plot::after {
+    position: absolute;
+    z-index: 1;
+    width: 13px;
+    height: 13px;
+    border-color: var(--color-accent);
+    content: '';
+    pointer-events: none;
+  }
+
+  .instrument-plot::before {
+    top: 6px;
+    left: 6px;
+    border-top: 1px solid;
+    border-left: 1px solid;
+  }
+
+  .instrument-plot::after {
+    right: 6px;
+    bottom: 6px;
+    border-right: 1px solid;
+    border-bottom: 1px solid;
+  }
+
+  .access-console {
+    box-shadow:
+      var(--shadow-float),
+      inset 3px 0 0 color-mix(in oklch, var(--color-accent) 72%, transparent);
+  }
+
   .context-panel {
-    width: clamp(280px, 27vw, var(--spacing-inspector));
+    width: var(--spacing-inspector);
+  }
+
+  .context-panel-review {
+    width: 300px;
   }
 
   .workspace-main {
     min-width: 0;
+    container-type: inline-size;
   }
 
   .agent-panel {
-    width: clamp(300px, 26vw, var(--spacing-inspector));
+    width: 290px;
   }
 
   /* A flagged region. Tinted rather than hatched now that hue is available,
@@ -199,15 +264,107 @@
     font-size: var(--text-micro);
   }
 
-  /* Viewport ground: a soft radial lift so the model sits in space rather than
-     on a flat sheet. */
   .viewport-ground {
     background-color: var(--color-c1);
   }
 
-  .viewport-ground.grid-dots {
-    background-image: var(--viewport-glow), var(--viewport-grid);
-    background-size: cover, var(--viewport-grid-size);
+  /* The Canvas is deliberately diagrammatic. CAD keeps the shaded WebGL solid;
+     this view exposes the chain of authority and observation as a line system. */
+  .causal-canvas {
+    background-image:
+      linear-gradient(rgb(99 201 194 / 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(99 201 194 / 0.045) 1px, transparent 1px);
+    background-size: 21px 21px;
+  }
+
+  .causal-node-grid {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-areas:
+      "evidence intent feature"
+      "release measure cad";
+    grid-template-columns: repeat(3, minmax(150px, 1fr));
+    grid-template-rows: repeat(2, minmax(128px, 1fr));
+    gap: clamp(52px, 9vw, 108px) clamp(42px, 8vw, 92px);
+    min-width: 660px;
+    min-height: 500px;
+  }
+
+  .causal-links {
+    position: absolute;
+    inset: 21px;
+    z-index: 1;
+    width: calc(100% - 42px);
+    height: calc(100% - 42px);
+    min-width: 660px;
+    min-height: 500px;
+    fill: none;
+    stroke: var(--color-c5);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .causal-node {
+    position: relative;
+    display: grid;
+    grid-template-columns: 27px minmax(0, 1fr);
+    gap: 9px;
+    align-self: center;
+    min-height: 96px;
+    cursor: pointer;
+    border: 1px solid var(--color-c4);
+    border-radius: 2px;
+    background: var(--color-c0);
+    padding: 11px;
+    text-align: left;
+    box-shadow: var(--shadow-raised);
+    transition: border-color 150ms ease-out, background-color 150ms ease-out;
+  }
+
+  .causal-node:hover { border-color: var(--color-c6); }
+  .causal-node[aria-pressed="true"] {
+    border-color: var(--color-accent);
+    background: var(--color-accent-wash);
+    box-shadow: inset 2px 0 0 var(--color-accent), var(--shadow-raised);
+  }
+  .causal-node-failed { border-top-color: var(--color-danger-line); }
+  .causal-node-passed { border-top-color: var(--color-success-line); }
+  .causal-node-observed { border-top-color: var(--color-observed-line); }
+  .causal-node-icon {
+    display: grid;
+    width: 27px;
+    height: 27px;
+    place-items: center;
+    color: var(--color-c7);
+  }
+  .causal-node-failed .causal-node-icon { color: var(--color-danger); }
+  .causal-node-passed .causal-node-icon { color: var(--color-success); }
+  .causal-node-observed .causal-node-icon { color: var(--color-observed); }
+}
+
+@container (max-width: 700px) {
+  .causal-node-grid {
+    grid-template-areas:
+      "evidence intent"
+      "cad feature"
+      "measure release";
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+    grid-template-rows: repeat(3, auto);
+    gap: 34px 21px;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .causal-links { display: none; }
+}
+
+@container (max-width: 390px) {
+  .causal-node-grid {
+    grid-template-areas: "evidence" "intent" "feature" "cad" "measure" "release";
+    grid-template-columns: minmax(220px, 1fr);
+    grid-template-rows: repeat(6, auto);
+    gap: 13px;
   }
 }
 
@@ -232,6 +389,42 @@
     width: min(360px, calc(100% - var(--spacing-rail)));
     box-shadow: var(--shadow-float);
   }
+
+  .causal-node-grid {
+    grid-template-areas: "evidence" "intent" "feature" "cad" "measure" "release";
+    grid-template-columns: minmax(220px, 1fr);
+    grid-template-rows: repeat(6, auto);
+    gap: 13px;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .causal-links { display: none; }
+}
+
+@media (max-width: 1023px) {
+  .access-gate-content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 34px;
+    padding-block: 55px 280px;
+  }
+
+  .access-gate-footer {
+    right: 34px;
+    left: 34px;
+  }
+}
+
+@media (max-width: 639px) {
+  .access-gate-content {
+    gap: 26px;
+    padding-block: 34px 280px;
+  }
+
+  .access-gate-footer {
+    right: 21px;
+    left: 21px;
+  }
 }
 
 @media (min-width: 681px) and (max-width: 960px) {
@@ -240,7 +433,7 @@
     inset-block: 0;
     right: 0;
     z-index: 35;
-    width: min(377px, calc(100% - var(--spacing-rail)));
+    width: min(290px, calc(100% - var(--spacing-rail)));
     box-shadow: var(--shadow-float);
   }
 }
@@ -249,5 +442,13 @@
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Short landscape viewports must start at the top; centering taller content
+   would create an unreachable negative overflow above the scroll origin. */
+@media (max-height: 680px) {
+  .access-gate-layout {
+    align-items: start;
   }
 }

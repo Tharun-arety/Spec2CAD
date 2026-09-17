@@ -61,11 +61,18 @@ const manifestPromises = new Map<string, Promise<ReplayManifest>>()
 function catalog(): Promise<ReplayCatalog> {
   if (cachedCatalog) return Promise.resolve(cachedCatalog)
   if (!catalogPromise) {
-    catalogPromise = fetch(`${BASE}/catalog.json`, { cache: 'no-cache' }).then(async (res) => {
-      if (!res.ok) throw new Error(`replay catalog missing (${res.status})`)
-      cachedCatalog = (await res.json()) as ReplayCatalog
-      return cachedCatalog
-    })
+    catalogPromise = fetch(`${BASE}/catalog.json`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`replay catalog missing (${res.status})`)
+        cachedCatalog = (await res.json()) as ReplayCatalog
+        return cachedCatalog
+      })
+      .catch((error: unknown) => {
+        // A rejected promise is not a cache entry. Let the visible Retry action
+        // issue a fresh request after a transient/static-host failure.
+        catalogPromise = null
+        throw error
+      })
   }
   return catalogPromise
 }
@@ -73,7 +80,7 @@ function catalog(): Promise<ReplayCatalog> {
 function capabilities(): Promise<CapabilityRegistry> {
   if (cachedCapabilities) return Promise.resolve(cachedCapabilities)
   if (!capabilitiesPromise) {
-    capabilitiesPromise = fetch(`${BASE}/capabilities.json`, { cache: 'no-cache' })
+    capabilitiesPromise = fetch(`${BASE}/capabilities.json`)
       .then(async (res) => {
         if (!res.ok) throw new Error(`capability registry missing (${res.status})`)
         cachedCapabilities = (await res.json()) as CapabilityRegistry
@@ -92,9 +99,7 @@ async function manifest(scenarioId?: string): Promise<ReplayManifest> {
   if (cached) return cached
   let pending = manifestPromises.get(id)
   if (!pending) {
-    pending = fetch(`${BASE}/scenarios/${encodeURIComponent(id)}/run.json`, {
-      cache: 'no-cache',
-    })
+    pending = fetch(`${BASE}/scenarios/${encodeURIComponent(id)}/run.json`)
       .then(async (res) => {
         if (!res.ok) throw new Error(`replay bundle missing for ${id} (${res.status})`)
         const next = (await res.json()) as ReplayManifest

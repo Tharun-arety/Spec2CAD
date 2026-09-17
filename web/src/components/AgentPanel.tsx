@@ -1,28 +1,45 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Bot, FileText, Image as ImageIcon, Paperclip, Play, Plus, RotateCcw, X,
+  Bot, FileText, Image as ImageIcon, KeyRound, Paperclip, Play, Plus,
+  RotateCcw, X,
 } from 'lucide-react'
+import type { ModelConnectionInput } from '../api'
 import type { RunState } from '../types'
 import { cn } from '../lib/cn'
+import {
+  isOwnConnectionReady, modelConnectionInput, type ModelConnectionSettings,
+} from '../lib/modelConnection'
 import { Button, Tip } from './ui'
+import { ModelConnectionFields } from './ModelConnectionFields'
 
 interface AgentPanelProps {
   busy: boolean
   replayMode: boolean
   visionAvailable: boolean
   state: RunState | null
-  onCompile: (sketch: File | null, datasheet: File | null, instruction: string) => void
-  onContinue: (message: string) => void
+  modelSettings: ModelConnectionSettings
+  onModelSettingsChange: (settings: ModelConnectionSettings) => void
+  onCompile: (
+    sketch: File | null,
+    datasheet: File | null,
+    instruction: string,
+    connection: ModelConnectionInput | null,
+  ) => Promise<boolean>
+  onContinue: (
+    message: string, connection: ModelConnectionInput | null,
+  ) => Promise<boolean>
   onNew: () => void
 }
 
 /** Persistent conversation surface shared by every engineering stage. */
 export function AgentPanel({
-  busy, replayMode, visionAvailable, state, onCompile, onContinue, onNew,
+  busy, replayMode, visionAvailable, state, modelSettings, onModelSettingsChange,
+  onCompile, onContinue, onNew,
 }: AgentPanelProps) {
   const [sketch, setSketch] = useState<File | null>(null)
   const [datasheet, setDatasheet] = useState<File | null>(null)
   const [instruction, setInstruction] = useState('')
+  const [modelSettingsOpen, setModelSettingsOpen] = useState(false)
   const sketchInput = useRef<HTMLInputElement>(null)
   const datasheetInput = useRef<HTMLInputElement>(null)
   const instructionInput = useRef<HTMLTextAreaElement>(null)
@@ -30,7 +47,13 @@ export function AgentPanel({
   const messages = state?.messages ?? []
   const clarificationQuestions = state?.clarification_questions ?? []
   const continuing = messages.length > 0 && !sketch && !datasheet
-  const canSend = !replayMode && !busy && Boolean(sketch || datasheet || instruction.trim())
+  const ownConnectionReady = isOwnConnectionReady(modelSettings)
+  const connectionReady = modelSettings.mode === 'server' || ownConnectionReady
+  const effectiveVisionAvailable = visionAvailable || (
+    modelSettings.mode === 'own' && ownConnectionReady
+  )
+  const canSend = !replayMode && !busy && connectionReady
+    && Boolean(sketch || datasheet || instruction.trim())
 
   useEffect(() => {
     threadEnd.current?.scrollIntoView({ block: 'nearest' })
@@ -42,11 +65,13 @@ export function AgentPanel({
     }
   }, [clarificationQuestions.length, replayMode])
 
-  const submit = () => {
+  const submit = async () => {
     if (!canSend) return
-    if (continuing) onContinue(instruction.trim())
-    else onCompile(sketch, datasheet, instruction.trim())
-    setInstruction('')
+    const connection = modelConnectionInput(modelSettings)
+    const succeeded = continuing
+      ? await onContinue(instruction.trim(), connection)
+      : await onCompile(sketch, datasheet, instruction.trim(), connection)
+    if (succeeded) clear()
   }
 
   const clear = () => {
@@ -58,9 +83,9 @@ export function AgentPanel({
   return (
     <aside className="agent-panel chrome-grain flex min-h-0 shrink-0 flex-col border-l border-c3 bg-c0"
            aria-label="Agent conversation">
-      <header className="flex h-[47px] shrink-0 items-center gap-[9px] border-b border-c3 px-[13px]">
-        <span className="grid h-[27px] w-[27px] place-items-center rounded-[6px]
-                         border border-accent-line bg-accent-wash text-accent">
+      <header className="flex h-[41px] shrink-0 items-center gap-[8px] border-b border-c3 px-[11px]">
+        <span className="grid h-[25px] w-[25px] place-items-center rounded-[2px]
+                         border border-observed-line bg-observed-wash text-observed">
           <Bot size={15} strokeWidth={1.8} aria-hidden />
         </span>
         <div className="min-w-0">
@@ -69,11 +94,26 @@ export function AgentPanel({
             {replayMode ? 'Recorded actions' : 'Connected to the design pipeline'}
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setModelSettingsOpen((open) => !open)}
+          disabled={replayMode || busy}
+          aria-expanded={modelSettingsOpen}
+          aria-controls="model-connection-settings"
+          aria-label={`Model connection: ${modelSettings.mode === 'own' ? 'Own API' : 'Demo access'}`}
+          title={modelSettings.mode === 'own' ? 'Own API' : 'Demo access'}
+          className="ml-auto grid h-[27px] w-[27px] cursor-pointer place-items-center rounded-[2px]
+                     border border-c4 bg-c1 text-[11px] font-medium text-c7
+                     transition-colors hover:border-c6 hover:text-c9 disabled:cursor-not-allowed
+                     disabled:opacity-40"
+        >
+          <KeyRound size={12} strokeWidth={1.8} aria-hidden />
+        </button>
         {state && (
           <Tip label="Start a new design">
             <button type="button" onClick={onNew} disabled={busy}
                     aria-label="Start a new design"
-                    className="ml-auto grid h-[29px] w-[29px] cursor-pointer place-items-center
+                    className="grid h-[29px] w-[29px] cursor-pointer place-items-center
                                rounded-[5px] border border-c4 bg-c1 text-c7
                                transition-colors hover:border-c6 hover:text-c9 disabled:opacity-40">
               <Plus size={14} strokeWidth={1.8} aria-hidden />
@@ -82,14 +122,29 @@ export function AgentPanel({
         )}
       </header>
 
+      {modelSettingsOpen && !replayMode && (
+        <section
+          id="model-connection-settings"
+          aria-label="Model connection settings"
+          className="shrink-0 border-b border-c3 bg-c1 px-[13px] py-[11px]"
+        >
+          <ModelConnectionFields
+            settings={modelSettings}
+            onChange={onModelSettingsChange}
+            disabled={busy}
+            idPrefix="agent-model"
+          />
+        </section>
+      )}
+
       <div className="min-h-0 flex-1 overflow-y-auto px-[13px] py-[13px]">
         {messages.length ? (
           <div className="space-y-[10px]" aria-live="polite">
             {messages.map((message) => (
               <article key={message.id} className={cn(
-                'max-w-[92%] rounded-[8px] border px-[11px] py-[9px]',
+                'max-w-[94%] rounded-[2px] border px-[9px] py-[8px]',
                 message.role === 'user'
-                  ? 'ml-auto border-accent-line bg-accent-wash'
+                  ? 'ml-auto border-observed-line bg-observed-wash'
                   : message.kind === 'clarification'
                     ? 'border-warn-line bg-warn-wash'
                     : 'border-c3 bg-c1',
@@ -97,7 +152,7 @@ export function AgentPanel({
                 <div className="mb-[4px] text-[10.5px] font-semibold text-c6">
                   {message.role === 'user' ? 'You' : 'Spec2CAD'}
                 </div>
-                <p className="whitespace-pre-wrap text-[12.5px] leading-[1.55] text-c8">
+                <p className="whitespace-pre-wrap text-[12px] leading-[1.5] text-c8">
                   {message.content}
                 </p>
               </article>
@@ -157,7 +212,7 @@ export function AgentPanel({
             This conversation is recorded. Open a live run to send new instructions.
           </p>
         )}
-        <div className="overflow-hidden rounded-[8px] border border-c4 bg-c1
+        <div className="overflow-hidden rounded-[2px] border border-c4 bg-c1
                         focus-within:border-accent">
           <label htmlFor="agent-instruction" className="sr-only">Message the Spec2CAD agent</label>
           <textarea
@@ -185,9 +240,9 @@ export function AgentPanel({
           )}
 
           <div className="flex items-center gap-[3px] border-t border-c3 px-[6px] py-[5px]">
-            <Tip label={visionAvailable ? 'Attach a sketch' : 'Sketch vision is unavailable'}>
+            <Tip label={effectiveVisionAvailable ? 'Attach a sketch' : 'Sketch vision is unavailable'}>
               <button type="button" onClick={() => sketchInput.current?.click()}
-                      disabled={replayMode || busy || !visionAvailable} aria-label="Attach sketch"
+                      disabled={replayMode || busy || !effectiveVisionAvailable} aria-label="Attach sketch"
                       className="grid h-[29px] w-[29px] cursor-pointer place-items-center rounded-[5px]
                                  text-c7 hover:bg-c2 hover:text-c9 disabled:cursor-not-allowed disabled:opacity-35">
                 <ImageIcon size={14} strokeWidth={1.8} aria-hidden />

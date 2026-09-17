@@ -18,6 +18,8 @@ def test_health_capabilities_derive_from_the_registry():
     body = response.json()
     assert body["capabilities"] == list(HEALTH_CAPABILITY_IDS)
     assert body["capability_registry"] == capability_payload()
+    assert body["model_connections"]["bring_your_own_key"] is True
+    assert body["model_connections"]["credentials_persisted"] is False
 
 
 def test_readme_and_report_do_not_repeat_the_pre_audit_stale_claim():

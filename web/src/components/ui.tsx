@@ -138,7 +138,7 @@ export function PanelHead({ title, note, aside }: {
 }) {
   return (
     <div className="sticky top-0 z-10 flex items-center gap-[8px] border-b border-c3
-                    bg-c0/90 px-[13px] py-[10px] backdrop-blur-md">
+                    bg-c0 px-[13px] py-[10px]">
       <h2 className="text-[14px] font-semibold tracking-[-0.011em]">{title}</h2>
       {note && <span className="truncate text-[12px] text-c6">{note}</span>}
       {aside && <div className="ml-auto flex items-center gap-[5px]">{aside}</div>}

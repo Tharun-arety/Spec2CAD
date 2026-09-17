@@ -14,14 +14,6 @@ import { Button, Empty, Field, Mark, Num, PanelHead, Tip } from './ui'
 
 const show = (v: unknown) => (v === null || v === undefined ? '—' : String(v))
 
-const derivedUnit = (name: string) => {
-  if (name.endsWith('thread_turns') || name.endsWith('ratio') || name.endsWith('connected_ports')) return null
-  if (name.endsWith('angle')) return 'deg'
-  if (name.endsWith('volume')) return 'mm³'
-  if (name.endsWith('area')) return 'mm²'
-  return 'mm'
-}
-
 /* --------------------------------------------------------------- sources */
 
 export function SourcesStage({
@@ -335,68 +327,17 @@ const mm3 = (v: number) =>
  * exactly the same if the kernel had quietly done nothing.
  */
 export function CadStage({
-  rev, selected, onSelect, onToggleScript, scriptOpen,
+  rev, selected, onSelect,
 }: {
   rev: Revision
   selected: string | null
   onSelect: (id: string | null) => void
-  onToggleScript: () => void
-  scriptOpen: boolean
 }) {
   const ops = rev.operations
-  const built = ops.filter((o) => o.measured)
-  const total = built.length ? built[built.length - 1].measured!.volume : null
-  const noOps = built.filter((o) => o.measured!.no_op)
 
   return (
     <>
-      <PanelHead
-        title="CAD program"
-        note={`${ops.length} features`}
-        aside={
-          <button onClick={onToggleScript}
-                  className="cursor-pointer rounded-[5px] border border-c4 bg-c0 px-[9px] py-[3px]
-                             text-[12px] text-c7 shadow-[var(--shadow-raised)]
-                             transition-colors duration-150 hover:border-c6 hover:text-c9">
-            {scriptOpen ? 'Hide script' : 'Show script'}
-          </button>
-        }
-      />
-
-      <p className="border-b border-c3 px-3.5 py-2 text-[12.5px] leading-relaxed text-c7">
-        Each feature is shown with the volume the kernel reported after building
-        it. The value in grey is what we asked for; the figure on the right is
-        what the solid actually became.
-      </p>
-
-      {total !== null && (
-        <div className="flex items-baseline gap-[10px] border-b border-c3 bg-c1 px-3.5 py-[7px]">
-          <span className="text-[12.5px] text-c7">Finished volume</span>
-          <Num value={mm3(total)} unit="mm³" strong />
-          {noOps.length > 0 && (
-            <span className="ml-auto text-[12px] font-semibold text-danger">
-              {noOps.length} feature{noOps.length === 1 ? '' : 's'} changed nothing
-            </span>
-          )}
-        </div>
-      )}
-
-      {rev.derived_geometry && Object.keys(rev.derived_geometry).length > 0 && (
-        <div className="border-b border-c3 bg-c1 px-3.5 py-[8px]">
-          <div className="mb-[5px] text-[11px] font-semibold uppercase tracking-[0.07em] text-c6">
-            Derived engineering values
-          </div>
-          <div className="flex flex-wrap gap-x-[16px] gap-y-[4px]">
-            {Object.entries(rev.derived_geometry).map(([name, value]) => (
-              <span key={name} className="flex items-baseline gap-[5px] text-[12px]">
-                <span className="text-c7">{name.replace(/[._]/g, ' ')}</span>
-                <Num strong value={formatValue(value)}
-                     unit={derivedUnit(name)} />
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      <PanelHead title="Deterministic CAD build" />
 
       <ol>
         {ops.map((o, i) => {
@@ -408,39 +349,27 @@ export function CadStage({
                 onClick={() => onSelect(on ? null : o.id)}
                 aria-pressed={on}
                 className={cn(
-                  'flex w-full cursor-pointer items-baseline gap-[9px] border-b border-c3',
-                  'px-3.5 py-[8px] text-left transition-colors duration-150',
+                  'flex min-h-[61px] w-full cursor-pointer items-center gap-[9px] border-b border-c3',
+                  'px-[13px] py-[9px] text-left transition-colors duration-150',
                   on ? 'bg-accent-wash shadow-[inset_2px_0_0_0_var(--color-accent)]'
                      : 'hover:bg-c2',
                 )}
               >
-                <span className="num shrink-0 text-[11.5px] text-c6">{i + 1}</span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] font-medium text-c9">
+                  <span className="block truncate text-[12.5px] font-semibold text-c9">
                     {o.id.replace(/_/g, ' ')}
                   </span>
-                  <span className="num block text-[11.5px] text-c6">
-                    {o.type.replace(/_/g, ' ')}
+                  <span className={cn(
+                    'num mt-[3px] block text-[11px]',
+                    m ? 'text-observed' : 'text-danger',
+                  )}>
+                    Feature IR F-{String(i + 1).padStart(2, '0')}{m ? '' : ' / incomplete'}
                   </span>
                 </span>
-                {m ? (
-                  <span className="shrink-0 text-right">
-                    <span className={cn('num block text-[13px] font-semibold',
-                                        m.no_op ? 'text-danger'
-                                                : m.volume_delta > 0 ? 'text-c9' : 'text-accent')}>
-                      {m.volume_delta > 0 ? '+' : ''}{mm3(m.volume_delta)}
-                    </span>
-                    <span className="num block text-[11px] text-c6">mm³</span>
-                  </span>
-                ) : (
-                  // Distinguish "the build failed" from "this backend did not
-                  // report a measurement" -- an older deployed API returns no
-                  // measurement block at all, and calling that "not built" when
-                  // the solid is plainly on screen would be a lie.
-                  <span className="shrink-0 text-[11.5px] text-c6">
-                    {rev.build_error ? 'not built' : 'not reported'}
-                  </span>
-                )}
+                <span aria-hidden className={cn(
+                  'h-[6px] w-[6px] shrink-0 rounded-full',
+                  m?.no_op ? 'bg-danger' : m ? 'bg-observed' : 'bg-c5',
+                )} />
               </button>
 
               {on && m && (

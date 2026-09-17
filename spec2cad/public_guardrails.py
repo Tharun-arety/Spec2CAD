@@ -8,9 +8,13 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
+import logging
 import os
+import re
 import threading
 import time
+import uuid
 from collections import OrderedDict, deque
 from contextvars import ContextVar
 from dataclasses import dataclass
@@ -41,6 +45,7 @@ class PublicLimits:
     ai_units_per_client_day: int = 12
     ai_units_global_day: int = 120
     max_concurrent_jobs: int = 1
+    job_queue_timeout_ms: int = 50
     max_cached_runs: int = 8
     max_requirement_chars: int = 6_000
     max_conversation_messages: int = 12
@@ -57,6 +62,7 @@ class PublicLimits:
             ai_units_per_client_day=_integer("SPEC2CAD_AI_UNITS_PER_CLIENT_DAY", 12, 1, 10000),
             ai_units_global_day=_integer("SPEC2CAD_AI_UNITS_GLOBAL_DAY", 120, 1, 1000000),
             max_concurrent_jobs=_integer("SPEC2CAD_MAX_CONCURRENT_JOBS", 1, 1, 16),
+            job_queue_timeout_ms=_integer("SPEC2CAD_JOB_QUEUE_TIMEOUT_MS", 50, 10, 5000),
             max_cached_runs=_integer("SPEC2CAD_MAX_CACHED_RUNS", 8, 1, 1000),
             max_requirement_chars=_integer("SPEC2CAD_MAX_REQUIREMENT_CHARS", 6000, 100, 100000),
             max_conversation_messages=_integer("SPEC2CAD_MAX_CONVERSATION_MESSAGES", 12, 2, 100),
@@ -154,6 +160,16 @@ EXPENSIVE_POST_PATHS = {
     "/inspection/evaluate", "/analyses/evaluate",
 }
 
+_RUN_ID_IN_PATH = r"/[0-9a-f]{32}(?=/|$)"
+# Uvicorn configures this logger in container deployments. Reusing its handler
+# ensures the structured line is emitted without adding a second global handler.
+_http_logger = logging.getLogger("uvicorn.error")
+
+
+def _safe_log_path(path: str) -> str:
+    """Remove possession-token run IDs before emitting transport logs."""
+    return re.sub(_RUN_ID_IN_PATH, "/{run_id}", path, flags=re.IGNORECASE)
+
 
 class PublicGuardrailMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, limits: PublicLimits):
@@ -163,14 +179,36 @@ class PublicGuardrailMiddleware(BaseHTTPMiddleware):
         self.jobs = asyncio.Semaphore(limits.max_concurrent_jobs)
 
     async def dispatch(self, request: Request, call_next: Callable):
+        started = time.perf_counter()
+        request_id = uuid.uuid4().hex
+        request.state.request_id = request_id
+        queue_wait_ms = 0.0
+        status_code = 500
+        costly = False
+
+        def finish(response: JSONResponse | Any):
+            nonlocal status_code
+            status_code = response.status_code
+            elapsed_ms = (time.perf_counter() - started) * 1000
+            response.headers["X-Request-ID"] = request_id
+            response.headers["Server-Timing"] = f"app;dur={elapsed_ms:.2f}"
+            response.headers["X-Spec2CAD-Queue-Wait-Ms"] = f"{queue_wait_ms:.2f}"
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            response.headers["Referrer-Policy"] = "no-referrer"
+            if request.url.path == "/health":
+                response.headers["Cache-Control"] = "public, max-age=15, stale-while-revalidate=30"
+            elif request.url.path.startswith("/runs"):
+                response.headers.setdefault("Cache-Control", "no-store")
+            return response
+
         length = request.headers.get("content-length")
         if length:
             try:
                 too_large = int(length) > self.limits.max_request_bytes
             except ValueError:
-                return JSONResponse({"detail": "invalid Content-Length"}, status_code=400)
+                return finish(JSONResponse({"detail": "invalid Content-Length"}, status_code=400))
             if too_large:
-                return JSONResponse({"detail": "request body is too large"}, status_code=413)
+                return finish(JSONResponse({"detail": "request body is too large"}, status_code=413))
 
         key = client_hash(request)
         request.state.client_hash = key
@@ -187,26 +225,40 @@ class PublicGuardrailMiddleware(BaseHTTPMiddleware):
             if costly:
                 admitted, remaining, retry = self.rate.admit(key)
                 if not admitted:
-                    return JSONResponse(
+                    return finish(JSONResponse(
                         {"detail": "public request rate limit reached"},
                         status_code=429, headers={"Retry-After": str(retry)},
-                    )
+                    ))
+                queue_started = time.perf_counter()
                 try:
-                    await asyncio.wait_for(self.jobs.acquire(), timeout=0.05)
+                    await asyncio.wait_for(
+                        self.jobs.acquire(),
+                        timeout=self.limits.job_queue_timeout_ms / 1000,
+                    )
                     acquired = True
-                except TimeoutError:
-                    return JSONResponse(
+                    queue_wait_ms = (time.perf_counter() - queue_started) * 1000
+                except (asyncio.TimeoutError, TimeoutError):
+                    queue_wait_ms = (time.perf_counter() - queue_started) * 1000
+                    return finish(JSONResponse(
                         {"detail": "the CAD worker is busy; retry shortly"},
                         status_code=503, headers={"Retry-After": "2"},
-                    )
+                    ))
             response = await call_next(request)
-            response.headers["X-Content-Type-Options"] = "nosniff"
-            response.headers["Referrer-Policy"] = "no-referrer"
             if costly:
                 response.headers["X-RateLimit-Limit"] = str(self.limits.requests_per_minute)
                 response.headers["X-RateLimit-Remaining"] = str(remaining)
-            return response
+            return finish(response)
         finally:
             if acquired:
                 self.jobs.release()
             _safety_identifier.reset(token)
+            _http_logger.info(json.dumps({
+                "event": "http_request",
+                "request_id": request_id,
+                "method": request.method,
+                "path": _safe_log_path(request.url.path),
+                "status": status_code,
+                "duration_ms": round((time.perf_counter() - started) * 1000, 2),
+                "queue_wait_ms": round(queue_wait_ms, 2),
+                "costly": costly,
+            }, separators=(",", ":")))

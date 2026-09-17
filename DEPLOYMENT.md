@@ -184,6 +184,13 @@ needs; it is not headroom for concurrent geometry builds.
    public live path intentionally remains the narrow deterministic plate parser,
    and arbitrary sketch uploads are refused rather than misrepresented.
 
+   Users can also bring an OpenAI or OpenAI-compatible key from the live agent
+   panel. Those credentials are request-scoped and are never persisted. Common
+   compatible provider hosts are approved in code; add any additional exact
+   HTTPS host with `SPEC2CAD_ALLOWED_MODEL_HOSTS`. Do not use a wildcard on a
+   public deployment: the backend must not proxy model requests to arbitrary
+   network locations.
+
 ## What was fixed to make this work
 
 - **The Dockerfile hardcoded port 8000.** Render injects `$PORT`; a fixed port
@@ -220,3 +227,59 @@ token is configured.
 Also set a project-level monthly budget and alert in the OpenAI dashboard. The
 application limits reduce abuse; the provider project budget is the final spend
 ceiling if instances restart or application controls fail.
+
+Bring-your-own-key calls do not consume the server credential's daily model-call
+budget, but they remain subject to request-rate, upload, conversation and
+concurrency limits.
+
+## Pre-deployment performance and operations envelope
+
+The 2026-09-17 profile is a local, single-process diagnostic—not a production
+capacity claim. Run it again on the target instance with:
+
+```bash
+python scripts/profile_predeploy.py --output build/predeploy-profile.json
+```
+
+| Measure | Before | Hardened build |
+|---|---:|---:|
+| API module import | 8.30 s | 1.03 s |
+| `/health` p50 / p95 | 12.08 / 23.84 ms | 8.26 / 12.02 ms |
+| Concurrent `/health`, 16 clients | 87.1 req/s | 131.3 req/s |
+| Deterministic CAD run p50 | 156.84 ms | 149.33 ms |
+| Initial application JavaScript, gzip | — | 104.34 kB |
+| Deferred Three.js viewer, gzip | — | 125.79 kB |
+
+The startup reduction comes from deferring CadQuery, PyMuPDF, Pillow and the
+pipeline until an endpoint needs them. The first CAD or document request still
+pays that dependency's one-time import cost. Environment files are checked by
+metadata and reparsed only when they change. Compression uses a low CPU level;
+the static edge serves content-hashed assets with immutable caching, while replay
+metadata can be served stale during revalidation.
+
+### Capacity and reliability decisions
+
+| Concern | Current launch behavior | Scale-out prerequisite |
+|---|---|---|
+| Latency | Lazy API startup, bounded 75 s client wait, visible backend wake state | Warm paid instance and production load test |
+| Throughput/concurrency | One costly CAD/model request at a time; excess work gets retryable `503` after the configured short queue wait | More memory per worker, then measured worker/process sizing |
+| Caching | Bounded in-process B-Rep LRU; browser/edge caching for immutable static assets; no-store run state | Shared artifact/object store and an explicit invalidation policy |
+| Batching | Not used: model and CAD turns are dependency-ordered, user-specific and non-idempotent | A proven batchable workload with independent provenance per item |
+| Queues | Fail-fast semaphore backpressure; no hidden unbounded queue | Durable job IDs, cancellation, expiry, shared queue and worker leases |
+| Reliability | Request/body/rate/budget limits, atomic SQLite AI budget, timeout without automatic POST retry, draft preservation | Idempotency keys and durable run state before safe retries |
+| Observability | `X-Request-ID`, `Server-Timing`, queue-wait/rate headers and structured request logs with run tokens redacted | Central log/metric sink, alerts and trace propagation |
+| Cost | Hosted-demo daily caps plus provider project budget; caller-owned keys bypass only the server AI allowance | Per-tenant metering and explicit paid service tiers |
+| Deployment | Static Vercel frontend; one long-lived Render container and one uvicorn worker | Shared database, distributed admission control and object storage |
+
+Do not raise the worker count on the current 512 MB service. A measured full run
+peaks around 369 MB before normal server overhead, so parallel geometry builds
+would trade predictable backpressure for out-of-memory restarts. SQLite, local
+artifacts and the in-process run cache also make replicas unsafe today: a
+follow-up request must reach the process that owns its run. Horizontal scaling
+therefore requires shared durable state and distributed admission control, not
+just another container.
+
+Operationally, watch p95 `Server-Timing`, non-zero queue wait, `503` rate,
+provider `429`s, model budget consumption, process RSS and cold-start duration.
+The request ID is safe to quote in support reports; API keys, source bodies and
+possession-token run IDs are intentionally absent from transport logs.

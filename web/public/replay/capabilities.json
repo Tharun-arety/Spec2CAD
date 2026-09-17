@@ -61,14 +61,14 @@
       "id": "openai_multimodal_extraction",
       "implementation_maturity": "bounded",
       "integration": "optional_pipeline",
-      "label": "OpenAI multimodal extraction",
+      "label": "Schema-constrained multimodal extraction",
       "limitations": [
-        "Mock-tested; no current repeated stochastic benchmark result."
+        "Custom endpoints must implement compatible chat completions, image input when used, and strict JSON schema output; no repeated stochastic benchmark."
       ],
       "release_role": "governing",
-      "summary": "Maps bounded text, image and PDF evidence into schema-constrained facts and features.",
+      "summary": "Maps bounded text, image and PDF evidence through OpenAI or an approved OpenAI-compatible endpoint into schema-constrained facts and features.",
       "supported_backends": [],
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "benchmark_evidence": [

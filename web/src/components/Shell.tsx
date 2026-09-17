@@ -8,6 +8,7 @@
  */
 import {
   Box, CheckSquare, CircleSlash, FileStack, GitCommitVertical, Ruler, ShieldCheck,
+  Waypoints,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 
@@ -31,8 +32,9 @@ import { cn } from '../lib/cn'
 import { formatValue } from '../lib/formatValue'
 import type { Revision, RunState } from '../types'
 import { Button, Mark, Num, Tip } from './ui'
+import { Spec2CADMark } from './Spec2CADMark'
 
-export type StageId = 'sources' | 'evidence' | 'intent' | 'cad' | 'validate' | 'revisions'
+export type StageId = 'sources' | 'evidence' | 'intent' | 'canvas' | 'cad' | 'validate' | 'revisions'
 
 export const STAGES: {
   id: StageId; label: string; icon: typeof Box; hint: string
@@ -40,32 +42,53 @@ export const STAGES: {
   { id: 'sources', label: 'Sources', icon: FileStack, hint: 'The three input documents' },
   { id: 'evidence', label: 'Evidence', icon: Ruler, hint: 'Every fact, and where it was read' },
   { id: 'intent', label: 'Intent', icon: Box, hint: 'Consolidated parameters and constraints' },
+  { id: 'canvas', label: 'Canvas', icon: Waypoints, hint: 'The causal chain from source to release' },
   { id: 'cad', label: 'CAD', icon: CheckSquare, hint: 'The features built, and what each one did' },
   { id: 'validate', label: 'Validate', icon: ShieldCheck, hint: 'Measured on the solid, and the gate' },
   { id: 'revisions', label: 'Revisions', icon: GitCommitVertical, hint: 'Immutable versions and approvals' },
 ]
 
+const STAGE_READOUT: Record<StageId, string> = {
+  sources: 'sources / recorded truth',
+  evidence: 'evidence / provenance trace',
+  intent: 'intent / governed parameters',
+  canvas: 'canvas / causal trace',
+  cad: 'cad / deterministic build',
+  validate: 'validate / measured gate',
+  revisions: 'revisions / immutable history',
+}
+
 /* ------------------------------------------------------------ command bar */
 
 export function CommandBar({
-  state, rev, onSelectRevision, busy, right,
+  state, rev, activeStage, onSelectRevision, onHome, busy, right,
 }: {
   state: RunState | null
   rev: Revision | null
+  activeStage: StageId
   onSelectRevision: (n: number) => void
+  onHome: () => void
   busy: boolean
   right?: ReactNode
 }) {
   return (
-    <header className="chrome-grain flex h-[var(--spacing-bar)] shrink-0 items-center gap-[8px]
+    <header className="chrome-grain relative flex h-[var(--spacing-bar)] shrink-0 items-center gap-[8px]
                        overflow-hidden border-b border-c3 bg-c0 px-[8px] sm:px-[13px]">
-      <div className="flex shrink-0 items-center gap-[8px]">
-        <div className="brand-mark grid h-[27px] w-[27px] place-items-center rounded-[6px]
-                        border border-c4 bg-c2 shadow-[var(--shadow-raised)]">
-          <span className="display-type text-[11px] font-semibold leading-none text-accent">S2</span>
-        </div>
+      <button
+        type="button"
+        onClick={onHome}
+        aria-label="Return to access options"
+        title="Return to access options"
+        className="group flex shrink-0 cursor-pointer items-center gap-[8px] rounded-[2px]
+                   text-c9 transition-colors duration-150 hover:text-accent"
+      >
+        <span className="brand-mark grid h-[25px] w-[25px] place-items-center rounded-[2px]
+                         border border-c4 bg-c2 shadow-[var(--shadow-raised)]
+                         transition-colors duration-150 group-hover:border-accent-line">
+          <Spec2CADMark size={19} />
+        </span>
         <span className="display-type text-[14px] font-semibold tracking-[-0.025em]">Spec2CAD</span>
-      </div>
+      </button>
 
       {rev && (
         <>
@@ -73,10 +96,6 @@ export function CommandBar({
           <div className="hidden min-w-0 items-baseline gap-[8px] md:flex">
             <span className="max-w-[210px] truncate text-[14px] font-medium tracking-[-0.008em]">
               {rev.part.name.replace(/_/g, ' ')}
-            </span>
-            <span className="hidden whitespace-nowrap text-[12px] text-c6 2xl:inline">
-              {rev.part.material}
-              {rev.part.manufacturing_process && ` · ${rev.part.manufacturing_process}`}
             </span>
           </div>
 
@@ -88,25 +107,29 @@ export function CommandBar({
               ? `${rev.changes[0].parameter} ${rev.changes[0].before} → ${rev.changes[0].after}, approved by ${rev.approved_by}`
               : 'As extracted from the sources'
           }>
-            <span className="num shrink-0 rounded-[5px] border border-accent-line
-                             bg-accent-wash px-[8px] py-[2px] text-[12px] font-semibold
-                             text-accent">
+            <span className="num shrink-0 rounded-[2px] border border-observed-line
+                             bg-observed-wash px-[7px] py-[2px] text-[12px] font-semibold
+                             text-observed">
               v{rev.revision}
             </span>
           </Tip>
         </>
       )}
 
+      <div className="num pointer-events-none absolute left-1/2 hidden -translate-x-1/2
+                      text-[12px] tracking-[0.015em] text-c7 lg:block">
+        {STAGE_READOUT[activeStage]}
+      </div>
+
       <div className="ml-auto flex min-w-0 items-center gap-[5px]">
         <Tip side="bottom" label="Source on GitHub">
           <a href={REPO_URL} target="_blank" rel="noreferrer noopener"
              aria-label="Source on GitHub"
              className="flex h-[29px] w-[29px] shrink-0 items-center justify-center gap-[6px]
-                        rounded-[5px] border border-c4 bg-c0 text-[12px] text-c7
-                        shadow-[var(--shadow-raised)] xl:w-auto xl:px-[10px]
+                        rounded-[2px] border border-c4 bg-c0 text-[12px] text-c7
+                        shadow-[var(--shadow-raised)]
                         transition-colors duration-150 hover:border-c6 hover:text-c9">
             <GithubMark />
-            <span className="hidden xl:inline">GitHub</span>
           </a>
         </Tip>
         {busy && (
@@ -135,13 +158,13 @@ export function StageRail({
 }) {
   return (
     <nav className={cn(
-           'flex w-[var(--spacing-rail)] shrink-0 flex-col items-stretch gap-[2px]',
-           'chrome-grain bg-c1 py-[8px] pl-[5px]',
+           'flex w-[var(--spacing-rail)] shrink-0 flex-col items-stretch',
+           'chrome-grain bg-c1',
            // only needed when the panel is closed and the rail meets the viewport
            !open && 'border-r border-c3',
          )}
          aria-label="Pipeline stages">
-      {STAGES.map(({ id, label, icon: Icon, hint }, i) => {
+      {STAGES.map(({ id, label, icon: Icon, hint }) => {
         const on = id === active
         const flag = flags[id]
         const count = counts?.[id]
@@ -157,14 +180,14 @@ export function StageRail({
               aria-current={on && open ? 'step' : undefined}
               aria-expanded={on ? open : undefined}
               className={cn(
-                'relative grid h-[47px] cursor-pointer place-items-center gap-[3px]',
-                'rounded-l-[8px] pl-[3px] transition-colors duration-150',
-                docked && 'mt-auto border-t border-c3 pt-[3px]',
+                'relative grid h-[61px] cursor-pointer place-items-center gap-[3px] border-b border-c3',
+                'transition-colors duration-150',
+                docked && 'mt-auto border-t border-c3',
                 'disabled:cursor-not-allowed disabled:opacity-30',
                 on && open
                   // the active tab takes the panel's own surface so the two
                   // read as one object rather than a control and a distant pane
-                  ? 'bg-c0 font-medium text-accent shadow-[inset_3px_0_0_0_var(--color-accent)]'
+                  ? 'bg-c2 font-medium text-c9 shadow-[inset_2px_0_0_0_var(--color-accent)]'
                   : 'text-c7 hover:bg-c2 hover:text-c9',
               )}
             >
@@ -187,11 +210,6 @@ export function StageRail({
                                  text-[9px] font-semibold leading-none text-accent-fg">
                   {count}
                 </span>
-              )}
-              {/* flow connector between steps */}
-              {i < STAGES.length - 2 && !(on && open) && (
-                <span aria-hidden
-                      className="absolute -bottom-[1px] left-1/2 h-px w-[21px] -translate-x-1/2 bg-c3" />
               )}
             </button>
           </Tip>
@@ -313,6 +331,9 @@ export function StatusBar({
                           blocked ? 'underline underline-offset-[3px]' : '')}>
             {awaitingDetails ? '… Waiting for details' : blocked ? '✕ Blocked' : '✓ Released'}
           </button>
+          {blocked && rev.release.reasons[0] && (
+            <span className="min-w-0 truncate text-c8">{rev.release.reasons[0]}</span>
+          )}
           {clearance?.measured_value != null && (
             <span className="text-c7">
               edge clearance{' '}
@@ -323,7 +344,7 @@ export function StatusBar({
               <span className="num">{clearance.required_value?.toFixed(1)}</span> mm required
             </span>
           )}
-          <span className="ml-auto hidden text-c6 md:inline">measured on the solid</span>
+          <span className="ml-auto hidden text-c6 md:inline">measured evidence controls export</span>
         </>
       ) : (
         <>
@@ -352,7 +373,7 @@ export function ViewportOverlay({
     <>
       {/* corner readout, as a CAD viewport shows units and orientation */}
       <div className="pointer-events-none absolute left-[13px] top-[13px] flex flex-col gap-[5px]">
-        <span className="num flex items-center gap-[6px] rounded-[5px] border border-c3
+        <span className="num flex items-center gap-[6px] rounded-[2px] border border-c3
                          bg-c0/80 px-[8px] py-[3px] text-[11.5px] text-c7 backdrop-blur-md">
           mm · v{rev.revision}
           <span aria-hidden className="h-[9px] w-px bg-c4" />
@@ -382,7 +403,7 @@ export function ViewportOverlay({
       {/* hidden on narrow viewports, where it would sit on top of the buttons */}
       {interactive && (
         <span className="pointer-events-none absolute bottom-[13px] right-[13px] hidden num
-                         rounded-[5px] border border-c3 bg-c0/80 px-[8px] py-[3px]
+                         rounded-[2px] border border-c3 bg-c0/80 px-[8px] py-[3px]
                          text-[11.5px] text-c6 backdrop-blur-md lg:block">
           drag to orbit · scroll to zoom
         </span>

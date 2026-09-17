@@ -88,7 +88,7 @@ export function StlViewer({ url, onFailure }: Props) {
 
         geometry.computeBoundingSphere()
         const r = geometry.boundingSphere?.radius ?? 50
-        camera.position.set(r * 1.5, r * 1.35, r * 1.9)
+        camera.position.set(r * 2.15, r * 1.9, r * 2.7)
         camera.lookAt(0, 0, 0)
         controls.update()
       },

@@ -14,21 +14,17 @@ import shutil
 import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
-import fitz
-from PIL import Image, UnidentifiedImageError
 from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
 from spec2cad.capabilities import HEALTH_CAPABILITY_IDS, capability_payload
-from spec2cad.cad.executor import export_step, export_stl
-from spec2cad.cad.executor import execute
-from spec2cad.cad.assembly import execute_assembly
-from spec2cad.analysis import run_analyses
 from spec2cad.extractors.base import (
+    DEFAULT_OPENAI_MODEL,
     backend_label,
     load_env,
     openai_model,
@@ -37,23 +33,16 @@ from spec2cad.extractors.base import (
     safe_backend_error,
     select_backend,
 )
+from spec2cad.extractors.model_provider import (
+    ModelConnection,
+    ModelProvider,
+    allowed_model_hosts,
+)
 from spec2cad.cad.compiler import parameter_table
 from spec2cad.schemas.cad_ir import CADProgram
 from spec2cad.schemas.assembly_ir import AssemblyProgram
 from spec2cad.schemas.gdt_ir import InspectionProgram
 from spec2cad.schemas.analysis_ir import AnalysisProgram
-from spec2cad.validation.gdt import inspect_gdt
-from spec2cad.pipeline import (
-    InterfaceChangeRequiresAcknowledgement,
-    RevisionResult,
-    interface_critical,
-    continue_conversation,
-    repair,
-    revise,
-    run,
-)
-from spec2cad.preview import NoRegion, render_evidence_preview
-from spec2cad.repair.repair_planner import UnsafeRepairRequiresAcknowledgement
 from spec2cad.store import Store
 from spec2cad.public_guardrails import (
     BoundedRunCache,
@@ -94,7 +83,12 @@ app.add_middleware(
     ),
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=[
+        "Server-Timing", "X-Request-ID", "X-RateLimit-Limit",
+        "X-RateLimit-Remaining", "X-Spec2CAD-Queue-Wait-Ms",
+    ],
 )
+app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=1)
 app.add_middleware(PublicGuardrailMiddleware, limits=limits)
 
 store = Store()
@@ -105,6 +99,13 @@ ai_budget = DailyAIBudget(
 # Live pipeline results, keyed by run id. The store holds the durable audit
 # trail; this cache holds the built geometry so a download does not rebuild.
 _runs = BoundedRunCache(limits.max_cached_runs)
+
+
+def run(*args, **kwargs):
+    """Lazy pipeline entrypoint; kept patchable for API boundary tests."""
+    from spec2cad.pipeline import run as run_pipeline
+
+    return run_pipeline(*args, **kwargs)
 
 
 class InspectionRequest(BaseModel):
@@ -163,7 +164,7 @@ def _check_json(c) -> dict:
     }
 
 
-def _operations_json(rev: RevisionResult) -> list[dict]:
+def _operations_json(rev: Any) -> list[dict]:
     """Program operations joined to what the kernel measured for each one.
 
     The two halves are deliberately kept distinct in the payload. `fields` is
@@ -191,7 +192,8 @@ def _operations_json(rev: RevisionResult) -> list[dict]:
     return described
 
 
-def _revision_json(rev: RevisionResult) -> dict:
+def _revision_json(rev: Any) -> dict:
+    from spec2cad.pipeline import interface_critical
     intent = rev.intent
     return {
         "revision": rev.revision,
@@ -350,6 +352,35 @@ def _validate_text(value: str, *, name: str = "instruction") -> str:
     return text
 
 
+def _request_model_connection(
+    api_key: Optional[str],
+    provider: Optional[str],
+    model: Optional[str],
+    base_url: Optional[str],
+) -> ModelConnection | None:
+    """Validate an ephemeral caller-owned credential without persisting it."""
+    metadata_supplied = any(value and value.strip() for value in (provider, model, base_url))
+    if not api_key:
+        if metadata_supplied:
+            raise HTTPException(400, "model provider settings require an API key")
+        return None
+    try:
+        selected = ModelProvider(
+            (provider or ("openai_compatible" if base_url else "openai")).strip().lower()
+        )
+        model_name = (model or (DEFAULT_OPENAI_MODEL if selected is ModelProvider.OPENAI else "")).strip()
+        if not model_name:
+            raise ValueError("a custom model provider requires an explicit model name")
+        return ModelConnection(
+            provider=selected,
+            api_key=api_key,
+            model=model_name,
+            base_url=base_url.strip() if base_url else None,
+        )
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
 def _save_upload(upload: UploadFile, path: Path, max_bytes: int) -> None:
     written = 0
     with path.open("wb") as fh:
@@ -362,6 +393,8 @@ def _save_upload(upload: UploadFile, path: Path, max_bytes: int) -> None:
 
 
 def _validate_image(path: Path) -> None:
+    from PIL import Image, UnidentifiedImageError
+
     try:
         with Image.open(path) as image:
             width, height = image.size
@@ -373,6 +406,8 @@ def _validate_image(path: Path) -> None:
 
 
 def _validate_pdf(path: Path) -> None:
+    import fitz
+
     try:
         with fitz.open(path) as document:
             if document.needs_pass:
@@ -415,6 +450,12 @@ def health() -> dict:
         "vision_model": openai_model() if backend.value == "openai" else None,
         "reasoning_available": semantic_model_available,
         "reasoning_model": reasoning_model() if semantic_model_available else None,
+        "model_connections": {
+            "bring_your_own_key": True,
+            "providers": [provider.value for provider in ModelProvider],
+            "compatible_hosts": list(allowed_model_hosts()),
+            "credentials_persisted": False,
+        },
         "inputs": {
             "natural_language": semantic_model_available,
             "engineering_sketch": backend.value != "fixture",
@@ -426,6 +467,9 @@ def health() -> dict:
             "ai_units_per_client_day": limits.ai_units_per_client_day,
             "max_requirement_chars": limits.max_requirement_chars,
             "max_conversation_messages": limits.max_conversation_messages,
+            "max_concurrent_jobs": limits.max_concurrent_jobs,
+            "job_queue_timeout_ms": limits.job_queue_timeout_ms,
+            "max_cached_runs": limits.max_cached_runs,
         },
         # Keep the compact legacy list while exposing the independently
         # classified source-of-truth records alongside it.
@@ -440,6 +484,9 @@ def evaluate_assembly_endpoint(
     x_spec2cad_admin_token: Optional[str] = Header(None),
 ) -> dict:
     """Execute every component, apply transforms, then validate mates/collisions."""
+    from spec2cad.cad.assembly import execute_assembly
+    from spec2cad.cad.executor import ExecutionError
+
     _require_admin_token(x_spec2cad_admin_token)
     try:
         result = execute_assembly(program)
@@ -459,6 +506,9 @@ def evaluate_inspection_endpoint(
     x_spec2cad_admin_token: Optional[str] = Header(None),
 ) -> dict:
     """Build one typed CAD program and independently evaluate its GD&T controls."""
+    from spec2cad.cad.executor import ExecutionError, execute
+    from spec2cad.validation.gdt import inspect_gdt
+
     _require_admin_token(x_spec2cad_admin_token)
     try:
         execution = execute(body.program, body.parameters)
@@ -477,6 +527,9 @@ def evaluate_analysis_endpoint(
     x_spec2cad_admin_token: Optional[str] = Header(None),
 ) -> dict:
     """Build one typed CAD program and run explicit-assumption analyses."""
+    from spec2cad.analysis import run_analyses
+    from spec2cad.cad.executor import ExecutionError, execute
+
     _require_admin_token(x_spec2cad_admin_token)
     try:
         execution = execute(body.program, body.parameters)
@@ -525,8 +578,20 @@ def create_run(
     datasheet: Optional[UploadFile] = File(None),
     requirement: Optional[str] = Form(None),
     backend: Optional[str] = Form(None),
+    model_provider: Optional[str] = Form(None),
+    model_name: Optional[str] = Form(None),
+    model_base_url: Optional[str] = Form(None),
+    x_spec2cad_model_api_key: Optional[str] = Header(
+        None, alias="X-Spec2CAD-Model-API-Key",
+    ),
 ) -> JSONResponse:
     requirement_text = _validate_text(requirement or "")
+    model_connection = _request_model_connection(
+        x_spec2cad_model_api_key,
+        model_provider,
+        model_name,
+        model_base_url,
+    )
     if sketch is None and datasheet is None and not requirement_text:
         raise HTTPException(
             400,
@@ -560,24 +625,38 @@ def create_run(
         requirement_path.write_text(requirement_text, encoding="utf-8")
 
     try:
-        selected = select_backend(backend) if sketch_path is not None else None
-        semantic = reasoning_available()
+        selected = (
+            select_backend(backend, model_connection)
+            if sketch_path is not None else None
+        )
+        semantic = (
+            reasoning_available(model_connection)
+            if model_connection else reasoning_available()
+        )
         _reserve_ai(
             request,
-            int(semantic)
-            + int(
-                selected is not None
-                and selected.value != "fixture"
-                and not (semantic and selected.value == "openai")
+            0 if model_connection else (
+                int(semantic)
+                + int(
+                    selected is not None
+                    and selected.value != "fixture"
+                    and not (semantic and selected.value == "openai")
+                )
             ),
         )
     except HTTPException:
         shutil.rmtree(work, ignore_errors=True)
         raise
+    except ValueError as exc:
+        shutil.rmtree(work, ignore_errors=True)
+        raise HTTPException(400, str(exc)) from exc
 
     # An uploaded sketch has no recorded fixture, so with no API key configured
     # there is nothing to fall back to. Say so plainly.
-    if sketch_path is not None and select_backend(backend).value == "fixture":
+    if (
+        sketch_path is not None
+        and select_backend(backend, model_connection).value == "fixture"
+    ):
         shutil.rmtree(work, ignore_errors=True)
         raise HTTPException(
             400,
@@ -593,6 +672,7 @@ def create_run(
             requirement_path,
             backend,
             use_reasoning=True,
+            model_connection=model_connection,
         )
     except Exception as exc:
         shutil.rmtree(work, ignore_errors=True)
@@ -657,13 +737,23 @@ class RepairRequest(BaseModel):
 
 class ChatTurnRequest(BaseModel):
     message: str = Field(min_length=1)
+    model_provider: Optional[str] = None
+    model_name: Optional[str] = None
+    model_base_url: Optional[str] = None
 
 
 @app.post("/runs/{run_id}/messages")
 def continue_run_endpoint(
-    run_id: str, body: ChatTurnRequest, request: Request
+    run_id: str,
+    body: ChatTurnRequest,
+    request: Request,
+    x_spec2cad_model_api_key: Optional[str] = Header(
+        None, alias="X-Spec2CAD-Model-API-Key",
+    ),
 ) -> JSONResponse:
     """Continue the same engineering conversation as a new audited revision."""
+    from spec2cad.pipeline import continue_conversation
+
     result = _require(run_id)
     message = _validate_text(body.message, name="message")
     if len(result.messages) >= limits.max_conversation_messages:
@@ -671,9 +761,20 @@ def continue_run_endpoint(
             409,
             "this public conversation reached its turn limit; start a new design",
         )
-    _reserve_ai(request, int(reasoning_available()))
+    model_connection = _request_model_connection(
+        x_spec2cad_model_api_key,
+        body.model_provider,
+        body.model_name,
+        body.model_base_url,
+    )
+    _reserve_ai(
+        request,
+        0 if model_connection else int(reasoning_available()),
+    )
     try:
-        updated = continue_conversation(result, message)
+        updated = continue_conversation(
+            result, message, model_connection=model_connection,
+        )
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     _runs[run_id] = updated
@@ -683,6 +784,9 @@ def continue_run_endpoint(
 
 @app.post("/runs/{run_id}/repair")
 def apply_repair_endpoint(run_id: str, body: RepairRequest) -> JSONResponse:
+    from spec2cad.pipeline import repair
+    from spec2cad.repair.repair_planner import UnsafeRepairRequiresAcknowledgement
+
     result = _require(run_id)
     try:
         updated = repair(
@@ -714,6 +818,8 @@ def revise_endpoint(run_id: str, body: ReviseRequest) -> JSONResponse:
     Repair proposals only exist while something is blocked, so without this a
     released design would be a dead end.
     """
+    from spec2cad.pipeline import InterfaceChangeRequiresAcknowledgement, revise
+
     result = _require(run_id)
     try:
         updated = revise(
@@ -755,6 +861,8 @@ def _revision_or_404(result, revision: int) -> RevisionResult:
 def get_stl(run_id: str, revision: int):
     """Always available. Provisional geometry is labelled, not hidden --
     seeing the conflict is part of understanding it."""
+    from spec2cad.cad.executor import export_stl
+
     rev = _revision_or_404(_require(run_id), revision)
     if rev.execution is None:
         raise HTTPException(409, rev.build_error or "no geometry was produced")
@@ -770,6 +878,8 @@ def get_stl(run_id: str, revision: int):
 @app.get("/runs/{run_id}/revisions/{revision}/model.step")
 def get_step(run_id: str, revision: int):
     """Withheld while the release gate is blocking."""
+    from spec2cad.cad.executor import export_step
+
     rev = _revision_or_404(_require(run_id), revision)
     if rev.execution is None:
         raise HTTPException(409, rev.build_error or "no geometry was produced")
@@ -805,6 +915,8 @@ def evidence_preview(run_id: str, evidence_id: str):
     For the datasheet these are real PyMuPDF rectangles, so the highlight lands
     on the actual text that produced the value.
     """
+    from spec2cad.preview import NoRegion, render_evidence_preview
+
     result = _require(run_id)
     stored = store.get_run(run_id)
     evidence = result.evidence.get(evidence_id)

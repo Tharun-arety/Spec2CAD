@@ -9,6 +9,7 @@ import openai
 
 from spec2cad.extractors import base
 from spec2cad.extractors.reasoning import extract_requirement_with_reasoning
+from spec2cad.extractors.model_provider import ModelConnection, ModelProvider
 from spec2cad.schemas.evidence import ExtractionMethod, SemanticTarget, SourceModality
 from spec2cad.pipeline import continue_conversation, run
 from spec2cad.schemas.cad_ir import TubeOp
@@ -55,7 +56,7 @@ def test_public_backend_errors_do_not_echo_provider_message():
         AuthenticationError("Incorrect API key provided: secret-fragment")
     )
     assert message == (
-        "AuthenticationError: authentication failed; check the server-side API key"
+        "AuthenticationError: authentication failed; check the configured API key"
     )
     assert "secret-fragment" not in message
 
@@ -75,6 +76,70 @@ def _fake_openai(monkeypatch, payload, captured):
             self.responses = Responses()
 
     monkeypatch.setattr(openai, "OpenAI", Client)
+
+
+def _failing_openai(monkeypatch, error: Exception):
+    class Responses:
+        def create(self, **kwargs):
+            raise error
+
+    class Client:
+        def __init__(self, api_key, **kwargs):
+            self.responses = Responses()
+
+    monkeypatch.setattr(openai, "OpenAI", Client)
+
+
+def _fake_openai_compatible(monkeypatch, payload, captured):
+    class Completions:
+        def create(self, **kwargs):
+            captured["request"] = kwargs
+            return SimpleNamespace(choices=[SimpleNamespace(
+                message=SimpleNamespace(content=json.dumps(payload)),
+            )])
+
+    class Client:
+        def __init__(self, api_key, **kwargs):
+            captured["api_key"] = api_key
+            captured["client_options"] = kwargs
+            self.chat = SimpleNamespace(completions=Completions())
+
+    monkeypatch.setattr(openai, "OpenAI", Client)
+
+
+def test_request_scoped_openai_compatible_reasoning_uses_chat_contract(monkeypatch):
+    captured = {}
+    _fake_openai_compatible(monkeypatch, {
+        "facts": [{
+            "target": "plate_thickness", "kind": "linear_dimension",
+            "value": 3, "unit": "mm", "confidence": 0.98,
+            "is_explicit_annotation": True, "raw_text": "3 mm thick",
+            "source": "requirement",
+        }],
+        "feature_requests": [],
+        "unsupported_features": [],
+        "clarification_questions": [],
+    }, captured)
+    connection = ModelConnection(
+        provider=ModelProvider.OPENAI_COMPATIBLE,
+        api_key="caller-secret-key",
+        model="openai/gpt-4o-mini",
+        base_url="https://openrouter.ai/api/v1",
+    )
+
+    result = extract_requirement_with_reasoning(
+        "Create a plate 3 mm thick.", model_connection=connection,
+    )
+
+    assert captured["api_key"] == "caller-secret-key"
+    assert captured["client_options"]["base_url"] == "https://openrouter.ai/api/v1"
+    assert captured["request"]["model"] == "openai/gpt-4o-mini"
+    assert captured["request"]["response_format"]["type"] == "json_schema"
+    assert captured["request"]["messages"][0]["role"] == "system"
+    assert result.label == (
+        "rule parser + OpenAI-compatible reasoning (openai/gpt-4o-mini)"
+    )
+    assert "caller-secret-key" not in repr(result)
 
 
 def test_reasoning_fills_targets_missed_by_rule_parser(monkeypatch):
@@ -254,6 +319,55 @@ def test_sketch_only_uses_multimodal_reasoning_for_advanced_geometry(
         item.source.modality is SourceModality.SKETCH
         for item in result.evidence.items
     )
+
+
+def test_failed_multimodal_extraction_stops_before_cad_compilation(
+    tmp_path, monkeypatch,
+):
+    _failing_openai(monkeypatch, RuntimeError("provider returned an invalid response"))
+    monkeypatch.setenv("OPENAI_API_KEY", "test-server-key")
+    sketch = tmp_path / "unscaled.png"
+    sketch.write_bytes(b"\x89PNG\r\n\x1a\nmultimodal-test")
+    requirement = tmp_path / "requirement.txt"
+    requirement.write_text(
+        "Build this and choose the dimensions for me.", encoding="utf-8",
+    )
+
+    result = run(sketch=sketch, requirement=requirement, use_reasoning=True)
+
+    assert result.sketch_fell_back is True
+    assert result.latest.program is None
+    assert result.latest.execution is None
+    assert result.latest.released is False
+    assert result.messages[-1].kind == "clarification"
+    assert "real-world reference dimension" in result.clarification_questions[0]
+    assert result.latest.build_error.startswith(
+        "Clarification required before CAD planning"
+    )
+    assert "CompilationError" not in result.latest.build_error
+    assert result.latest.measured[0].checks[0].conflict_class.value == "completeness"
+
+
+def test_empty_multimodal_contract_requests_scale_instead_of_compiling(
+    tmp_path, monkeypatch,
+):
+    captured = {}
+    _fake_openai(monkeypatch, {
+        "facts": [], "feature_requests": [], "unsupported_features": [],
+        "clarification_questions": [],
+    }, captured)
+    monkeypatch.setenv("OPENAI_API_KEY", "test-server-key")
+    sketch = tmp_path / "unscaled.png"
+    sketch.write_bytes(b"\x89PNG\r\n\x1a\nmultimodal-test")
+
+    result = run(sketch=sketch, use_reasoning=True)
+
+    assert result.latest.program is None
+    assert result.latest.execution is None
+    assert result.latest.released is False
+    assert "target overall envelope" in result.clarification_questions[0]
+    assert "CompilationError" not in result.latest.build_error
+    assert "If the user asks you to choose dimensions" in captured["request"]["instructions"]
 
 
 def test_material_geometry_ambiguity_is_asked_before_cad_planning(

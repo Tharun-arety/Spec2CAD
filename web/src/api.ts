@@ -17,6 +17,26 @@ import { replayApi } from './replay'
 
 const API_BASE: string = import.meta.env.VITE_API_BASE || '/api'
 
+export interface ModelConnectionInput {
+  provider: 'openai' | 'openai_compatible'
+  apiKey: string
+  model: string
+  baseUrl?: string
+}
+
+function modelHeaders(connection?: ModelConnectionInput | null): Record<string, string> {
+  return connection
+    ? { 'X-Spec2CAD-Model-API-Key': connection.apiKey }
+    : {}
+}
+
+function appendModelConnection(body: FormData, connection?: ModelConnectionInput | null) {
+  if (!connection) return
+  body.append('model_provider', connection.provider)
+  body.append('model_name', connection.model)
+  if (connection.baseUrl) body.append('model_base_url', connection.baseUrl)
+}
+
 /** Replay only; there is no backend at all. */
 export const FORCED_REPLAY = import.meta.env.VITE_REPLAY === '1'
 
@@ -35,9 +55,34 @@ async function json<T>(res: Response): Promise<T> {
     } catch {
       /* plain text body */
     }
-    throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail))
+    const requestId = res.headers.get('X-Request-ID')
+    const message = typeof detail === 'string' ? detail : JSON.stringify(detail)
+    throw new Error(requestId ? `${message} (request ${requestId})` : message)
   }
   return res.json() as Promise<T>
+}
+
+const LIVE_REQUEST_TIMEOUT_MS = 75_000
+
+/**
+ * Bound non-idempotent live calls without retrying them. A retry could create a
+ * second paid model call or CAD revision after the first request reached the
+ * server, so recovery stays an explicit user action with the draft preserved.
+ */
+async function liveRequest<T>(url: string, init: RequestInit): Promise<T> {
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), LIVE_REQUEST_TIMEOUT_MS)
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal })
+    return await json<T>(response)
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('The request exceeded 75 seconds. Your inputs are still here; check the service and retry once.')
+    }
+    throw error
+  } finally {
+    window.clearTimeout(timer)
+  }
 }
 
 const liveApi = {
@@ -45,25 +90,43 @@ const liveApi = {
 
   health: () => fetch(`${API_BASE}/health`).then(json<Health>),
 
-  runDemo: () => fetch(`${API_BASE}/runs/demo`, { method: 'POST' }).then(json<RunState>),
+  runDemo: () => liveRequest<RunState>(`${API_BASE}/runs/demo`, { method: 'POST' }),
 
-  runUpload: (sketch: File | null, datasheet: File | null, requirement: string) => {
+  runUpload: (
+    sketch: File | null,
+    datasheet: File | null,
+    requirement: string,
+    connection?: ModelConnectionInput | null,
+  ) => {
     const body = new FormData()
     if (sketch) body.append('sketch', sketch)
     if (datasheet) body.append('datasheet', datasheet)
     if (requirement.trim()) body.append('requirement', requirement.trim())
-    return fetch(`${API_BASE}/runs`, { method: 'POST', body }).then(json<RunState>)
+    appendModelConnection(body, connection)
+    return liveRequest<RunState>(`${API_BASE}/runs`, {
+      method: 'POST', body, headers: modelHeaders(connection),
+    })
   },
 
-  continueRun: (runId: string, message: string) =>
-    fetch(`${API_BASE}/runs/${runId}/messages`, {
+  continueRun: (
+    runId: string, message: string, connection?: ModelConnectionInput | null,
+  ) =>
+    liveRequest<RunState>(`${API_BASE}/runs/${runId}/messages`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message }),
-    }).then(json<RunState>),
+      headers: {
+        'Content-Type': 'application/json',
+        ...modelHeaders(connection),
+      },
+      body: JSON.stringify({
+        message,
+        model_provider: connection?.provider,
+        model_name: connection?.model,
+        model_base_url: connection?.baseUrl,
+      }),
+    }),
 
   repair: (runId: string, proposalId: string, acknowledgeUnsafe = false) =>
-    fetch(`${API_BASE}/runs/${runId}/repair`, {
+    liveRequest<RunState>(`${API_BASE}/runs/${runId}/repair`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -71,18 +134,18 @@ const liveApi = {
         approved_by: 'ui-user',
         acknowledge_unsafe: acknowledgeUnsafe,
       }),
-    }).then(json<RunState>),
+    }),
 
   revise: (runId: string, updates: Record<string, number>,
            reason: string, acknowledgeInterface = false) =>
-    fetch(`${API_BASE}/runs/${runId}/revise`, {
+    liveRequest<RunState>(`${API_BASE}/runs/${runId}/revise`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         updates, approved_by: 'ui-user', reason,
         acknowledge_interface: acknowledgeInterface,
       }),
-    }).then(json<RunState>),
+    }),
 
   stlUrl: (runId: string, rev: number) =>
     `${API_BASE}/runs/${runId}/revisions/${rev}/model.stl`,
@@ -96,8 +159,12 @@ const liveApi = {
 
 const replayAdapter = {
   ...replayApi,
-  runUpload: (_s: File | null, _d: File | null, _r: string) => replayApi.runUpload(),
-  continueRun: (_id: string, _message: string) => replayApi.revise(),
+  runUpload: (
+    _s: File | null, _d: File | null, _r: string, _c?: ModelConnectionInput | null,
+  ) => replayApi.runUpload(),
+  continueRun: (
+    _id: string, _message: string, _c?: ModelConnectionInput | null,
+  ) => replayApi.revise(),
   repair: (runId: string, proposalId: string, _ack?: boolean) =>
     replayApi.repair(runId, proposalId),
   revise: (_id: string, _u: Record<string, number>, _r: string, _a?: boolean) =>
@@ -118,8 +185,12 @@ export const api = {
   get isReplay() { return impl.isReplay },
   health: () => impl.health(),
   runDemo: () => impl.runDemo(),
-  runUpload: (s: File | null, d: File | null, r: string) => impl.runUpload(s, d, r),
-  continueRun: (runId: string, message: string) => impl.continueRun(runId, message),
+  runUpload: (
+    s: File | null, d: File | null, r: string, connection?: ModelConnectionInput | null,
+  ) => impl.runUpload(s, d, r, connection),
+  continueRun: (
+    runId: string, message: string, connection?: ModelConnectionInput | null,
+  ) => impl.continueRun(runId, message, connection),
   repair: (runId: string, proposalId: string, ack?: boolean) =>
     impl.repair(runId, proposalId, ack),
   revise: (runId: string, updates: Record<string, number>, reason: string, ack?: boolean) =>

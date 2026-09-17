@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from threading import Event
 
 import pytest
 from fastapi import FastAPI
@@ -91,3 +92,37 @@ def test_public_run_ids_use_full_unpredictable_uuid(tmp_path):
     )
     assert len(run_id) == 32
     int(run_id, 16)
+
+
+def test_expensive_jobs_fail_fast_with_observable_queue_wait():
+    entered = Event()
+    release = Event()
+    app = FastAPI()
+    app.add_middleware(
+        PublicGuardrailMiddleware,
+        limits=PublicLimits(
+            requests_per_minute=10,
+            max_concurrent_jobs=1,
+            job_queue_timeout_ms=20,
+        ),
+    )
+
+    @app.post("/runs")
+    def expensive():
+        entered.set()
+        release.wait(timeout=2)
+        return {"ok": True}
+
+    client = TestClient(app)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first = pool.submit(client.post, "/runs")
+        assert entered.wait(timeout=1)
+        rejected = client.post("/runs")
+        release.set()
+        accepted = first.result(timeout=2)
+
+    assert accepted.status_code == 200
+    assert rejected.status_code == 503
+    assert rejected.headers["Retry-After"] == "2"
+    assert float(rejected.headers["X-Spec2CAD-Queue-Wait-Ms"]) >= 15
+    assert len(rejected.headers["X-Request-ID"]) == 32

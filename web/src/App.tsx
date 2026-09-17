@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import {
   FORCED_REPLAY, REMOTE_BACKEND, REPLAY_AVAILABLE, api, setApiMode, wakeBackend,
 } from './api'
@@ -10,6 +10,7 @@ import {
 import {
   CadStage, EvidenceStage, IntentStage, SourcesStage, ValidateStage,
 } from './components/Stages'
+import { CanvasStage, CanvasWorkspace } from './components/CausalCanvas'
 import { Download, Lock, MessageSquareText, Plus } from 'lucide-react'
 import { Button, Empty, Tip } from './components/ui'
 import { VersionGraph } from './components/VersionGraph'
@@ -20,8 +21,13 @@ import { PipelinePreview } from './components/PipelinePreview'
 import { EvidenceWorkbench } from './components/Workbenches'
 import { AgentPanel } from './components/AgentPanel'
 import { ShowcaseWorkspace } from './components/ShowcaseWorkspace'
+import { AccessModeGate } from './components/AccessModeGate'
+import { DiscardWorkspaceDialog } from './components/DiscardWorkspaceDialog'
 import { hasWebGL } from './lib/webgl'
 import { cn } from './lib/cn'
+import {
+  defaultModelConnectionSettings, type ModelConnectionSettings,
+} from './lib/modelConnection'
 
 const VIEWER_FALLBACK_NOTE =
   'This browser has no WebGL context, so the 3D viewer is unavailable. ' +
@@ -59,6 +65,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [replay, setReplay] = useState<ReplayManifest | null>(null)
   const [replayCatalog, setReplayCatalog] = useState<ReplayCatalog | null>(null)
+  const [replayCatalogError, setReplayCatalogError] = useState<string | null>(null)
   const [mode, setMode] = useState<'live' | 'replay'>(
     FORCED_REPLAY || state?.run_id.startsWith('recorded-') ? 'replay' : 'live',
   )
@@ -69,13 +76,38 @@ export default function App() {
   const [webglOk] = useState(hasWebGL)
   const [viewerFailed, setViewerFailed] = useState<string | null>(null)
   const [backendDown, setBackendDown] = useState<string | null>(null)
+  const [accessSelected, setAccessSelected] = useState(
+    FORCED_REPLAY || state?.run_id.startsWith('recorded-') || false,
+  )
+  const [modelSettings, setModelSettings] = useState<ModelConnectionSettings>(
+    defaultModelConnectionSettings,
+  )
+  const [returnDialogOpen, setReturnDialogOpen] = useState(false)
+  const workspaceEpoch = useRef(0)
+
+  const loadReplayCatalog = useCallback(async () => {
+    setReplayCatalogError(null)
+    try {
+      const catalog = await replayApi.catalog()
+      setReplayCatalog(catalog)
+      return catalog
+    } catch (catalogError) {
+      setReplayCatalogError(
+        catalogError instanceof Error ? catalogError.message : String(catalogError),
+      )
+      return null
+    }
+  }, [])
 
   useEffect(() => {
     setApiMode(mode)
-    if (REPLAY_AVAILABLE) {
+    // The example library is bundled with every web build and is useful in the
+    // live workspace too. REPLAY_AVAILABLE only controls whether replay is
+    // offered as a backend fallback; it must not suppress catalog loading.
+    void loadReplayCatalog()
+    if (REPLAY_AVAILABLE || mode === 'replay') {
       replayApi.catalog()
         .then((catalog) => {
-          setReplayCatalog(catalog)
           const restoredScenario = state?.run_id.startsWith('recorded-')
             ? state.run_id.slice('recorded-'.length)
             : catalog.default_scenario
@@ -98,7 +130,7 @@ export default function App() {
     } else {
       api.health().then(setHealth).catch((e) => setBackendDown(String(e)))
     }
-  }, [mode])
+  }, [loadReplayCatalog, mode])
 
   useEffect(() => {
     try {
@@ -117,10 +149,12 @@ export default function App() {
   }
 
   const guard = useCallback(async (fn: () => Promise<RunState>) => {
+    const epoch = workspaceEpoch.current
     setBusy(true)
     setError(null)
     try {
       const next = await fn()
+      if (epoch !== workspaceEpoch.current) return false
       setState(next)
       setViewing(next.latest_revision)
       setPicked(null)
@@ -131,10 +165,13 @@ export default function App() {
       // original prompt instead of sending the user into an empty CAD screen.
       setStage(latest?.build_error ? 'sources' : 'evidence')
       setInspectorOpen(true)
+      return true
     } catch (e) {
+      if (epoch !== workspaceEpoch.current) return false
       setError(e instanceof Error ? e.message : String(e))
+      return false
     } finally {
-      setBusy(false)
+      if (epoch === workspaceEpoch.current) setBusy(false)
     }
   }, [])
 
@@ -149,6 +186,26 @@ export default function App() {
     })
   }
 
+  const clearWorkspace = () => {
+    setState(null)
+    setViewing(null)
+    setPicked(null)
+    setFeature(null)
+    setScriptOpen(false)
+    setError(null)
+    setStage('sources')
+  }
+
+  const returnToAccessChoices = () => {
+    workspaceEpoch.current += 1
+    setBusy(false)
+    clearWorkspace()
+    setApiMode('live')
+    setMode('live')
+    setAccessSelected(false)
+    setReturnDialogOpen(false)
+  }
+
   const rev = state
     ? state.revisions.find((r) => r.revision === viewing) ?? state.revisions[0]
     : null
@@ -161,11 +218,29 @@ export default function App() {
     if (!rev.release.step_export_allowed) flags.validate = rev.proposals.length || 1
   }
 
+  if (mode === 'live' && !accessSelected) {
+    return (
+      <AccessModeGate
+        health={health}
+        waking={waking}
+        backendDown={Boolean(backendDown)}
+        settings={modelSettings}
+        onSettingsChange={setModelSettings}
+        onDemo={() => {
+          setModelSettings((current) => ({ ...current, mode: 'server' }))
+          setAccessSelected(true)
+        }}
+        onOwnApi={() => setAccessSelected(true)}
+      />
+    )
+  }
+
   return (
-    <div className="app-shell flex h-full flex-col bg-c2">
+    <div className="app-shell flex h-full flex-col bg-c1">
       <CommandBar
-        state={state} rev={rev} busy={busy}
+        state={state} rev={rev} activeStage={stage} busy={busy}
         onSelectRevision={(n) => { setViewing(n); setScriptOpen(false) }}
+        onHome={() => setReturnDialogOpen(true)}
         right={
           <>
             {/* Which of the two backings is actually answering. Live mode used
@@ -173,7 +248,7 @@ export default function App() {
                 frozen recording look identical from the outside. */}
             {mode === 'replay' ? (
               <Tip side="bottom" label="A frozen recording of a real run. No kernel behind it: uploads and new revisions are refused rather than faked.">
-                <span className="flex h-[29px] items-center gap-[6px] rounded-[5px] border border-c4
+                <span className="flex h-[29px] items-center gap-[6px] rounded-[2px] border border-c4
                                  bg-c1 px-[8px] text-[12px] text-c7">
                   <span aria-hidden className="h-[6px] w-[6px] rounded-full bg-warn" />
                   <span className="hidden lg:inline">Recorded replay</span>
@@ -185,7 +260,7 @@ export default function App() {
                   ? 'CadQuery is running on the deployed backend. Every solid on screen is built and measured on request.'
                   : 'CadQuery is running locally. Every solid on screen is built and measured on request.'
               }>
-                <span className="flex h-[29px] items-center gap-[6px] rounded-[5px] border border-c4
+                <span className="flex h-[29px] items-center gap-[6px] rounded-[2px] border border-c4
                                  bg-c1 px-[8px] text-[12px] text-c7">
                   <span aria-hidden className="h-[6px] w-[6px] rounded-full bg-success" />
                   <span className="hidden lg:inline">Live kernel</span>
@@ -196,7 +271,7 @@ export default function App() {
               rev.release.step_export_allowed ? (
                 <Tip side="bottom" label="The gate authorised this revision. Downloads the measured solid as STEP.">
                   <a href={api.stepUrl(state!.run_id, rev.revision)}
-                     className="flex h-[29px] items-center gap-[6px] rounded-[5px] border
+                     className="flex h-[29px] items-center gap-[6px] rounded-[2px] border
                                 border-success bg-success px-[11px] text-[12px] font-medium
                                 text-c0 shadow-[var(--shadow-raised)]
                                 transition-opacity duration-150 hover:opacity-90">
@@ -269,7 +344,10 @@ export default function App() {
         />
 
         {inspectorOpen && (
-        <aside className="context-panel chrome-grain pane flex shrink-0 flex-col border-r border-c3 bg-c0">
+        <aside className={cn(
+          'context-panel chrome-grain pane flex shrink-0 flex-col border-r border-c3 bg-c0',
+          (stage === 'validate' || stage === 'revisions') && 'context-panel-review',
+        )}>
           {error && (
             <div className="border-b border-danger-line bg-danger-wash px-[13px] py-[10px]">
               <div className="flex items-center gap-[6px] text-[12.5px] font-semibold text-danger">
@@ -307,10 +385,12 @@ export default function App() {
               }
             />
           )}
+          {state && rev && stage === 'canvas' && (
+            <CanvasStage state={state} rev={rev} />
+          )}
           {rev && stage === 'cad' && (
             <CadStage
               rev={rev} selected={feature} onSelect={setFeature}
-              scriptOpen={scriptOpen} onToggleScript={() => setScriptOpen((o) => !o)}
             />
           )}
           {rev && stage === 'validate' && (
@@ -338,20 +418,45 @@ export default function App() {
         )}
         {/* viewport column */}
         <main className="workspace-main flex min-w-0 flex-1 flex-col">
-          <div className="viewport-ground grid-dots relative min-h-0 flex-1">
+          {state && rev && (stage === 'intent' || stage === 'cad' || stage === 'validate' || stage === 'revisions') && (
+            <div className="num flex h-[41px] shrink-0 items-center justify-between gap-[13px] border-b border-c3
+                            bg-c0 px-[13px] text-[12px] text-c7">
+              {stage === 'cad' && (
+                <>
+                  <span className={cn('capitalize', rev.backend_evidence?.classification === 'CONSISTENT'
+                    ? 'text-observed' : 'text-c7')}>
+                    {rev.backend_evidence
+                      ? `${Object.keys(rev.backend_evidence.backends).join(' = ')} / shape agreement`
+                      : 'single backend / measured build'}
+                  </span>
+                  <span>Feature IR&nbsp; / &nbsp;{rev.operations.length} operations</span>
+                </>
+              )}
+              {stage === 'intent' && <>DesignIntent v{rev.revision}&nbsp; / &nbsp;editable dimensions</>}
+              {stage === 'validate' && <>measured evidence&nbsp; / &nbsp;release authority</>}
+              {stage === 'revisions' && <>{state.revisions.length} immutable revisions</>}
+            </div>
+          )}
+          <div className="viewport-ground relative min-h-0 flex-1">
             {stage === 'sources' ? (
-              <ShowcaseWorkspace
-                busy={busy}
-                state={state}
-                catalog={replayCatalog}
-                capabilityRegistry={health?.capability_registry ?? null}
-                activeScenarioId={state?.run_id.startsWith('recorded-')
-                  ? state.run_id.slice('recorded-'.length)
-                  : replay?.scenario.id ?? null}
-                onDemo={runRecordedDemo}
-              />
+              state ? (
+                <EvidenceWorkbench state={state} picked={picked} onPick={setPicked} mode="sources" />
+              ) : (
+                <ShowcaseWorkspace
+                  busy={busy}
+                  state={state}
+                  catalog={replayCatalog}
+                  catalogError={replayCatalogError}
+                  capabilityRegistry={health?.capability_registry ?? null}
+                  activeScenarioId={replay?.scenario.id ?? null}
+                  onDemo={runRecordedDemo}
+                  onRetryCatalog={loadReplayCatalog}
+                />
+              )
             ) : stage === 'evidence' && state ? (
               <EvidenceWorkbench state={state} picked={picked} onPick={setPicked} />
+            ) : stage === 'canvas' && state && rev ? (
+              <CanvasWorkspace state={state} rev={rev} />
             ) : rev?.build_error ? (
               <Empty>{rev.build_error}</Empty>
             ) : state && rev ? (
@@ -447,7 +552,7 @@ export default function App() {
               </div>
             )}
 
-            {scriptOpen && rev && (
+            {scriptOpen && rev && stage === 'cad' && (
               <div className="absolute inset-x-0 bottom-0 max-h-[55%] overflow-auto
                               border-t border-c3 bg-c0/95 backdrop-blur-md">
                 <div className="sticky top-0 flex items-center gap-[8px] border-b border-c3
@@ -464,7 +569,7 @@ export default function App() {
             )}
           </div>
 
-          {stage !== 'sources' && stage !== 'evidence' && (
+          {stage !== 'sources' && stage !== 'evidence' && stage !== 'canvas' && (
             <Timeline rev={rev} selected={feature} onSelect={setFeature} />
           )}
         </main>
@@ -475,20 +580,17 @@ export default function App() {
             replayMode={mode === 'replay'}
             visionAvailable={health?.vision_available ?? false}
             state={state}
-            onCompile={(sketch, datasheet, instruction) =>
-              guard(() => api.runUpload(sketch, datasheet, instruction))
+            modelSettings={modelSettings}
+            onModelSettingsChange={setModelSettings}
+            onCompile={(sketch, datasheet, instruction, connection) =>
+              guard(() => api.runUpload(sketch, datasheet, instruction, connection))
             }
-            onContinue={(message) => {
-              if (state) guard(() => api.continueRun(state.run_id, message))
+            onContinue={(message, connection) => {
+              if (state) return guard(() => api.continueRun(state.run_id, message, connection))
+              return Promise.resolve(false)
             }}
             onNew={() => {
-              setState(null)
-              setViewing(null)
-              setPicked(null)
-              setFeature(null)
-              setScriptOpen(false)
-              setError(null)
-              setStage('sources')
+              clearWorkspace()
             }}
           />
         )}
@@ -500,6 +602,12 @@ export default function App() {
         backendLabel={health?.sketch_backend_label ?? ''}
         awaitingDetails={awaitingDetails}
         onGoRelease={() => setStage(awaitingDetails ? 'sources' : 'validate')}
+      />
+      <DiscardWorkspaceDialog
+        open={returnDialogOpen}
+        hasProgress={Boolean(state)}
+        onCancel={() => setReturnDialogOpen(false)}
+        onConfirm={returnToAccessChoices}
       />
     </div>
   )

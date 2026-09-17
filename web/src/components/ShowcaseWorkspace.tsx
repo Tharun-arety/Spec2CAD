@@ -1,4 +1,4 @@
-import { Bot, Play } from 'lucide-react'
+import { AlertTriangle, Bot, Play, RotateCw } from 'lucide-react'
 import type { ReplayCatalog } from '../replay'
 import type { RunState } from '../types'
 import type { CapabilityRegistry } from '../types'
@@ -7,14 +7,17 @@ import { Button, Mark } from './ui'
 import { CapabilityTags } from './CapabilityTags'
 
 export function ShowcaseWorkspace({
-  busy, catalog, state, activeScenarioId, capabilityRegistry, onDemo,
+  busy, catalog, catalogError, state, activeScenarioId, capabilityRegistry,
+  onDemo, onRetryCatalog,
 }: {
   busy: boolean
   catalog: ReplayCatalog | null
+  catalogError: string | null
   state: RunState | null
   activeScenarioId: string | null
   capabilityRegistry: CapabilityRegistry | null
   onDemo: (scenarioId: string) => void
+  onRetryCatalog: () => void
 }) {
   return (
     <section className="flex h-full min-h-0 flex-col bg-c0" aria-label="Recorded examples">
@@ -90,8 +93,30 @@ export function ShowcaseWorkspace({
                 )
               })}
             </div>
+          ) : catalogError ? (
+            <div role="alert" className="mt-[21px] max-w-[540px] rounded-[8px] border
+                                         border-warn-line bg-warn-wash px-[14px] py-[13px]">
+              <div className="flex items-start gap-[9px]">
+                <AlertTriangle size={15} strokeWidth={1.8} className="mt-[2px] shrink-0 text-warn"
+                               aria-hidden />
+                <div>
+                  <p className="text-[12.5px] font-semibold text-c9">
+                    Recorded workflows could not be loaded
+                  </p>
+                  <p className="mt-[4px] text-[11.5px] leading-relaxed text-c7">
+                    The static example catalog is unavailable. Your live model connection
+                    is unaffected.
+                  </p>
+                  <p className="num mt-[5px] break-words text-[10px] text-c6">{catalogError}</p>
+                  <Button intent="outline" size="sm" className="mt-[9px]" onClick={onRetryCatalog}>
+                    <RotateCw size={12} strokeWidth={1.8} aria-hidden />
+                    Retry examples
+                  </Button>
+                </div>
+              </div>
+            </div>
           ) : (
-            <div role="status" className="mt-[21px] text-[12.5px] text-c6">
+            <div role="status" aria-live="polite" className="mt-[21px] text-[12.5px] text-c6">
               Loading recorded workflows…
             </div>
           )}

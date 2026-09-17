@@ -13,8 +13,9 @@ evidence is structurally excluded from any reported extraction-accuracy number
 (see eval/metrics.py), because replaying a recording measures nothing about
 extraction.
 
-Keys are read from the process environment, ``.env.local``, or ``.env`` at the
-project root.  They are never read by the browser application.
+Deployment keys are read from the process environment, ``.env.local``, or
+``.env`` at the project root. A public caller may instead supply an ephemeral
+request-scoped connection; it is never installed into the process environment.
 """
 
 from __future__ import annotations
@@ -26,9 +27,23 @@ from typing import Optional
 
 from dotenv import dotenv_values
 
+from spec2cad.extractors.model_provider import ModelConnection
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _ENV_LOADED = False
 _FILE_MANAGED_VALUES: dict[str, str] = {}
+_ENV_FILE_SIGNATURE: tuple[tuple[bool, int, int], ...] | None = None
+
+
+def _env_file_signature() -> tuple[tuple[bool, int, int], ...]:
+    signature = []
+    for name in (".env", ".env.local"):
+        try:
+            stat = (PROJECT_ROOT / name).stat()
+            signature.append((True, stat.st_mtime_ns, stat.st_size))
+        except FileNotFoundError:
+            signature.append((False, 0, 0))
+    return tuple(signature)
 
 
 def load_env() -> None:
@@ -40,7 +55,10 @@ def load_env() -> None:
     overwritten. Values previously loaded from a file may be refreshed when
     that file changes, so updating ``.env.local`` does not require a restart.
     """
-    global _ENV_LOADED
+    global _ENV_LOADED, _ENV_FILE_SIGNATURE
+    signature = _env_file_signature()
+    if _ENV_LOADED and signature == _ENV_FILE_SIGNATURE:
+        return
     shared = {
         key: str(value)
         for key, value in dotenv_values(PROJECT_ROOT / ".env").items()
@@ -70,6 +88,7 @@ def load_env() -> None:
             # The process supplied or changed this value; it has highest priority.
             _FILE_MANAGED_VALUES.pop(key, None)
     _ENV_LOADED = True
+    _ENV_FILE_SIGNATURE = signature
 
 
 def safe_backend_error(exc: Exception) -> str:
@@ -77,7 +96,7 @@ def safe_backend_error(exc: Exception) -> str:
     name = type(exc).__name__
     status = getattr(exc, "status_code", None)
     if status == 401 or name == "AuthenticationError":
-        return f"{name}: authentication failed; check the server-side API key"
+        return f"{name}: authentication failed; check the configured API key"
     if status == 429 or name == "RateLimitError":
         return f"{name}: provider rate limit or quota was reached"
     if name in {"APIConnectionError", "ConnectError", "TimeoutException"}:
@@ -95,19 +114,25 @@ DEFAULT_OPENAI_MODEL = "gpt-4o"
 DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5"
 
 
-def openai_model() -> str:
+def openai_model(connection: ModelConnection | None = None) -> str:
+    if connection is not None:
+        return connection.model
     load_env()
     return os.environ.get("SPEC2CAD_OPENAI_MODEL", DEFAULT_OPENAI_MODEL)
 
 
-def reasoning_model() -> str:
+def reasoning_model(connection: ModelConnection | None = None) -> str:
     """Text-reasoning model; defaults to the configured OpenAI vision model."""
+    if connection is not None:
+        return connection.model
     load_env()
     return os.environ.get("SPEC2CAD_REASONING_MODEL", openai_model())
 
 
-def reasoning_available() -> bool:
-    """Whether server-side OpenAI reasoning can be attempted."""
+def reasoning_available(connection: ModelConnection | None = None) -> bool:
+    """Whether server-default or request-scoped reasoning can be attempted."""
+    if connection is not None:
+        return True
     load_env()
     return bool(os.environ.get("OPENAI_API_KEY"))
 
@@ -136,7 +161,10 @@ def anthropic_model() -> str:
     return os.environ.get("SPEC2CAD_ANTHROPIC_MODEL", DEFAULT_ANTHROPIC_MODEL)
 
 
-def select_backend(override: Optional[str] = None) -> VisionBackend:
+def select_backend(
+    override: Optional[str] = None,
+    connection: ModelConnection | None = None,
+) -> VisionBackend:
     """Choose the sketch-extraction backend.
 
     Order: explicit override -> SPEC2CAD_VISION_BACKEND -> whichever API key is
@@ -145,6 +173,14 @@ def select_backend(override: Optional[str] = None) -> VisionBackend:
     """
     load_env()
     requested = (override or os.environ.get("SPEC2CAD_VISION_BACKEND", "auto")).lower()
+
+    if connection is not None:
+        if requested not in {"auto", "openai"}:
+            raise ValueError(
+                "a request-scoped OpenAI-compatible connection cannot be combined "
+                f"with vision backend {requested!r}"
+            )
+        return VisionBackend.OPENAI
 
     if requested != "auto":
         try:
@@ -169,10 +205,13 @@ def select_backend(override: Optional[str] = None) -> VisionBackend:
     return VisionBackend.FIXTURE
 
 
-def backend_label(backend: VisionBackend) -> str:
+def backend_label(
+    backend: VisionBackend, connection: ModelConnection | None = None,
+) -> str:
     """Human-readable description recorded on the run and shown in the UI."""
     if backend is VisionBackend.OPENAI:
-        return f"openai vision ({openai_model()})"
+        provider = connection.display_name.lower() if connection else "openai"
+        return f"{provider} vision ({openai_model(connection)})"
     if backend is VisionBackend.ANTHROPIC:
         return f"anthropic vision ({anthropic_model()})"
     return "recorded fixture (no vision API key configured)"

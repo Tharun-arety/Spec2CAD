@@ -24,6 +24,10 @@ web/node_modules/
 .claude/skills/
 .claude/launch.json
 
+# Local Impeccable design-tool state and downloaded detector cache.
+.impeccable/
+.impeccable-cache/
+
 # TypeScript incremental build cache
 *.tsbuildinfo
 

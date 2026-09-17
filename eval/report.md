@@ -1,6 +1,6 @@
 # Spec2CAD evaluation report
 
-Generated 2026-09-16 08:45 UTC
+Generated 2026-09-17 12:15 UTC
 
 Two suites are reported separately and never averaged together. One measures
 the pipeline; the other measures an extractor. Combining them would produce a
@@ -77,7 +77,7 @@ is not described as production or release-governing unless those fields say so.
 | Deterministic text extraction | bounded | production_pipeline | governing |
 | Known-row PDF extraction | bounded | production_pipeline | governing |
 | Recorded sketch fixture | fixture | production_pipeline | governing |
-| OpenAI multimodal extraction | bounded | optional_pipeline | governing |
+| Schema-constrained multimodal extraction | bounded | optional_pipeline | governing |
 | Engineering Intent Graph | proven | production_pipeline | governing |
 | Typed CADProgram execution IR | proven | production_pipeline | governing |
 | CadQuery backend | proven | production_pipeline | governing |

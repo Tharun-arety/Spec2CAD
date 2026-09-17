@@ -14,7 +14,8 @@ import type { StageId } from './Shell'
 
 const NEXT: Partial<Record<StageId, StageId>> = {
   evidence: 'intent',
-  intent: 'cad',
+  intent: 'canvas',
+  canvas: 'cad',
   cad: 'validate',
 }
 
@@ -22,6 +23,7 @@ const LABEL: Record<StageId, string> = {
   sources: 'Sources',
   evidence: 'Evidence',
   intent: 'Intent',
+  canvas: 'Canvas',
   cad: 'CAD',
   validate: 'Validate',
   revisions: 'Revisions',
@@ -50,6 +52,12 @@ function summary(stage: StageId, state: RunState, rev: Revision): string | null 
     case 'cad': {
       const built = rev.operations.filter((o) => o.measured).length
       return `${built} feature${built === 1 ? '' : 's'} built and measured`
+    }
+    case 'canvas': {
+      const failing = rev.measured.filter((check) => check.status === 'fail').length
+      return failing
+        ? `${failing} governing failure${failing === 1 ? '' : 's'} localized`
+        : 'evidence, intent, build and release are traceable'
     }
     default:
       return null
@@ -93,20 +101,20 @@ export function GuideBar({
   const note = summary(stage, state, rev)
 
   return (
-    <div className="sticky bottom-0 z-10 flex items-center gap-[10px] border-t border-c3
-                    bg-c0/95 px-[14px] py-[9px] backdrop-blur-md">
+    <div className="sticky bottom-0 z-10 grid gap-[7px] border-t border-c3
+                    bg-c0 px-[13px] py-[9px]">
       {note && (
-        <span className="num min-w-0 flex-1 truncate text-[12px] text-c7">{note}</span>
+        <span className="num text-[11px] leading-[1.4] text-c6">{note}</span>
       )}
       <button
         onClick={() => onGo(next)}
-        className="flex shrink-0 cursor-pointer items-center gap-[6px] rounded-[5px]
-                   border border-accent bg-accent px-[11px] py-[5px] text-[12.5px]
-                   font-medium text-accent-fg shadow-[var(--shadow-raised)]
-                   transition-opacity duration-150 hover:opacity-90"
+        className="flex cursor-pointer items-center justify-between gap-[6px] rounded-[2px]
+                   border border-c4 bg-c1 px-[9px] py-[6px] text-[12px]
+                   font-medium text-c9 transition-colors duration-150
+                   hover:border-accent hover:bg-accent-wash"
       >
         Continue to {LABEL[next]}
-        <ArrowRight size={13} strokeWidth={2} aria-hidden />
+        <ArrowRight size={13} strokeWidth={2} className="text-accent" aria-hidden />
       </button>
     </div>
   )
