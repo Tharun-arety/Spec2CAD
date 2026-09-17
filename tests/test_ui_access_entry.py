@@ -15,10 +15,71 @@ def test_live_app_requires_an_explicit_access_choice():
     gate = source("web/src/components/AccessModeGate.tsx")
 
     assert "mode === 'live' && !accessSelected" in app
-    assert "Explore with demo access" in gate
-    assert "Bring your own API" in gate
+    assert "access-gate relative isolate h-full overflow-y-auto" in gate
+    assert "Use the hosted demo" in gate
+    assert "Use your own model API" in gate
     assert "provider charges and safeguards apply" in gate
-    assert "Build CAD from evidence, not guesses." in gate
+    assert "Build" in gate and "CAD" in gate
+    assert "Try Spec2CAD" in gate
+
+
+def test_access_hero_connects_rotating_engineering_meaning_to_cad_proof():
+    gate = source("web/src/components/AccessModeGate.tsx")
+    proof = source("web/src/components/KineticCadProof.tsx")
+    styles = source("web/src/styles.css")
+
+    assert "term: 'Text'" in proof
+    assert "term: 'Sketches'" in proof
+    assert "term: 'Datasheets'" in proof
+    assert "term: 'Mixed sources'" in proof
+    assert "Grounded in" in gate
+    assert "editable intent" in gate
+    assert "Verified by" in gate and "measurement" in gate
+    assert "Describe a part or attach" not in gate
+    assert 'aria-label="Spec2CAD pipeline"' not in gate
+    assert "prefers-reduced-motion: reduce" in proof
+    assert "visibilitychange" in proof
+    assert "IntersectionObserver" in proof
+    assert "Pause proof" in proof and "Play proof" in proof
+    assert "data-paused={paused}" in proof
+    assert "illustrative evidence sequence" not in proof
+    assert "Geometry appears." not in proof
+    assert "EIG → Feature IR linked" in proof
+    assert "geometry: 'coupling'" in proof
+    assert "geometry: 'bracket'" in proof
+    assert "geometry: 'enclosure'" in proof
+    assert "geometry: 'plate'" in proof
+    assert "proof-scene-leaders" in proof
+    assert "proof-node-top-left" in styles
+    assert "proof-node-top-right" in styles
+    assert "proof-node-mid-left" in styles
+    assert "proof-node-mid-right" in styles
+    assert "proof-node-bottom-left" in styles
+    assert "proof-node-bottom-right" in styles
+    assert "proof-tone-success" in styles
+    assert "Requirement" in proof and "Realization" in proof and "Observation" in proof
+    assert "6800" in proof
+    assert "proof-scene-lifecycle" in styles
+    assert "proof-node-lifecycle" in styles
+    assert "data-suspended={suspended}" in proof
+    assert "sceneEpoch" in proof
+    assert "aspect-ratio: 700 / 430" in styles
+    assert gate.index("<KineticCadProof />") < gate.index("Try Spec2CAD")
+    assert "setHeroFrame" in gate and "4200" in gate
+    assert "const [frame, setFrame]" in proof
+    assert "onFrameChange" not in proof
+    assert '"copy proof"' in styles and '"access access"' in styles
+    assert '"copy"' in styles and '"access"' in styles and '"proof"' in styles
+    term_rule = styles[styles.index(".access-hero-term {"):styles.index("}", styles.index(".access-hero-term {"))]
+    assert 'font-family: "IBM Plex Serif"' in term_rule
+    assert "font-style: italic" in term_rule
+    assert "font-size: clamp(58px, 5.55vw, 80px)" in term_rule
+    assert "access-hero-term-long" not in styles
+    mobile = styles[styles.index("@media (max-width: 639px)"):]
+    assert "width: 100%" in mobile[mobile.index(".access-hero-term {"):mobile.index("}", mobile.index(".access-hero-term {"))]
+    tablet = styles[styles.index("@media (min-width: 640px) and (max-width: 960px)"):]
+    assert ".access-choice-grid > article > .grid" in tablet
+    assert ".access-choice-grid > article button { width: 100%; }" in tablet
 
 
 def test_access_page_mesh_is_decorative_bounded_and_reduced_motion_safe():

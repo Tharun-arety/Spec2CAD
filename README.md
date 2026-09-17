@@ -151,9 +151,10 @@ below that line, `c5`, is used exclusively for disabled and decorative elements,
 which WCAG exempts — the two places it had been carrying information were moved
 to `c6`.
 
-Type is **IBM Plex Sans** and **IBM Plex Mono**, drawn for technical interfaces. Monospace
-is used only for measured numerals, with tabular figures so digits align down a
-column — never for labels.
+Type is **IBM Plex Sans** and **IBM Plex Mono**, drawn for technical interfaces.
+The public access hero reserves **IBM Plex Serif italic** for its rotating input
+modality; product UI and body copy remain Sans. Monospace is used only for measured
+numerals, with tabular figures so digits align down a column — never for labels.
 
 Built with Tailwind v4 (CSS-first `@theme` tokens), the shadcn pattern (owned
 components, `cva` variants, `cn()` merge) and Radix for tooltip behaviour. The
