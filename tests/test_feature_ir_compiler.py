@@ -44,7 +44,13 @@ def test_real_motor_eig_compiles_to_complete_backend_neutral_sequence(motor_v1):
         item.id for item in document.features
     )
     assert document.part.interface_ids == ("fir_iface_motor_mount",)
-    assert document.interfaces[0].feature_ids == ("fir_mounting_holes_pattern",)
+    assert document.interfaces[0].feature_ids == (
+        "fir_shaft_opening_sketch",
+        "fir_shaft_opening_pocket",
+        "fir_mounting_holes_seed_sketch",
+        "fir_mounting_holes_seed_pocket",
+        "fir_mounting_holes_pattern",
+    )
     validate_eig_provenance(document, motor_v1.latest.intent_graph)
 
 

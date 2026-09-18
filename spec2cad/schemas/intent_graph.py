@@ -35,9 +35,10 @@ the top face and external vertical edge set. AssemblyEntity, general datums, and
 from __future__ import annotations
 
 from enum import Enum
+import math
 from typing import Annotated, Any, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from spec2cad.schemas.design_intent import ConstraintSeverity, ParameterStatus
 from spec2cad.schemas.evidence import Authority
@@ -152,11 +153,172 @@ class AdvancedFeatureNode(_Node):
     request: FeatureIntent
 
 
+class InterfaceType(str, Enum):
+    MOUNTING_PATTERN = "mounting_pattern"
+    PLANAR = "planar"
+    CYLINDRICAL = "cylindrical"
+    CUSTOM = "custom"
+
+
+class InterfaceGeometryKind(str, Enum):
+    FEATURE = "feature"
+    HOLE_PATTERN = "hole_pattern"
+    BORE = "bore"
+    DATUM = "datum"
+
+
+class InterfaceFitKind(str, Enum):
+    CLEARANCE = "clearance"
+    TRANSITION = "transition"
+    INTERFERENCE = "interference"
+    UNDEFINED = "undefined"
+
+
+class InterfaceCoordinateSystem(_Node):
+    origin_mm: tuple[float, float, float]
+    x_axis: tuple[float, float, float]
+    y_axis: tuple[float, float, float]
+    z_axis: tuple[float, float, float]
+
+    @model_validator(mode="after")
+    def validate_frame(self) -> "InterfaceCoordinateSystem":
+        vectors = (self.x_axis, self.y_axis, self.z_axis)
+        if not all(math.isfinite(value) for vector in vectors for value in vector):
+            raise ValueError("coordinate axes must be finite")
+        if not all(math.isfinite(value) for value in self.origin_mm):
+            raise ValueError("coordinate origin must be finite")
+
+        def dot(left, right):
+            return sum(a * b for a, b in zip(left, right))
+
+        if any(abs(dot(vector, vector) - 1.0) > 1e-9 for vector in vectors) or any(
+            abs(dot(left, right)) > 1e-9
+            for left, right in (
+                (self.x_axis, self.y_axis),
+                (self.x_axis, self.z_axis),
+                (self.y_axis, self.z_axis),
+            )
+        ):
+            raise ValueError("coordinate axes must be orthonormal")
+        cross = (
+            self.x_axis[1] * self.y_axis[2] - self.x_axis[2] * self.y_axis[1],
+            self.x_axis[2] * self.y_axis[0] - self.x_axis[0] * self.y_axis[2],
+            self.x_axis[0] * self.y_axis[1] - self.x_axis[1] * self.y_axis[0],
+        )
+        if any(abs(actual - expected) > 1e-9 for actual, expected in zip(cross, self.z_axis)):
+            raise ValueError("coordinate axes must be right-handed")
+        return self
+
+
+class InterfaceGeometryBinding(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    role: str = Field(min_length=1)
+    node_id: str = Field(min_length=1)
+    geometry_kind: InterfaceGeometryKind = InterfaceGeometryKind.FEATURE
+
+
+class InterfaceDimensionBinding(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    role: str = Field(min_length=1)
+    dimension_id: str = Field(min_length=1)
+    protected: bool = True
+
+
+class InterfaceFitSpecification(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    fit_kind: InterfaceFitKind
+    tolerance_policy_id: str = Field(min_length=1)
+    tolerance_policy_version: str = Field(pattern=r"^\d+\.\d+\.\d+$")
+    designation: str = Field(min_length=1)
+    minimum_clearance_mm: float | None = Field(default=None, allow_inf_nan=False)
+    maximum_clearance_mm: float | None = Field(default=None, allow_inf_nan=False)
+
+    @model_validator(mode="after")
+    def validate_clearance_bounds(self) -> "InterfaceFitSpecification":
+        if (self.minimum_clearance_mm is None) != (self.maximum_clearance_mm is None):
+            raise ValueError("fit clearance bounds must be provided together")
+        if (
+            self.minimum_clearance_mm is not None
+            and self.minimum_clearance_mm > self.maximum_clearance_mm
+        ):
+            raise ValueError("minimum clearance cannot exceed maximum clearance")
+        if (
+            self.fit_kind is InterfaceFitKind.CLEARANCE
+            and self.minimum_clearance_mm is not None
+            and self.minimum_clearance_mm < 0
+        ):
+            raise ValueError("clearance fit cannot have negative minimum clearance")
+        return self
+
+
+class CompatibleInterfaceCounterpart(_Node):
+    interface_type: InterfaceType
+    source_evidence_ids: tuple[str, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_evidence_ids(self) -> "CompatibleInterfaceCounterpart":
+        if len(self.source_evidence_ids) != len(set(self.source_evidence_ids)):
+            raise ValueError("counterpart source evidence ids must be unique")
+        return self
+
+
 class InterfaceNode(_Node):
     kind: Literal[NodeKind.INTERFACE] = NodeKind.INTERFACE
     name: str
     placement: str = "symmetric_about_origin"
     unit: str = "mm"
+    contract_version: Literal["1.0.0"] | None = None
+    interface_type: InterfaceType = InterfaceType.CUSTOM
+    coordinate_system: InterfaceCoordinateSystem | None = None
+    governed_geometry: tuple[InterfaceGeometryBinding, ...] = ()
+    governed_dimensions: tuple[InterfaceDimensionBinding, ...] = ()
+    fit: InterfaceFitSpecification | None = None
+    compatible_counterpart: CompatibleInterfaceCounterpart | None = None
+    protected_parameter_ids: tuple[str, ...] = ()
+
+    @model_validator(mode="after")
+    def validate_interface_contract(self) -> "InterfaceNode":
+        geometry_roles = tuple(item.role for item in self.governed_geometry)
+        if len(geometry_roles) != len(set(geometry_roles)):
+            raise ValueError("interface geometry roles must be unique")
+        dimension_roles = tuple(item.role for item in self.governed_dimensions)
+        if len(dimension_roles) != len(set(dimension_roles)):
+            raise ValueError("interface dimension roles must be unique")
+        dimension_ids = tuple(item.dimension_id for item in self.governed_dimensions)
+        if len(dimension_ids) != len(set(dimension_ids)):
+            raise ValueError("interface dimension ids must be unique")
+        expected_protected = tuple(sorted(
+            item.dimension_id for item in self.governed_dimensions if item.protected
+        ))
+        if tuple(sorted(self.protected_parameter_ids)) != expected_protected:
+            raise ValueError("protected parameter ids must match dimension bindings")
+        if len(self.protected_parameter_ids) != len(set(self.protected_parameter_ids)):
+            raise ValueError("protected parameter ids must be unique")
+
+        pieces = (
+            self.coordinate_system is not None,
+            bool(self.governed_geometry),
+            bool(self.governed_dimensions),
+            self.fit is not None,
+            self.compatible_counterpart is not None,
+        )
+        if any(pieces) and not all(pieces):
+            raise ValueError("first-class interface contract must be complete")
+        if all(pieces) != (self.contract_version is not None):
+            raise ValueError("interface contract version must reflect completeness")
+        if (
+            self.compatible_counterpart is not None
+            and self.compatible_counterpart.interface_type is not self.interface_type
+        ):
+            raise ValueError("counterpart interface type must be compatible")
+        return self
+
+    @property
+    def contract_complete(self) -> bool:
+        return self.contract_version is not None
 
 
 class RequirementNode(_Node):
@@ -220,6 +382,56 @@ class EngineeringIntentGraph(BaseModel):
     revision: int = 1
     nodes: list[AnyNode] = Field(default_factory=list)
     edges: list[Edge] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_interface_contracts(self) -> "EngineeringIntentGraph":
+        by_id = {item.id: item for item in self.nodes}
+        if len(by_id) != len(self.nodes):
+            raise ValueError("Engineering Intent Graph node ids must be unique")
+        for interface in (
+            item for item in self.nodes
+            if isinstance(item, InterfaceNode) and item.contract_complete
+        ):
+            declared = {
+                (item.role, item.dimension_id)
+                for item in interface.governed_dimensions
+            }
+            connected = {
+                (edge.role, edge.source)
+                for edge in self.edges
+                if edge.target == interface.id and edge.kind is EdgeKind.DEFINES
+            }
+            if declared != connected:
+                raise ValueError(
+                    f"interface {interface.id} dimension bindings must match DEFINES edges"
+                )
+            for binding in interface.governed_dimensions:
+                if not isinstance(by_id.get(binding.dimension_id), DimensionNode):
+                    raise ValueError(
+                        f"interface {interface.id} references missing dimension node"
+                    )
+            for binding in interface.governed_geometry:
+                if not isinstance(
+                    by_id.get(binding.node_id),
+                    (FeatureNode, AdvancedFeatureNode, ReferenceGeometryNode),
+                ):
+                    raise ValueError(
+                        f"interface {interface.id} references missing geometry node"
+                    )
+            counterpart = interface.compatible_counterpart
+            supported = {
+                edge.target for edge in self.edges
+                if edge.source == interface.id and edge.kind is EdgeKind.SUPPORTED_BY
+            }
+            if any(
+                not isinstance(by_id.get(evidence_id), EvidenceNode)
+                or evidence_id not in supported
+                for evidence_id in counterpart.source_evidence_ids
+            ):
+                raise ValueError(
+                    f"interface {interface.id} counterpart provenance is not cited"
+                )
+        return self
 
     # ---------- access ----------
 

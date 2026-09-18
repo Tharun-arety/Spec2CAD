@@ -315,6 +315,32 @@ def validate_feature_ir(
                     interface.id,
                     f"interface {interface.id} references missing parameter {parameter_id!r}",
                 )
+        for binding in interface.geometry_bindings:
+            for feature_id in binding.feature_ids:
+                if feature_id not in features_by_id:
+                    error(
+                        DiagnosticCode.INTERFACE_REFERENCE,
+                        interface.id,
+                        f"interface role {binding.role} references missing feature "
+                        f"{feature_id!r}",
+                    )
+            for parameter_id in binding.parameter_ids:
+                if parameter_id not in parameter_values:
+                    error(
+                        DiagnosticCode.INTERFACE_REFERENCE,
+                        interface.id,
+                        f"interface role {binding.role} references missing parameter "
+                        f"{parameter_id!r}",
+                    )
+            reference = binding.reference
+            if isinstance(
+                reference, (FeatureSurfaceReference, FeatureEdgeSetReference)
+            ) and reference.feature_id not in features_by_id:
+                error(
+                    DiagnosticCode.INTERFACE_REFERENCE,
+                    interface.id,
+                    f"interface role {binding.role} has dangling geometry reference",
+                )
 
     return FeatureIRValidationReport(
         document_id=document.id,

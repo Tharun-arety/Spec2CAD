@@ -51,7 +51,15 @@ from spec2cad.schemas.intent_graph import (
     EvidenceNode,
     FeatureNode,
     FeatureType,
+    CompatibleInterfaceCounterpart,
+    InterfaceCoordinateSystem,
+    InterfaceDimensionBinding,
+    InterfaceFitKind,
+    InterfaceFitSpecification,
+    InterfaceGeometryBinding,
+    InterfaceGeometryKind,
     InterfaceNode,
+    InterfaceType,
     MaterialNode,
     PartNode,
     ProcessNode,
@@ -448,8 +456,72 @@ def build_intent_graph(
     sx, sy = resolutions[T.HOLE_SPACING_X], resolutions[T.HOLE_SPACING_Y]
     count, dia = resolutions[T.MOUNTING_HOLE_COUNT], resolutions[T.MOUNTING_HOLE_DIAMETER]
     if all(isinstance(r.value, (int, float)) for r in (sx, sy, count, dia)):
-        nodes.append(InterfaceNode(id=INTERFACE_NODE, label="motor_mount",
-                                   name="motor_mount"))
+        opening_available = (
+            shaft_node is not None and isinstance(shaft_node.value, (int, float))
+        )
+        interface_evidence = tuple(dict.fromkeys(
+            list(sx.provenance) + list(sy.provenance)
+            + list(count.provenance) + list(dia.provenance)
+        ))
+        dimension_bindings = [
+            InterfaceDimensionBinding(
+                role=role, dimension_id=_dim_id(target), protected=True
+            )
+            for target, role in (
+                (T.MOUNTING_HOLE_COUNT, "hole_count"),
+                (T.MOUNTING_HOLE_DIAMETER, "hole_diameter"),
+                (T.HOLE_SPACING_X, "spacing_x"),
+                (T.HOLE_SPACING_Y, "spacing_y"),
+            )
+        ]
+        geometry_bindings = [InterfaceGeometryBinding(
+            role="mounting_pattern",
+            node_id=PATTERN,
+            geometry_kind=InterfaceGeometryKind.HOLE_PATTERN,
+        )]
+        if opening_available:
+            dimension_bindings.append(InterfaceDimensionBinding(
+                role="opening_diameter",
+                dimension_id=_dim_id(T.SHAFT_OPENING_DIAMETER),
+                protected=True,
+            ))
+            geometry_bindings.append(InterfaceGeometryBinding(
+                role="pilot_opening",
+                node_id=OPENING,
+                geometry_kind=InterfaceGeometryKind.BORE,
+            ))
+        nodes.append(InterfaceNode(
+            id=INTERFACE_NODE,
+            label="motor_mount",
+            name="motor_mount",
+            contract_version="1.0.0",
+            interface_type=InterfaceType.MOUNTING_PATTERN,
+            coordinate_system=InterfaceCoordinateSystem(
+                id="coordinate.iface_motor_mount",
+                label="Motor mount interface frame",
+                origin_mm=(0.0, 0.0, 0.0),
+                x_axis=(1.0, 0.0, 0.0),
+                y_axis=(0.0, 1.0, 0.0),
+                z_axis=(0.0, 0.0, 1.0),
+            ),
+            governed_geometry=tuple(geometry_bindings),
+            governed_dimensions=tuple(dimension_bindings),
+            fit=InterfaceFitSpecification(
+                fit_kind=InterfaceFitKind.CLEARANCE,
+                tolerance_policy_id="policy.interface.iso_273",
+                tolerance_policy_version="1.0.0",
+                designation=dia.note or "ISO 273 normal clearance",
+            ),
+            compatible_counterpart=CompatibleInterfaceCounterpart(
+                id="counterpart.motor_mount",
+                label="Motor mounting pattern",
+                interface_type=InterfaceType.MOUNTING_PATTERN,
+                source_evidence_ids=interface_evidence,
+            ),
+            protected_parameter_ids=tuple(sorted(
+                item.dimension_id for item in dimension_bindings
+            )),
+        ))
         edges.append(Edge(source=PART_NODE, target=INTERFACE_NODE,
                           kind=EdgeKind.HAS_INTERFACE))
         # The interface points at the same dimensions the pattern does, rather
@@ -458,11 +530,14 @@ def build_intent_graph(
         defines(T.MOUNTING_HOLE_DIAMETER, INTERFACE_NODE, "hole_diameter")
         defines(T.HOLE_SPACING_X, INTERFACE_NODE, "spacing_x")
         defines(T.HOLE_SPACING_Y, INTERFACE_NODE, "spacing_y")
-        add_support(
-            INTERFACE_NODE,
-            list(sx.provenance) + list(sy.provenance)
-            + list(count.provenance) + list(dia.provenance),
-        )
+        if opening_available:
+            edges.append(Edge(
+                source=_dim_id(T.SHAFT_OPENING_DIAMETER),
+                target=INTERFACE_NODE,
+                kind=EdgeKind.DEFINES,
+                role="opening_diameter",
+            ))
+        add_support(INTERFACE_NODE, list(interface_evidence))
 
     # ---- requirements ---------------------------------------------------
     clearance = resolutions[T.MIN_HOLE_EDGE_CLEARANCE]

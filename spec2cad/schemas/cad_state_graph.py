@@ -124,6 +124,7 @@ class CSGRelationship(_FrozenModel):
     kind: RelationshipKind
     source: GraphReference
     target: GraphReference
+    role: StableId | None = None
 
     @model_validator(mode="after")
     def validate_namespaces(self) -> "CSGRelationship":
@@ -323,6 +324,7 @@ CSGNode = Annotated[
 
 class CADStateGraph(_FrozenModel):
     schema_version: Literal["1.0.0"] = CAD_STATE_GRAPH_SCHEMA_VERSION
+    interface_correspondence_version: Literal["1.0.0"] | None = None
     id: StableId
     build_request_id: str = Field(min_length=1)
     backend_id: StableId
@@ -408,6 +410,13 @@ class CADStateGraph(_FrozenModel):
                 and isinstance(target, SemanticTopologyNode)
             ):
                 raise ValueError("produces_topology requires feature to topology")
+            if (
+                relationship.kind is RelationshipKind.CORRESPONDS_TO_INTERFACE
+                and not isinstance(source, SemanticTopologyNode)
+            ):
+                raise ValueError(
+                    "corresponds_to_interface requires semantic topology source"
+                )
         return self
 
 
@@ -418,30 +427,98 @@ def validate_csg_provenance(
     feature_ir: FeatureIR | None = None,
 ) -> None:
     """Resolve every external relationship against its authoritative document."""
-    eig_ids = {item.id for item in intent_graph.nodes} if intent_graph else set()
-    feature_ids: set[str] = set()
+    eig_by_id = (
+        {item.id: item for item in intent_graph.nodes} if intent_graph else {}
+    )
+    feature_by_id: dict[str, object] = {}
     if feature_ir is not None:
-        feature_ids = {
-            feature_ir.id,
-            feature_ir.part.id,
-            *(item.id for item in feature_ir.bodies),
-            *(item.id for item in feature_ir.parameters),
-            *(item.id for item in feature_ir.features),
-            *(item.id for item in feature_ir.interfaces),
-        }
+        records = (
+            feature_ir.part,
+            *feature_ir.bodies,
+            *feature_ir.parameters,
+            *feature_ir.features,
+            *feature_ir.interfaces,
+        )
+        feature_by_id = {feature_ir.id: feature_ir}
+        feature_by_id.update({item.id: item for item in records})
     for relationship in graph.relationships:
         namespace = relationship.target.namespace
         if namespace is ReferenceNamespace.ENGINEERING_INTENT_GRAPH:
             if intent_graph is None:
                 raise ValueError("EIG is required to validate CSG provenance")
-            if relationship.target.id not in eig_ids:
+            if relationship.target.id not in eig_by_id:
                 raise ValueError(
                     f"relationship {relationship.id} references missing EIG node"
                 )
         elif namespace is ReferenceNamespace.FEATURE_IR:
             if feature_ir is None:
                 raise ValueError("Feature IR is required to validate CSG provenance")
-            if relationship.target.id not in feature_ids:
+            if relationship.target.id not in feature_by_id:
                 raise ValueError(
                     f"relationship {relationship.id} references missing Feature IR record"
                 )
+        if relationship.kind is RelationshipKind.CORRESPONDS_TO_INTERFACE:
+            from spec2cad.schemas.feature_ir import FeatureIRInterface
+            from spec2cad.schemas.intent_graph import InterfaceNode
+
+            target = (
+                eig_by_id.get(relationship.target.id)
+                if namespace is ReferenceNamespace.ENGINEERING_INTENT_GRAPH
+                else feature_by_id.get(relationship.target.id)
+            )
+            if not isinstance(target, (InterfaceNode, FeatureIRInterface)):
+                raise ValueError(
+                    f"relationship {relationship.id} must target an interface record"
+                )
+
+    if (
+        intent_graph is None
+        or feature_ir is None
+        or graph.interface_correspondence_version is None
+    ):
+        return
+    for interface in feature_ir.interfaces:
+        if interface.correspondence_version is None:
+            continue
+        eig_links = [
+            item for item in interface.intent_links
+            if item.relation.value == "corresponds_to"
+        ]
+        if len(eig_links) != 1:
+            raise ValueError(
+                f"interface {interface.id} requires one authoritative EIG link"
+            )
+        eig_interface_id = eig_links[0].eig_node_id
+        expected_roles = {item.role for item in interface.geometry_bindings}
+        relevant = [
+            item for item in graph.relationships
+            if item.kind is RelationshipKind.CORRESPONDS_TO_INTERFACE
+            and item.target.id in {interface.id, eig_interface_id}
+        ]
+        observed_roles = {item.role for item in relevant if item.role is not None}
+        if observed_roles != expected_roles:
+            raise ValueError(
+                f"interface {interface.id} CAD State roles are incomplete"
+            )
+        pairs: dict[tuple[str, str], dict[ReferenceNamespace, str]] = {}
+        for relationship in relevant:
+            if relationship.role not in expected_roles:
+                raise ValueError(
+                    f"interface {interface.id} has undeclared CAD State role"
+                )
+            key = (relationship.source.id, relationship.role)
+            targets = pairs.setdefault(key, {})
+            if relationship.target.namespace in targets:
+                raise ValueError(
+                    f"interface {interface.id} has duplicate CAD State correspondence"
+                )
+            targets[relationship.target.namespace] = relationship.target.id
+        expected_targets = {
+            ReferenceNamespace.FEATURE_IR: interface.id,
+            ReferenceNamespace.ENGINEERING_INTENT_GRAPH: eig_interface_id,
+        }
+        if not pairs or any(targets != expected_targets for targets in pairs.values()):
+            raise ValueError(
+                f"interface {interface.id} CAD State correspondence must pair "
+                "Feature IR and EIG targets"
+            )

@@ -381,10 +381,69 @@ class FeatureIRPart(_IntentLinkedModel):
     interface_ids: tuple[StableId, ...] = ()
 
 
+class FeatureIRInterfaceGeometryBinding(_FrozenModel):
+    role: StableId
+    eig_geometry_node_id: StableId
+    geometry_kind: Literal["feature", "hole_pattern", "bore", "datum"]
+    reference: SemanticReference
+    feature_ids: tuple[StableId, ...] = Field(min_length=1)
+    parameter_ids: tuple[StableId, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_binding(self):
+        if len(self.feature_ids) != len(set(self.feature_ids)):
+            raise ValueError("interface geometry feature ids must be unique")
+        if len(self.parameter_ids) != len(set(self.parameter_ids)):
+            raise ValueError("interface geometry parameter ids must be unique")
+        if isinstance(
+            self.reference, (FeatureSurfaceReference, FeatureEdgeSetReference)
+        ) and self.reference.feature_id not in self.feature_ids:
+            raise ValueError(
+                "interface geometry reference must belong to its feature ids"
+            )
+        return self
+
+
 class FeatureIRInterface(_IntentLinkedModel):
     reference: SemanticReference
     feature_ids: tuple[StableId, ...] = Field(min_length=1)
     parameter_ids: tuple[StableId, ...] = Field(min_length=1)
+    correspondence_version: Literal["1.0.0"] | None = None
+    geometry_bindings: tuple[FeatureIRInterfaceGeometryBinding, ...] = ()
+
+    @model_validator(mode="after")
+    def validate_correspondence(self):
+        if (self.correspondence_version is None) != (not self.geometry_bindings):
+            raise ValueError(
+                "interface correspondence version must reflect completeness"
+            )
+        if self.correspondence_version is None:
+            return self
+        roles = tuple(item.role for item in self.geometry_bindings)
+        if len(roles) != len(set(roles)):
+            raise ValueError("interface correspondence roles must be unique")
+        eig_ids = tuple(item.eig_geometry_node_id for item in self.geometry_bindings)
+        if len(eig_ids) != len(set(eig_ids)):
+            raise ValueError("interface correspondence EIG geometry ids must be unique")
+        expected_features = {
+            feature_id
+            for binding in self.geometry_bindings
+            for feature_id in binding.feature_ids
+        }
+        expected_parameters = {
+            parameter_id
+            for binding in self.geometry_bindings
+            for parameter_id in binding.parameter_ids
+        }
+        if set(self.feature_ids) != expected_features:
+            raise ValueError(
+                "interface feature ids must exactly cover geometry bindings"
+            )
+        if set(self.parameter_ids) != expected_parameters:
+            raise ValueError(
+                "interface parameter ids must exactly cover geometry bindings"
+            )
+        return self
 
 
 class FeatureIR(_FrozenModel):
@@ -436,6 +495,7 @@ def validate_eig_provenance(document: FeatureIR, eig) -> None:
     from spec2cad.schemas.intent_graph import (
         AdvancedFeatureNode,
         DimensionNode,
+        EdgeKind,
         FeatureNode,
         InterfaceNode,
         PartNode,
@@ -482,6 +542,79 @@ def validate_eig_provenance(document: FeatureIR, eig) -> None:
                 problems.append(
                     f"{record.id} links to incompatible EIG node kind {node.kind.value}"
                 )
+    features_by_id = {item.id: item for item in document.features}
+    parameters_by_id = {item.id: item for item in document.parameters}
+    for interface in document.interfaces:
+        if interface.correspondence_version is None:
+            continue
+        interface_links = [
+            link for link in interface.intent_links
+            if link.relation is IntentRelation.CORRESPONDS_TO
+        ]
+        if len(interface_links) != 1:
+            problems.append(
+                f"{interface.id} requires exactly one EIG interface correspondence"
+            )
+            continue
+        eig_interface = (
+            eig.node(interface_links[0].eig_node_id)
+            if eig.has_node(interface_links[0].eig_node_id) else None
+        )
+        if not isinstance(eig_interface, InterfaceNode):
+            continue
+        if not eig_interface.contract_complete:
+            problems.append(
+                f"{interface.id} cannot claim complete correspondence to a legacy interface"
+            )
+            continue
+        expected_geometry = {
+            (item.role, item.node_id, item.geometry_kind.value)
+            for item in eig_interface.governed_geometry
+        }
+        actual_geometry = {
+            (item.role, item.eig_geometry_node_id, item.geometry_kind)
+            for item in interface.geometry_bindings
+        }
+        if actual_geometry != expected_geometry:
+            problems.append(
+                f"{interface.id} geometry bindings do not exactly match its EIG interface"
+            )
+        for binding in interface.geometry_bindings:
+            expected_features = {
+                feature.id
+                for feature in document.features
+                if any(
+                    link.eig_node_id == binding.eig_geometry_node_id
+                    and link.relation is IntentRelation.REALIZES
+                    for link in feature.intent_links
+                )
+            }
+            if set(binding.feature_ids) != expected_features:
+                problems.append(
+                    f"{interface.id} role {binding.role} does not exactly cover "
+                    "its Feature IR realizations"
+                )
+            expected_parameters = {
+                edge.source for edge in eig.in_edges(
+                    binding.eig_geometry_node_id, EdgeKind.DEFINES
+                )
+            }
+            if set(binding.parameter_ids) != expected_parameters:
+                problems.append(
+                    f"{interface.id} role {binding.role} does not exactly cover "
+                    "its EIG dimensions"
+                )
+            for feature_id in binding.feature_ids:
+                if feature_id not in features_by_id:
+                    problems.append(
+                        f"{interface.id} role {binding.role} references missing feature"
+                    )
+            for parameter_id in binding.parameter_ids:
+                parameter_record = parameters_by_id.get(parameter_id)
+                if parameter_record is None or not parameter_record.protected:
+                    problems.append(
+                        f"{interface.id} role {binding.role} requires protected parameters"
+                    )
     if problems:
         raise FeatureIRProvenanceError("; ".join(problems))
 

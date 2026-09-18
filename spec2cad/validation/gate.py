@@ -28,6 +28,9 @@ from spec2cad.schemas.report import (
     Report,
 )
 from spec2cad.reconciliation.classification import ClassifiedReconciliation
+from spec2cad.reconciliation.governing_consistency import (
+    GoverningConsistencyAssessment,
+)
 
 PROVISIONAL_WATERMARK = "PROVISIONAL - NOT FOR MANUFACTURE"
 
@@ -80,6 +83,7 @@ def evaluate_release(
     measured_reports: list[Report],
     *,
     governing_reconciliation: ClassifiedReconciliation | None = None,
+    governing_consistency: GoverningConsistencyAssessment | None = None,
 ) -> ReleaseDecision:
     """Decide whether the measured geometry may be released.
 
@@ -137,6 +141,38 @@ def evaluate_release(
             conflict_class=ConflictClass.EXECUTION,
             message=message,
         ))
+
+    if governing_consistency is not None and governing_consistency.governing:
+        revision_matches = governing_consistency.design_revision == intent.revision
+        status_value = (
+            governing_consistency.status.value
+            if revision_matches else "revision_mismatch"
+        )
+        message = (
+            f"governing sensor consistency is {status_value}: "
+            + (
+                "; ".join(governing_consistency.reasons)
+                if revision_matches
+                else (
+                    f"assessment revision {governing_consistency.design_revision} "
+                    f"does not match intent revision {intent.revision}"
+                )
+            )
+        )
+        if revision_matches and governing_consistency.release_consistent:
+            message = ""
+        if message:
+            reasons.append(message)
+            blocking.append(CheckResult(
+                id="gate_sensor_consistency",
+                stage=CheckStage.REQUIREMENT,
+                name="governing sensor consistency",
+                status=CheckStatus.FAIL,
+                expected="consistent",
+                actual=status_value,
+                conflict_class=ConflictClass.EXECUTION,
+                message=message,
+            ))
 
     status = ReleaseStatus.BLOCKED if blocking else ReleaseStatus.AUTHORISED
     return ReleaseDecision(

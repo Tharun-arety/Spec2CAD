@@ -1,0 +1,144 @@
+{
+  "all_passed": true,
+  "benchmark": "B.R2",
+  "cases": [
+    {
+      "advisory": false,
+      "assessment": "inconsistent",
+      "case_id": "B.R2.compiler",
+      "consistency": "inconsistent",
+      "diagnosis_id": "diagnosis.2519bcd3d0932c78615cdd72eed6cd43",
+      "fault": "compiler",
+      "governing": true,
+      "origin": "intent_compilation",
+      "passed": true,
+      "release": "blocked",
+      "step_export_allowed": false,
+      "target_sensor_ids": [
+        "sensor.compiler.eig",
+        "sensor.compiler.feature_ir"
+      ],
+      "trace_complete": true,
+      "trace_id": "trace.260d3e880a0657d7b1e156c6074c2659"
+    },
+    {
+      "advisory": false,
+      "assessment": "inconsistent",
+      "case_id": "B.R2.constraint",
+      "consistency": "inconsistent",
+      "diagnosis_id": "diagnosis.fb959be8a6223bf510d56aac2c2ab28d",
+      "fault": "constraint",
+      "governing": true,
+      "origin": "feature_ir_lowering",
+      "passed": true,
+      "release": "blocked",
+      "step_export_allowed": false,
+      "target_sensor_ids": [
+        "sensor.constraint.feature_ir",
+        "sensor.constraint.native"
+      ],
+      "trace_complete": true,
+      "trace_id": "trace.3723dcbe49cc0d41de288a0132350492"
+    },
+    {
+      "advisory": false,
+      "assessment": "inconsistent",
+      "case_id": "B.R2.recompute",
+      "consistency": "inconsistent",
+      "diagnosis_id": "diagnosis.54ef1c76335ec8765f847b8d2e858c48",
+      "fault": "recompute",
+      "governing": true,
+      "origin": "backend_realization",
+      "passed": true,
+      "release": "blocked",
+      "step_export_allowed": false,
+      "target_sensor_ids": [
+        "sensor.recompute.actual",
+        "sensor.recompute.expected"
+      ],
+      "trace_complete": true,
+      "trace_id": "trace.861ee716df5a58b909707abaf3b6fea2"
+    },
+    {
+      "advisory": false,
+      "assessment": "inconsistent",
+      "case_id": "B.R2.topology",
+      "consistency": "inconsistent",
+      "diagnosis_id": "diagnosis.6c6ccecee870a6be11ac87a42b893008",
+      "fault": "topology",
+      "governing": true,
+      "origin": "topology",
+      "passed": true,
+      "release": "blocked",
+      "step_export_allowed": false,
+      "target_sensor_ids": [
+        "sensor.topology.actual",
+        "sensor.topology.expected"
+      ],
+      "trace_complete": true,
+      "trace_id": "trace.c93a60b3deedd010f7dfd4174436830b"
+    },
+    {
+      "advisory": false,
+      "assessment": "inconsistent",
+      "case_id": "B.R2.measurement",
+      "consistency": "inconsistent",
+      "diagnosis_id": "diagnosis.bdd56b9b0a0b26173af0f78f7304b649",
+      "fault": "measurement",
+      "governing": true,
+      "origin": "measurement",
+      "passed": true,
+      "release": "blocked",
+      "step_export_allowed": false,
+      "target_sensor_ids": [
+        "sensor.measurement.governing",
+        "sensor.measurement.reference"
+      ],
+      "trace_complete": true,
+      "trace_id": "trace.b34faa0c24749aa07624e8680bd80526"
+    },
+    {
+      "advisory": true,
+      "assessment": "consistent",
+      "case_id": "B.R2.visual_false_positive",
+      "consistency": "inconsistent",
+      "diagnosis_id": "diagnosis.8ba9ca52dca8dcca0690a2bfd1833404",
+      "fault": "visual_false_positive",
+      "governing": true,
+      "origin": "visual_inspection",
+      "passed": true,
+      "release": "authorised",
+      "step_export_allowed": true,
+      "target_sensor_ids": [
+        "sensor.visual.false_positive",
+        "sensor.visual.governing"
+      ],
+      "trace_complete": false,
+      "trace_id": "trace.5bb7e801d1833b7b88201daeabf1d63a"
+    },
+    {
+      "advisory": false,
+      "assessment": "not_assessed",
+      "case_id": "B.R2.unavailable_sensor",
+      "consistency": "not_assessed",
+      "diagnosis_id": null,
+      "fault": "unavailable_sensor",
+      "governing": true,
+      "origin": null,
+      "passed": true,
+      "release": "blocked",
+      "step_export_allowed": false,
+      "target_sensor_ids": [
+        "sensor.unavailable.governing",
+        "sensor.unavailable.reference"
+      ],
+      "trace_complete": null,
+      "trace_id": null
+    }
+  ],
+  "design_revision": 2,
+  "feature_ir_sha256": "a7f224d737f6bfd1a8c322895e94f46eeb03194c1f0b64a417444323c50f2a6e",
+  "freecad_version": "1.1.0",
+  "schema_version": "1.0.0",
+  "scope": "motor-adapter bounded typed fault injection; visual inspection remains advisory"
+}

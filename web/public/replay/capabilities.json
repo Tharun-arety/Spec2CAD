@@ -981,7 +981,9 @@
         "tests/test_cross_backend_predicates.py",
         "tests/test_reconciliation_release_gate.py",
         "tests/test_r1_native_foundation_benchmark.py",
-        "eval/r1_native_foundation_report.json"
+        "eval/r1_native_foundation_report.json",
+        "tests/test_r2_sensor_fault_localization_benchmark.py",
+        "eval/r2_sensor_fault_localization_report.json"
       ],
       "category": "inspection",
       "id": "cross_backend_reconciliation",
@@ -989,15 +991,15 @@
       "integration": "optional_pipeline",
       "label": "Cross-backend reconciliation",
       "limitations": [
-        "Release-governing comparison remains motor-adapter bounded; four broader compositions have advisory solid/cylindrical cross-backend checks."
+        "Release-governing comparison and B.R2 fault localization remain motor-adapter bounded; four broader compositions have advisory solid/cylindrical cross-backend checks, and visual inspection is not governing."
       ],
       "release_role": "governing",
-      "summary": "Typed comparison of governed observations from two backends.",
+      "summary": "Typed cross-backend comparison plus versioned sensor matrices, bounded fault localization and fail-closed governing consistency assessment.",
       "supported_backends": [
         "cadquery",
         "freecad"
       ],
-      "version": "1.0.0"
+      "version": "1.1.0"
     }
   ],
   "schema_version": "1.0.0"

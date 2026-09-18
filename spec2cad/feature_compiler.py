@@ -15,6 +15,7 @@ from spec2cad.schemas.feature_ir import (
     FeatureIR,
     FeatureIRBody,
     FeatureIRInterface,
+    FeatureIRInterfaceGeometryBinding,
     FeatureIRParameter,
     FeatureIRPart,
     FeatureSurfaceReference,
@@ -44,6 +45,7 @@ from spec2cad.schemas.intent_graph import (
     EngineeringIntentGraph,
     FeatureNode,
     FeatureType,
+    InterfaceGeometryKind,
     InterfaceNode,
     PartNode,
 )
@@ -415,7 +417,74 @@ def compile_feature_ir(graph: EngineeringIntentGraph) -> FeatureIR:
     interfaces = []
     for interface in interface_nodes:
         incoming = graph.in_edges(interface.id, EdgeKind.DEFINES)
-        feature_ids = (mounting_pattern_id,) if mounting_pattern_id else (base_pad_id,)
+        geometry_bindings = []
+        if interface.contract_complete:
+            available_parameters = {item.id for item in parameters}
+            for binding in interface.governed_geometry:
+                related_features = tuple(
+                    feature.id for feature in features
+                    if any(
+                        link.eig_node_id == binding.node_id
+                        and link.relation is IntentRelation.REALIZES
+                        for link in feature.intent_links
+                    )
+                )
+                if not related_features:
+                    raise FeatureIRCompilationError(
+                        f"interface {interface.id!r} geometry role {binding.role!r} "
+                        "has no Feature IR realization"
+                    )
+                related_parameters = tuple(
+                    edge.source for edge in graph.in_edges(
+                        binding.node_id, EdgeKind.DEFINES
+                    )
+                    if edge.source in available_parameters
+                )
+                if not related_parameters:
+                    raise FeatureIRCompilationError(
+                        f"interface {interface.id!r} geometry role {binding.role!r} "
+                        "has no realized dimensions"
+                    )
+                selector = (
+                    SurfaceSelector.INNER_CYLINDER
+                    if binding.geometry_kind in {
+                        InterfaceGeometryKind.HOLE_PATTERN,
+                        InterfaceGeometryKind.BORE,
+                    }
+                    else SurfaceSelector.POSITIVE_NORMAL
+                )
+                geometry_bindings.append(FeatureIRInterfaceGeometryBinding(
+                    role=binding.role,
+                    eig_geometry_node_id=binding.node_id,
+                    geometry_kind=binding.geometry_kind.value,
+                    reference=FeatureSurfaceReference(
+                        feature_id=related_features[-1],
+                        selector=selector,
+                    ),
+                    feature_ids=related_features,
+                    parameter_ids=related_parameters,
+                ))
+            bound_feature_ids = {
+                feature_id
+                for binding in geometry_bindings
+                for feature_id in binding.feature_ids
+            }
+            feature_ids = tuple(
+                feature.id for feature in features if feature.id in bound_feature_ids
+            )
+            bound_parameter_ids = {
+                parameter_id
+                for binding in geometry_bindings
+                for parameter_id in binding.parameter_ids
+            }
+            parameter_ids = tuple(
+                item.id for item in parameters if item.id in bound_parameter_ids
+            )
+        else:
+            feature_ids = (
+                (mounting_pattern_id,) if mounting_pattern_id else (base_pad_id,)
+            )
+            parameter_ids = tuple(edge.source for edge in incoming)
         interfaces.append(FeatureIRInterface(
             id=f"fir_{interface.id}",
             label=interface.label or interface.name,
@@ -425,7 +494,11 @@ def compile_feature_ir(graph: EngineeringIntentGraph) -> FeatureIR:
                 selector=SurfaceSelector.POSITIVE_NORMAL,
             ),
             feature_ids=feature_ids,
-            parameter_ids=tuple(edge.source for edge in incoming),
+            parameter_ids=parameter_ids,
+            correspondence_version=(
+                "1.0.0" if interface.contract_complete else None
+            ),
+            geometry_bindings=tuple(geometry_bindings),
         ))
 
     body_id = "fir_body_main"

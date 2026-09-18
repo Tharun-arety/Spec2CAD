@@ -51,6 +51,13 @@ def test_r1h_capabilities_separate_governing_motor_and_advisory_breadth():
     assert "tests/test_r1_native_foundation_benchmark.py" in (
         reconciliation.benchmark_evidence
     )
+    assert "tests/test_r2_sensor_fault_localization_benchmark.py" in (
+        reconciliation.benchmark_evidence
+    )
+    assert "eval/r2_sensor_fault_localization_report.json" in (
+        reconciliation.benchmark_evidence
+    )
+    assert reconciliation.version == "1.1.0"
     assert "motor-adapter bounded" in reconciliation.limitations[0]
     assert "four broader compositions" in reconciliation.limitations[0]
     assert "tests/test_r1h_broad_cad.py" in capability("linear_slot_pattern").benchmark_evidence

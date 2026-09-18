@@ -200,6 +200,22 @@ def _cadquery_csg(
         })
 
     relationships = []
+    document_source = {
+        "namespace": "cad_state_graph", "id": "document.cadquery_build"
+    }
+    relationships.append({
+        "id": "rel.document.feature_ir_part", "kind": "realizes_feature_ir",
+        "source": document_source,
+        "target": {"namespace": "feature_ir", "id": request.feature_ir.part.id},
+    })
+    for link in request.feature_ir.part.intent_links:
+        relationships.append({
+            "id": f"rel.document.intent.{_safe_stem(link.eig_node_id).lower()}",
+            "kind": "realizes_intent", "source": document_source,
+            "target": {
+                "namespace": "engineering_intent_graph", "id": link.eig_node_id
+            },
+        })
     source = {"namespace": "cad_state_graph", "id": "body.main"}
     relationships.append({
         "id": "rel.body.feature_ir_part", "kind": "realizes_feature_ir",
@@ -214,16 +230,65 @@ def _cadquery_csg(
                 "namespace": "engineering_intent_graph", "id": link.eig_node_id
             },
         })
-    if request.feature_ir.interfaces:
-        interface_id = request.feature_ir.interfaces[0].id
-        for topology_id in topology_ids[1:]:
-            relationships.append({
-                "id": f"rel.{topology_id.replace('.', '_')}.interface",
-                "kind": "corresponds_to_interface",
-                "source": {"namespace": "cad_state_graph", "id": topology_id},
-                "target": {"namespace": "feature_ir", "id": interface_id},
-            })
+    parameters_by_id = {
+        item.id: item for item in request.feature_ir.parameters
+    }
+    topology_by_id = {
+        item["id"]: item for item in nodes
+        if item["kind"] == "semantic_topology"
+    }
+    for interface in request.feature_ir.interfaces:
+        if interface.correspondence_version is None:
+            continue
+        eig_interface_id = next(
+            link.eig_node_id for link in interface.intent_links
+            if link.relation.value == "corresponds_to"
+        )
+        for binding in interface.geometry_bindings:
+            diameters = [
+                parameters_by_id[parameter_id].value
+                for parameter_id in binding.parameter_ids
+                if parameter_id in parameters_by_id
+                and "diameter" in parameters_by_id[parameter_id].name
+            ]
+            matching_topologies = []
+            for topology_id, topology in topology_by_id.items():
+                measured = {
+                    item["name"]: item["value"]
+                    for item in topology.get("measurements", [])
+                }
+                if topology.get("geometry_type") == "cylinder" and any(
+                    abs(measured.get("diameter", float("inf")) - expected) <= 1e-6
+                    for expected in diameters
+                ):
+                    matching_topologies.append(topology_id)
+            for topology_id in matching_topologies:
+                relationship_stem = (
+                    f"rel.{topology_id.replace('.', '_')}.interface.{binding.role}"
+                )
+                for namespace, target_id, suffix in (
+                    ("feature_ir", interface.id, "feature_ir"),
+                    (
+                        "engineering_intent_graph", eig_interface_id,
+                        "engineering_intent_graph",
+                    ),
+                ):
+                    relationships.append({
+                        "id": f"{relationship_stem}.{suffix}",
+                        "kind": "corresponds_to_interface",
+                        "source": {
+                            "namespace": "cad_state_graph", "id": topology_id
+                        },
+                        "target": {"namespace": namespace, "id": target_id},
+                        "role": binding.role,
+                    })
     return CADStateGraph(
+        interface_correspondence_version=(
+            "1.0.0" if any(
+                item.correspondence_version is not None
+                for item in request.feature_ir.interfaces
+            ) else None
+        ),
         id=(
             f"csg.cadquery.{_safe_stem(request.feature_ir.part.name).lower()}."
             f"r{request.feature_ir.design_revision}"

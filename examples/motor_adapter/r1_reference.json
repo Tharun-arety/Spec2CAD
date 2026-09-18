@@ -16,34 +16,64 @@
         "operations": [
           {
             "centered": true,
-            "depth": {"kind": "param_ref", "ref": "plate_thickness"},
-            "height": {"kind": "param_ref", "ref": "plate_height"},
+            "depth": {
+              "kind": "param_ref",
+              "ref": "plate_thickness"
+            },
+            "height": {
+              "kind": "param_ref",
+              "ref": "plate_height"
+            },
             "id": "base_plate",
             "type": "box",
-            "width": {"kind": "param_ref", "ref": "plate_width"}
+            "width": {
+              "kind": "param_ref",
+              "ref": "plate_width"
+            }
           },
           {
             "depth": null,
-            "diameter": {"kind": "param_ref", "ref": "shaft_opening_diameter"},
+            "diameter": {
+              "kind": "param_ref",
+              "ref": "shaft_opening_diameter"
+            },
             "id": "shaft_opening",
             "support": "top_face",
             "termination": "through_all",
             "type": "hole",
-            "x": {"kind": "literal", "value": 0.0},
-            "y": {"kind": "literal", "value": 0.0}
+            "x": {
+              "kind": "literal",
+              "value": 0.0
+            },
+            "y": {
+              "kind": "literal",
+              "value": 0.0
+            }
           },
           {
             "count": 4,
-            "diameter": {"kind": "param_ref", "ref": "mounting_hole_diameter"},
+            "diameter": {
+              "kind": "param_ref",
+              "ref": "mounting_hole_diameter"
+            },
             "id": "mounting_holes",
-            "spacing_x": {"kind": "param_ref", "ref": "hole_spacing_x"},
-            "spacing_y": {"kind": "param_ref", "ref": "hole_spacing_y"},
+            "spacing_x": {
+              "kind": "param_ref",
+              "ref": "hole_spacing_x"
+            },
+            "spacing_y": {
+              "kind": "param_ref",
+              "ref": "hole_spacing_y"
+            },
             "support": "top_face",
             "termination": "through_all",
             "type": "rectangular_hole_pattern"
           },
           {
-            "distance": {"kind": "param_ref", "ref": "external_chamfer"},
+            "distance": {
+              "kind": "param_ref",
+              "ref": "external_chamfer"
+            },
             "edge_selector": "external_vertical_edges",
             "id": "external_chamfers",
             "type": "chamfer"
@@ -54,21 +84,41 @@
         "units": "mm"
       },
       "cad_program_sha256": "dc097aa58328538c3709b6037bb3fa09db0e7a10c0fe84514783edc988a7f772",
-      "eig_sha256": "c43d43f6b7844f366ef54bb3ed33f4761f75b2947fa90b5bffafd9ff510ec3ce",
+      "eig_sha256": "58dcf9c42ac4329c1aeefead7500c3376195f6a55630e525abf639e9153cddb0",
       "feature_ir": {
-        "byte_length": 11063,
-        "content_sha256": "722f0d7424b91fe2e023045a45391ef6554fa979e8708a201da05be0c548ad7e",
+        "byte_length": 12045,
+        "content_sha256": "9eeb083b394a47b8df5a8312eeafe07b0c2e9795e732c9ad8971d8e00d008a70",
         "document_id": "fir_motor_adapter_plate_r1",
         "document_schema_version": "1.0.0",
         "schema_version": "1.0.0"
       },
       "geometry": {
         "circular_features": [
-          {"diameter_mm": 3.4, "x_mm": -15.5, "y_mm": -15.5},
-          {"diameter_mm": 3.4, "x_mm": -15.5, "y_mm": 15.5},
-          {"diameter_mm": 3.4, "x_mm": 15.5, "y_mm": -15.5},
-          {"diameter_mm": 3.4, "x_mm": 15.5, "y_mm": 15.5},
-          {"diameter_mm": 22.5, "x_mm": 0.0, "y_mm": -0.0}
+          {
+            "diameter_mm": 3.4,
+            "x_mm": -15.5,
+            "y_mm": -15.5
+          },
+          {
+            "diameter_mm": 3.4,
+            "x_mm": -15.5,
+            "y_mm": 15.5
+          },
+          {
+            "diameter_mm": 3.4,
+            "x_mm": 15.5,
+            "y_mm": -15.5
+          },
+          {
+            "diameter_mm": 3.4,
+            "x_mm": 15.5,
+            "y_mm": 15.5
+          },
+          {
+            "diameter_mm": 22.5,
+            "x_mm": 0.0,
+            "y_mm": -0.0
+          }
         ],
         "height_mm": 50.0,
         "solid_count": 1,
@@ -79,7 +129,11 @@
       },
       "parent_revision": null,
       "release": {
-        "responsible_parameters": ["plate_width", "hole_spacing_x", "mounting_hole_diameter"],
+        "responsible_parameters": [
+          "plate_width",
+          "hole_spacing_x",
+          "mounting_hole_diameter"
+        ],
         "status": "blocked",
         "step_export_allowed": false
       },
@@ -103,34 +157,64 @@
         "operations": [
           {
             "centered": true,
-            "depth": {"kind": "param_ref", "ref": "plate_thickness"},
-            "height": {"kind": "param_ref", "ref": "plate_height"},
+            "depth": {
+              "kind": "param_ref",
+              "ref": "plate_thickness"
+            },
+            "height": {
+              "kind": "param_ref",
+              "ref": "plate_height"
+            },
             "id": "base_plate",
             "type": "box",
-            "width": {"kind": "param_ref", "ref": "plate_width"}
+            "width": {
+              "kind": "param_ref",
+              "ref": "plate_width"
+            }
           },
           {
             "depth": null,
-            "diameter": {"kind": "param_ref", "ref": "shaft_opening_diameter"},
+            "diameter": {
+              "kind": "param_ref",
+              "ref": "shaft_opening_diameter"
+            },
             "id": "shaft_opening",
             "support": "top_face",
             "termination": "through_all",
             "type": "hole",
-            "x": {"kind": "literal", "value": 0.0},
-            "y": {"kind": "literal", "value": 0.0}
+            "x": {
+              "kind": "literal",
+              "value": 0.0
+            },
+            "y": {
+              "kind": "literal",
+              "value": 0.0
+            }
           },
           {
             "count": 4,
-            "diameter": {"kind": "param_ref", "ref": "mounting_hole_diameter"},
+            "diameter": {
+              "kind": "param_ref",
+              "ref": "mounting_hole_diameter"
+            },
             "id": "mounting_holes",
-            "spacing_x": {"kind": "param_ref", "ref": "hole_spacing_x"},
-            "spacing_y": {"kind": "param_ref", "ref": "hole_spacing_y"},
+            "spacing_x": {
+              "kind": "param_ref",
+              "ref": "hole_spacing_x"
+            },
+            "spacing_y": {
+              "kind": "param_ref",
+              "ref": "hole_spacing_y"
+            },
             "support": "top_face",
             "termination": "through_all",
             "type": "rectangular_hole_pattern"
           },
           {
-            "distance": {"kind": "param_ref", "ref": "external_chamfer"},
+            "distance": {
+              "kind": "param_ref",
+              "ref": "external_chamfer"
+            },
             "edge_selector": "external_vertical_edges",
             "id": "external_chamfers",
             "type": "chamfer"
@@ -141,21 +225,41 @@
         "units": "mm"
       },
       "cad_program_sha256": "41d7a9372e047fdc78273c673ed0e984b915f543a2875984ea18b31b11ada841",
-      "eig_sha256": "9c61b28922f2a6ebb31a7b2a74f1040bc316123a0e46850611e5ec433d23399c",
+      "eig_sha256": "10abf436974d0b3eebfc83ffb3021ac66b65dde01cda93fee901eba658d6a911",
       "feature_ir": {
-        "byte_length": 11063,
-        "content_sha256": "a7f224d737f6bfd1a8c322895e94f46eeb03194c1f0b64a417444323c50f2a6e",
+        "byte_length": 12045,
+        "content_sha256": "9de2347baa51b00d17df77f0027a37fc9c3d7ff813510c31efe72c5473ba392a",
         "document_id": "fir_motor_adapter_plate_r2",
         "document_schema_version": "1.0.0",
         "schema_version": "1.0.0"
       },
       "geometry": {
         "circular_features": [
-          {"diameter_mm": 3.4, "x_mm": -15.5, "y_mm": -15.5},
-          {"diameter_mm": 3.4, "x_mm": -15.5, "y_mm": 15.5},
-          {"diameter_mm": 3.4, "x_mm": 15.5, "y_mm": -15.5},
-          {"diameter_mm": 3.4, "x_mm": 15.5, "y_mm": 15.5},
-          {"diameter_mm": 22.5, "x_mm": 0.0, "y_mm": -0.0}
+          {
+            "diameter_mm": 3.4,
+            "x_mm": -15.5,
+            "y_mm": -15.5
+          },
+          {
+            "diameter_mm": 3.4,
+            "x_mm": -15.5,
+            "y_mm": 15.5
+          },
+          {
+            "diameter_mm": 3.4,
+            "x_mm": 15.5,
+            "y_mm": -15.5
+          },
+          {
+            "diameter_mm": 3.4,
+            "x_mm": 15.5,
+            "y_mm": 15.5
+          },
+          {
+            "diameter_mm": 22.5,
+            "x_mm": 0.0,
+            "y_mm": -0.0
+          }
         ],
         "height_mm": 50.0,
         "solid_count": 1,
@@ -189,11 +293,31 @@
     "geometry_matches_in_memory": true,
     "restored_geometry": {
       "circular_features": [
-        {"diameter_mm": 3.4, "x_mm": -15.5, "y_mm": -15.5},
-        {"diameter_mm": 3.4, "x_mm": -15.5, "y_mm": 15.5},
-        {"diameter_mm": 3.4, "x_mm": 15.5, "y_mm": -15.5},
-        {"diameter_mm": 3.4, "x_mm": 15.5, "y_mm": 15.5},
-        {"diameter_mm": 22.5, "x_mm": 0.0, "y_mm": -0.0}
+        {
+          "diameter_mm": 3.4,
+          "x_mm": -15.5,
+          "y_mm": -15.5
+        },
+        {
+          "diameter_mm": 3.4,
+          "x_mm": -15.5,
+          "y_mm": 15.5
+        },
+        {
+          "diameter_mm": 3.4,
+          "x_mm": 15.5,
+          "y_mm": -15.5
+        },
+        {
+          "diameter_mm": 3.4,
+          "x_mm": 15.5,
+          "y_mm": 15.5
+        },
+        {
+          "diameter_mm": 22.5,
+          "x_mm": 0.0,
+          "y_mm": -0.0
+        }
       ],
       "height_mm": 50.0,
       "solid_count": 1,

@@ -513,6 +513,16 @@ def _extract_csg(
             "origin": [0.0, 0.0, 0.0], "direction": [0.0, 0.0, 1.0],
         },
     ))
+    relationships.append(_rel(
+        "rel.document.feature_ir_part", "realizes_feature_ir",
+        document_id, "feature_ir", feature_ir["part"]["id"],
+    ))
+    for link in feature_ir["part"].get("intent_links", []):
+        relationships.append(_rel(
+            f"rel.document.intent.{_slug(link['eig_node_id'])}",
+            "realizes_intent", document_id, "engineering_intent_graph",
+            link["eig_node_id"],
+        ))
     alias_to_parameter = {}
     for row, item in enumerate(feature_ir["parameters"], 1):
         node_id = f"parameter.{_slug(item['id'])}"
@@ -670,7 +680,8 @@ def _extract_csg(
             "topology_kind": "face", "semantic_role": f"cylindrical_surface_{token}",
             "geometry_type": "cylinder", "signature_sha256": _hash(signature),
             "centroid_mm": _shape_center(face),
-            "direction": [0.0, 0.0, 1.0], "adjacent_topology_ids": [],
+            "direction": [0.0, 0.0, 1.0],
+            "adjacent_topology_ids": ["topology.part_solid"],
             "measurements": [
                 {"name": "diameter", "value": 2 * signature["radius"], "unit": "mm"},
                 {"name": "center_x", "value": signature["x"], "unit": "mm"},
@@ -724,12 +735,51 @@ def _extract_csg(
                 ))
         previous_id = feature_id
 
+    parameters_by_id = {
+        item["id"]: item for item in feature_ir.get("parameters", [])
+    }
     for interface in feature_ir.get("interfaces", []):
-        for topology in topology_nodes[1:]:
-            relationships.append(_rel(
-                f"rel.{_slug(topology['id'])}.interface.{_slug(interface['id'])}",
-                "corresponds_to_interface", topology["id"], "feature_ir", interface["id"],
-            ))
+        if interface.get("correspondence_version") is None:
+            continue
+        eig_interface_id = next(
+            item["eig_node_id"] for item in interface["intent_links"]
+            if item["relation"] == "corresponds_to"
+        )
+        for binding in interface.get("geometry_bindings", []):
+            diameters = [
+                parameters_by_id[parameter_id]["value"]
+                for parameter_id in binding["parameter_ids"]
+                if parameter_id in parameters_by_id
+                and "diameter" in parameters_by_id[parameter_id]["name"]
+            ]
+            for topology in topology_nodes:
+                measured = {
+                    item["name"]: item["value"]
+                    for item in topology.get("measurements", [])
+                }
+                if topology.get("geometry_type") != "cylinder" or not any(
+                    abs(measured.get("diameter", float("inf")) - expected) <= 1e-6
+                    for expected in diameters
+                ):
+                    continue
+                stem = (
+                    f"rel.{_slug(topology['id'])}.interface.{_slug(binding['role'])}"
+                )
+                relationships.append({
+                    **_rel(
+                        f"{stem}.feature_ir", "corresponds_to_interface",
+                        topology["id"], "feature_ir", interface["id"],
+                    ),
+                    "role": binding["role"],
+                })
+                relationships.append({
+                    **_rel(
+                        f"{stem}.engineering_intent_graph",
+                        "corresponds_to_interface", topology["id"],
+                        "engineering_intent_graph", eig_interface_id,
+                    ),
+                    "role": binding["role"],
+                })
     nodes.insert(1, {
         "kind": "body", "id": body_id, "label": body.Label,
         "backend_native_id": body.Name, "feature_ids": body_feature_ids,
@@ -753,7 +803,14 @@ def _extract_csg(
         })
     version = ".".join(str(item) for item in __import__("FreeCAD").Version()[:3])
     return {
-        "schema_version": "1.0.0", "id": f"csg.freecad.{_slug(feature_ir['id'])}",
+        "schema_version": "1.0.0",
+        "interface_correspondence_version": (
+            "1.0.0" if any(
+                item.get("correspondence_version") is not None
+                for item in feature_ir.get("interfaces", [])
+            ) else None
+        ),
+        "id": f"csg.freecad.{_slug(feature_ir['id'])}",
         "build_request_id": build_request["request_id"], "backend_id": "freecad",
         "backend_version": version,
         "source_feature_ir_sha256": build_request["feature_ir_manifest"]["content_sha256"],

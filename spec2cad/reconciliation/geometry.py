@@ -155,6 +155,8 @@ def _append_geometry_layer(
     method: str,
     governing: bool,
     related: dict[GovernedQuantity, tuple[str, ...]] | None = None,
+    point_related: tuple[str, ...] = (),
+    interface_related: tuple[str, ...] = (),
 ) -> None:
     related = related or {}
     for quantity, value in values.items():
@@ -177,6 +179,7 @@ def _append_geometry_layer(
         source=source,
         method=method,
         governing=governing,
+        related_record_ids=point_related,
         points=centers,
     ))
     observations.append(InterfaceGeometryObservation(
@@ -184,6 +187,7 @@ def _append_geometry_layer(
         source=source,
         method=method,
         governing=governing,
+        related_record_ids=interface_related,
         opening_diameter_mm=values[GovernedQuantity.OPENING_DIAMETER],
         mounting_diameter_mm=values[GovernedQuantity.MOUNTING_DIAMETER],
         mounting_centers=centers,
@@ -251,9 +255,12 @@ def extract_motor_observations(
         related=feature_related,
     )
 
-    native_parameters = {
-        node.parameter_name: float(node.value)
+    native_parameter_nodes = {
+        node.parameter_name: node
         for node in csg.nodes if node.kind == "parameter_expression"
+    }
+    native_parameters = {
+        name: float(node.value) for name, node in native_parameter_nodes.items()
     }
     native_source = _source(
         ObservationLayer.NATIVE_STATE, csg.id,
@@ -261,6 +268,25 @@ def extract_motor_observations(
     )
     if set(feature_parameters) <= set(native_parameters):
         native_quantities, native_centers = _planned_values(native_parameters)
+        native_related = {
+            quantity: (native_parameter_nodes[name].id,)
+            for name, quantity in _PARAMETER_QUANTITIES.items()
+        }
+        all_native_parameter_ids = tuple(sorted(
+            node.id for node in native_parameter_nodes.values()
+        ))
+        native_related[GovernedQuantity.VOLUME] = all_native_parameter_ids
+        center_ids = tuple(
+            native_parameter_nodes[name].id
+            for name in ("hole_spacing_x", "hole_spacing_y")
+        )
+        interface_ids = tuple(
+            native_parameter_nodes[name].id
+            for name in (
+                "shaft_opening_diameter", "mounting_hole_diameter",
+                "hole_spacing_x", "hole_spacing_y",
+            )
+        )
         _append_geometry_layer(
             observations,
             prefix=f"{csg.backend_id}.native",
@@ -269,8 +295,14 @@ def extract_motor_observations(
             centers=native_centers,
             method="native parameter/expression and solver state",
             governing=True,
+            related=native_related,
+            point_related=center_ids,
+            interface_related=interface_ids,
         )
     else:
+        unavailable_ids = tuple(sorted(
+            node.id for node in csg.nodes if node.kind == "unavailable_concept"
+        ))
         for quantity in (
             *_PARAMETER_QUANTITIES.values(), GovernedQuantity.VOLUME,
         ):
@@ -281,6 +313,7 @@ def extract_motor_observations(
                 applicability=Applicability.UNSUPPORTED,
                 method="native parameter/expression lookup",
                 reason="backend CSG explicitly reports native parametric state unavailable",
+                related_record_ids=unavailable_ids,
                 value=None,
                 unit=(
                     ObservationUnit.CUBIC_MILLIMETRE
@@ -295,6 +328,7 @@ def extract_motor_observations(
                 applicability=Applicability.UNSUPPORTED,
                 method="native constraint lookup",
                 reason="backend CSG explicitly reports native constraints unavailable",
+                related_record_ids=unavailable_ids,
             ),
             InterfaceGeometryObservation(
                 id=f"observation.{csg.backend_id}.native.interface_geometry",
@@ -302,6 +336,7 @@ def extract_motor_observations(
                 applicability=Applicability.UNSUPPORTED,
                 method="native interface lookup",
                 reason="backend CSG explicitly reports native interfaces unavailable",
+                related_record_ids=unavailable_ids,
             ),
         ))
 
@@ -367,6 +402,17 @@ def extract_motor_observations(
         GovernedQuantity.HOLE_SPACING_Y: max(ys) - min(ys),
         GovernedQuantity.VOLUME: measured["volume"],
     }
+    mount_ids = tuple(item.id for item in mounts)
+    brep_related = {
+        GovernedQuantity.PLATE_WIDTH: (solid.id,),
+        GovernedQuantity.PLATE_HEIGHT: (solid.id,),
+        GovernedQuantity.PLATE_THICKNESS: (solid.id,),
+        GovernedQuantity.OPENING_DIAMETER: (opening.id,),
+        GovernedQuantity.MOUNTING_DIAMETER: mount_ids,
+        GovernedQuantity.HOLE_SPACING_X: mount_ids,
+        GovernedQuantity.HOLE_SPACING_Y: mount_ids,
+        GovernedQuantity.VOLUME: (solid.id,),
+    }
     _append_geometry_layer(
         observations,
         prefix=f"{csg.backend_id}.brep",
@@ -379,6 +425,9 @@ def extract_motor_observations(
         centers=measured_centers,
         method="semantic B-Rep topology measurement",
         governing=True,
+        related=brep_related,
+        point_related=mount_ids,
+        interface_related=(opening.id, *mount_ids),
     )
     return ObservationSet(
         id=f"observations.{csg.backend_id}.motor.r{feature_ir.design_revision}",

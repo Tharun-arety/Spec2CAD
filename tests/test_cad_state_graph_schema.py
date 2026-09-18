@@ -281,10 +281,32 @@ def test_all_relationship_kinds_are_typed_and_provenance_resolves():
             target=_ref(csg, "topology.base_top_surface"),
         ),
         CSGRelationship(
-            id="rel.topology_interface",
+            id="rel.topology_interface.mounting.feature_ir",
             kind=RelationshipKind.CORRESPONDS_TO_INTERFACE,
             source=_ref(csg, "topology.base_top_surface"),
             target=_ref(fir, interface_id),
+            role="mounting_pattern",
+        ),
+        CSGRelationship(
+            id="rel.topology_interface.mounting.eig",
+            kind=RelationshipKind.CORRESPONDS_TO_INTERFACE,
+            source=_ref(csg, "topology.base_top_surface"),
+            target=_ref(eig_ns, "iface_motor_mount"),
+            role="mounting_pattern",
+        ),
+        CSGRelationship(
+            id="rel.topology_interface.pilot.feature_ir",
+            kind=RelationshipKind.CORRESPONDS_TO_INTERFACE,
+            source=_ref(csg, "topology.base_top_surface"),
+            target=_ref(fir, interface_id),
+            role="pilot_opening",
+        ),
+        CSGRelationship(
+            id="rel.topology_interface.pilot.eig",
+            kind=RelationshipKind.CORRESPONDS_TO_INTERFACE,
+            source=_ref(csg, "topology.base_top_surface"),
+            target=_ref(eig_ns, "iface_motor_mount"),
+            role="pilot_opening",
         ),
     )
     graph = observed_graph().model_copy(update={"relationships": relationships})

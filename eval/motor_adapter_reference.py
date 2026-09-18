@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import tempfile
@@ -145,5 +146,21 @@ def canonical_json() -> str:
     return json.dumps(build_reference(), indent=2, sort_keys=True) + "\n"
 
 
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--write", action="store_true",
+        help="replace the versioned reference with the current canonical result",
+    )
+    args = parser.parse_args(argv)
+    content = canonical_json()
+    if args.write:
+        REFERENCE.write_text(content, encoding="utf-8")
+        print(f"wrote {REFERENCE}")
+    else:
+        print(content, end="")
+    return 0
+
+
 if __name__ == "__main__":
-    print(canonical_json(), end="")
+    raise SystemExit(main())

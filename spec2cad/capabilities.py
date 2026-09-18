@@ -513,6 +513,10 @@ _reconciliation_index = next(
     if item.id == "cross_backend_reconciliation"
 )
 _reconciliation_record = CAPABILITIES[_reconciliation_index].model_copy(update={
+    "summary": (
+        "Typed cross-backend comparison plus versioned sensor matrices, bounded "
+        "fault localization and fail-closed governing consistency assessment."
+    ),
     "implementation_maturity": ImplementationMaturity.BOUNDED,
     "integration": IntegrationLevel.OPTIONAL_PIPELINE,
     "supported_backends": ("cadquery", "freecad"),
@@ -524,12 +528,14 @@ _reconciliation_record = CAPABILITIES[_reconciliation_index].model_copy(update={
         "tests/test_reconciliation_release_gate.py",
         "tests/test_r1_native_foundation_benchmark.py",
         "eval/r1_native_foundation_report.json",
+        "tests/test_r2_sensor_fault_localization_benchmark.py",
+        "eval/r2_sensor_fault_localization_report.json",
     ),
     "release_role": ReleaseRole.GOVERNING,
     "limitations": (
-        "Release-governing comparison remains motor-adapter bounded; four broader compositions have advisory solid/cylindrical cross-backend checks.",
+        "Release-governing comparison and B.R2 fault localization remain motor-adapter bounded; four broader compositions have advisory solid/cylindrical cross-backend checks, and visual inspection is not governing.",
     ),
-    "version": "1.0.0",
+    "version": "1.1.0",
 })
 CAPABILITIES = (
     *CAPABILITIES[:_reconciliation_index],
